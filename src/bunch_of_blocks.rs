@@ -23,7 +23,16 @@ impl BunchOfBlocks {
             // the min to max range of x values so that the island is a circle
             // Since z starts at 0 and goes to size * 2, we need to subtract size
             // to make it go from -size to size.
-            let s = ((size * size - (z - size) * (z - size)) as f32).sqrt() as i32;
+            let s = {
+                let size = size as f32;
+                let mut z = z as f32;
+                if z == 0. {
+                    z = 0.25;
+                } else if z == size * 2. {
+                    z = size * 2. - 0.25;
+                }
+                ((size * size - (z - size) * (z - size)) as f32).sqrt().round() as i32
+            };
             for x in -s..=s {
                 let pos = BlockPos {
                     x: pos.x + x,

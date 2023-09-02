@@ -154,7 +154,11 @@ fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mu
         //     (pos.0.z - 0.5).round() as i32,
         // );
 
-        if let Some(index) = state.blocks.iter().position(|block| block.has_reached(*pos)) {
+        if let Some(index) = state
+            .blocks
+            .iter()
+            .position(|block| block.has_reached(*pos))
+        {
             if index > 0 {
                 let power_result = 2.0f32.powf((state.combo as f32) / 45.0);
                 let max_time_taken = (1000.0f32 * (index as f32) / power_result) as u128;
@@ -220,11 +224,7 @@ fn generate_next_block(state: &mut GameState, layer: &mut ChunkLayer, in_game: b
         state.score += 1
     }
 
-    let last_pos = state
-        .blocks
-        .back()
-        .unwrap()
-        .end_pos;
+    let last_pos = state.blocks.back().unwrap().end_pos;
     let bunch = generate_random_block(last_pos, state.target_y);
 
     if last_pos.y == START_POS.y {
