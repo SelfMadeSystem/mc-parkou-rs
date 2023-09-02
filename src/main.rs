@@ -3,15 +3,16 @@
 use std::collections::VecDeque;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use bunch_of_blocks::BunchOfBlocks;
-use rand::seq::SliceRandom;
-use rand::Rng;
+use bunch_of_blocks::{BunchOfBlocks, BunchType};
+use game_state::GameState;
 use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
 use valence::spawn::IsFlat;
 
 mod block_box;
 mod bunch_of_blocks;
+mod game_state;
+mod parkour_gen_params;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const VIEW_DIST: u8 = 10;
@@ -42,15 +43,6 @@ pub fn main() {
         .run();
 }
 
-#[derive(Component)]
-struct GameState {
-    blocks: VecDeque<BunchOfBlocks>,
-    score: u32,
-    combo: u32,
-    target_y: i32,
-    last_block_timestamp: u128,
-}
-
 fn init_clients(
     mut clients: Query<
         (
@@ -78,6 +70,7 @@ fn init_clients(
 
         let state = GameState {
             blocks: VecDeque::new(),
+            prev_type: None,
             score: 0,
             combo: 0,
             target_y: 0,
@@ -100,7 +93,7 @@ fn reset_clients(
     )>,
 ) {
     for (mut client, mut pos, mut look, mut state, mut layer) in clients.iter_mut() {
-        let out_of_bounds = (pos.0.y as i32) < START_POS.y - 32;
+        let out_of_bounds = (pos.0.y as i32) < START_POS.y - 40;
 
         if out_of_bounds || state.is_added() {
             if out_of_bounds && !state.is_added() {
@@ -127,9 +120,10 @@ fn reset_clients(
                 block.remove(&mut layer)
             }
             state.blocks.clear();
-            let blocc = BunchOfBlocks::single(START_POS, BlockState::STONE);
+            let blocc = BunchOfBlocks::single(BlockPos { x: START_POS.x, y: START_POS.y + 50, z: START_POS.z }, BlockState::STONE, &*state);
             blocc.place(&mut layer);
             state.blocks.push_back(blocc);
+            state.prev_type = Some(BunchType::Single);
 
             for _ in 0..10 {
                 generate_next_block(&mut state, &mut layer, false);
@@ -137,7 +131,7 @@ fn reset_clients(
 
             pos.set([
                 START_POS.x as f64 + 0.5,
-                START_POS.y as f64 + 1.0,
+                START_POS.y as f64 + 1.0 + 50.,
                 START_POS.z as f64 + 0.5,
             ]);
             look.yaw = 0.0;
@@ -148,12 +142,6 @@ fn reset_clients(
 
 fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mut ChunkLayer)>) {
     for (mut client, pos, mut state, mut layer) in clients.iter_mut() {
-        // let pos_under_player = BlockPos::new(
-        //     (pos.0.x - 0.5).round() as i32,
-        //     pos.0.y as i32 - 1,
-        //     (pos.0.z - 0.5).round() as i32,
-        // );
-
         if let Some(index) = state
             .blocks
             .iter()
@@ -224,14 +212,18 @@ fn generate_next_block(state: &mut GameState, layer: &mut ChunkLayer, in_game: b
         state.score += 1
     }
 
-    let last_pos = state.blocks.back().unwrap().end_pos;
-    let bunch = generate_random_block(last_pos, state.target_y);
+    let next_params = &state.blocks.back().unwrap().next_params;
+    let last_pos = next_params.end_pos;
 
     if last_pos.y == START_POS.y {
         state.target_y = 0
-    } else if last_pos.y < START_POS.y - 30 || last_pos.y > START_POS.y + 30 {
+    } else if last_pos.y < START_POS.y - 20 || last_pos.y > START_POS.y + 20 {
         state.target_y = START_POS.y;
     }
+
+    let bunch = next_params.generate(&*state);
+
+    state.prev_type = Some(bunch.bunch_type);
 
     bunch.place(layer);
     state.blocks.push_back(bunch);
@@ -241,28 +233,4 @@ fn generate_next_block(state: &mut GameState, layer: &mut ChunkLayer, in_game: b
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_millis();
-}
-
-fn generate_random_block(pos: BlockPos, target_y: i32) -> BunchOfBlocks {
-    let mut rng = rand::thread_rng();
-
-    // if above or below target_y, change y to gradually reach it
-    let y = match target_y {
-        0 => rng.gen_range(-1..2),
-        y if y > pos.y => 1,
-        _ => rng.gen_range(-3..0),
-    };
-    let z = match y {
-        1 => rng.gen_range(1..3),
-        y if y < 0 => rng.gen_range(1..4) - y,
-        _ => rng.gen_range(1..4),
-    };
-    let x = rng.gen_range(-3..4);
-
-    let pos = BlockPos::new(pos.x + x, pos.y + y, pos.z + z);
-
-    if rng.gen_bool(0.1) {
-        return BunchOfBlocks::island(pos, rng.gen_range(1..5));
-    }
-    BunchOfBlocks::single(pos, *BLOCK_TYPES.choose(&mut rng).unwrap())
 }
