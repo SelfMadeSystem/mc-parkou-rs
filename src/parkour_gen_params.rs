@@ -35,7 +35,23 @@ impl ParkourGenParams {
             y if y < 0 => rng.gen_range(1..4) - (y - 1) / 2,
             _ => rng.gen_range(1..4),
         };
-        let x = rng.gen_range(-3..4);
+        let x = rng.gen_range(-3..=3);
+        Self {
+            end_pos: pos,
+            next_pos: BlockPos {
+                x: pos.x + x,
+                y: pos.y + y,
+                z: pos.z + z,
+            },
+        }
+    }
+
+    pub fn fall(pos: BlockPos) -> Self {
+        let mut rng = rand::thread_rng();
+
+        let z = rng.gen_range(1..4);
+        let x = rng.gen_range(-3..=3);
+        let y = -((z * z + x * x) as f32).sqrt() as i32 * 2;
         Self {
             end_pos: pos,
             next_pos: BlockPos {

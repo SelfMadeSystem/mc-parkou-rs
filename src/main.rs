@@ -26,6 +26,16 @@ const BLOCK_TYPES: [BlockState; 7] = [
     BlockState::MOSS_BLOCK,
 ];
 
+// (block, slab)
+const SLAB_TYPES: [(BlockState, BlockState); 6] = [
+    (BlockState::STONE, BlockState::STONE_SLAB),
+    (BlockState::COBBLESTONE, BlockState::COBBLESTONE_SLAB),
+    (BlockState::MOSSY_COBBLESTONE, BlockState::MOSSY_COBBLESTONE_SLAB),
+    (BlockState::STONE_BRICKS, BlockState::STONE_BRICK_SLAB),
+    (BlockState::OAK_PLANKS, BlockState::OAK_SLAB),
+    (BlockState::SPRUCE_PLANKS, BlockState::SPRUCE_SLAB),
+];
+
 pub fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
@@ -119,7 +129,7 @@ fn reset_clients(
                 block.remove(&mut layer)
             }
             state.blocks.clear();
-            let blocc = BunchOfBlocks::single(BlockPos { x: START_POS.x, y: START_POS.y + 50, z: START_POS.z }, BlockState::STONE, &*state);
+            let blocc = BunchOfBlocks::single(START_POS, BlockState::STONE, &*state);
             blocc.place(&mut layer);
             state.blocks.push_back(blocc);
             state.prev_type = Some(BunchType::Single);
@@ -130,7 +140,7 @@ fn reset_clients(
 
             pos.set([
                 START_POS.x as f64 + 0.5,
-                START_POS.y as f64 + 51.0,
+                START_POS.y as f64 + 1.0,
                 START_POS.z as f64 + 0.5,
             ]);
             look.yaw = 0.0;
