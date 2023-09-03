@@ -1,7 +1,10 @@
 use rand::Rng;
 use valence::prelude::*;
 
-use crate::{bunch_of_blocks::{BunchOfBlocks, BunchType}, game_state::GameState};
+use crate::{
+    bunch_of_blocks::{BunchOfBlocks, BunchType},
+    game_state::GameState,
+};
 
 /// The parameters to generate the nex bunch of blocks.
 pub struct ParkourGenParams {
@@ -29,7 +32,7 @@ impl ParkourGenParams {
         };
         let z = match y {
             1 => rng.gen_range(1..3),
-            y if y < 0 => rng.gen_range(1..4) - y,
+            y if y < 0 => rng.gen_range(1..4) - (y - 1) / 2,
             _ => rng.gen_range(1..4),
         };
         let x = rng.gen_range(-3..4);
@@ -44,25 +47,6 @@ impl ParkourGenParams {
     }
 
     pub fn generate(&self, state: &GameState) -> BunchOfBlocks {
-        match state.target_y {
-            0 => {
-                BunchType::random().generate(
-                    self,
-                    &state,
-                )
-            }
-            y if y > self.next_pos.y => {
-                BunchType::random_up().generate(
-                    self,
-                    &state,
-                )
-            }
-            _ => {
-                BunchType::random_down().generate(
-                    self,
-                    &state,
-                )
-            }
-        }
+        BunchType::random(self.next_pos, state).generate(self, state)
     }
 }

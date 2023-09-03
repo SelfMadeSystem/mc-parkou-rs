@@ -76,13 +76,17 @@ impl BunchOfBlocks {
         let mut blocks = vec![];
         let mut rng = rand::thread_rng();
 
-        let dist = match state.prev_type {
-            Some(BunchType::SlimeJump) => rng.gen_range(3..6),
-            _ => rng.gen_range(6..8),
+        let ydist = match state.prev_type {
+            Some(BunchType::SlimeJump) => rng.gen_range(3..=6),
+            _ => rng.gen_range(2..=10),
         };
-        println!("dist: {}", dist);
+
+        let dist = match state.prev_type {
+            Some(BunchType::SlimeJump) => rng.gen_range(2..=ydist) - 1,
+            _ => rng.gen_range(6..ydist.max(10)) - 4,
+        };
         slime_pos.z += dist;
-        slime_pos.y -= 10;
+        slime_pos.y -= ydist;
 
         for x in -1..=1 {
             for z in -1..=1 {
@@ -99,7 +103,7 @@ impl BunchOfBlocks {
             blocks,
             next_params: ParkourGenParams::exact(BlockPos {
                 x: pos.x,
-                y: pos.y - 5,
+                y: pos.y - ydist / 2,
                 z: pos.z
                     + dist
                     + match state.prev_type {
@@ -109,6 +113,48 @@ impl BunchOfBlocks {
                     - 1,
             }),
             bunch_type: BunchType::SlimeJump,
+        }
+    }
+
+    pub fn head_jump(pos: BlockPos, state: &GameState) -> Self {
+        let mut rng = rand::thread_rng();
+        if matches!(state.prev_type, Some(BunchType::SlimeJump)) {
+            return Self::single(pos, *BLOCK_TYPES.choose(&mut rng).unwrap(), state);
+        // head jumps can't be after slime jumps
+        } else {
+            let mut blocks = vec![];
+            let block_type = *BLOCK_TYPES.choose(&mut rng).unwrap();
+
+            blocks.push((
+                BlockPos {
+                    x: pos.x,
+                    y: pos.y,
+                    z: pos.z + 2,
+                },
+                block_type,
+            ));
+
+            blocks.push((
+                BlockPos {
+                    x: pos.x,
+                    y: pos.y + 3,
+                    z: pos.z + 1,
+                },
+                block_type,
+            ));
+
+            return Self {
+                blocks,
+                next_params: ParkourGenParams::basic_jump(
+                    BlockPos {
+                        x: pos.x,
+                        y: pos.y,
+                        z: pos.z + 2,
+                    },
+                    state,
+                ),
+                bunch_type: BunchType::Single,
+            };
         }
     }
 
@@ -158,6 +204,7 @@ pub enum BunchType {
     Single,
     Island,
     SlimeJump,
+    HeadJump,
 }
 
 impl BunchType {
@@ -172,16 +219,34 @@ impl BunchType {
             ),
             Self::Island => BunchOfBlocks::island(params.next_pos, rng.gen_range(1..5), state),
             Self::SlimeJump => BunchOfBlocks::slime_jump(params.end_pos, state),
+            Self::HeadJump => BunchOfBlocks::head_jump(params.end_pos, state),
         }
     }
 
-    pub fn random() -> Self {
+    pub fn random(pos: BlockPos, state: &GameState) -> Self {
+        match state.target_y {
+            0 => BunchType::random_any(state),
+            y if y > pos.y => BunchType::random_up(),
+            _ => BunchType::random_down(state),
+        }
+    }
+
+    pub fn random_any(state: &GameState) -> Self {
         let mut rng = rand::thread_rng();
 
-        match rng.gen_range(0..3) {
+        if matches!(state.prev_type, Some(BunchType::SlimeJump)) {
+            return match rng.gen_range(0..3) {
+                0 => Self::Single,
+                1 => Self::Island,
+                _ => Self::HeadJump,
+            };
+        }
+
+        match rng.gen_range(0..4) {
             0 => Self::Single,
             1 => Self::Island,
-            _ => Self::SlimeJump,
+            2 => Self::SlimeJump,
+            _ => Self::HeadJump,
         }
     }
 
@@ -194,11 +259,15 @@ impl BunchType {
         }
     }
 
-    pub fn random_down() -> Self {
+    pub fn random_down(state: &GameState) -> Self {
+        if matches!(state.prev_type, Some(BunchType::SlimeJump)) {
+            return Self::Single;
+        }
+
         let mut rng = rand::thread_rng();
 
         match rng.gen_range(0..2) {
-            // 0 => Self::Single,
+            0 => Self::Single,
             _ => Self::SlimeJump,
         }
     }

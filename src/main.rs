@@ -9,7 +9,6 @@ use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
 use valence::spawn::IsFlat;
 
-mod block_box;
 mod bunch_of_blocks;
 mod game_state;
 mod parkour_gen_params;
@@ -64,7 +63,7 @@ fn init_clients(
     {
         visible_chunk_layer.0 = entity;
         is_flat.0 = true;
-        *game_mode = GameMode::Creative;
+        *game_mode = GameMode::Adventure;
 
         client.send_chat_message("Welcome to epic infinite parkour game!".italic());
 
@@ -131,7 +130,7 @@ fn reset_clients(
 
             pos.set([
                 START_POS.x as f64 + 0.5,
-                START_POS.y as f64 + 1.0 + 50.,
+                START_POS.y as f64 + 51.0,
                 START_POS.z as f64 + 0.5,
             ]);
             look.yaw = 0.0;
