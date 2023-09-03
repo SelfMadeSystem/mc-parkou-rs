@@ -1,12 +1,12 @@
 use rand::{seq::SliceRandom, Rng};
-use valence::prelude::*;
+use valence::{prelude::*, layer::chunk::IntoBlock};
 
 use crate::{game_state::GameState, parkour_gen_params::ParkourGenParams, BLOCK_TYPES, SLAB_TYPES};
 
 /// A bunch of blocks that are spawned at once.
 pub struct BunchOfBlocks {
     /// The blocks that are spawned.
-    blocks: Vec<(BlockPos, BlockState)>,
+    blocks: Vec<(BlockPos, Block)>,
     /// The gen params for the next bunch of blocks.
     pub next_params: ParkourGenParams,
     /// Type of the bunch.
@@ -15,9 +15,9 @@ pub struct BunchOfBlocks {
 
 impl BunchOfBlocks {
     /// Creates a single block jump.
-    pub fn single(pos: BlockPos, block: BlockState, state: &GameState) -> Self {
+    pub fn single(pos: BlockPos, block: impl IntoBlock, state: &GameState) -> Self {
         Self {
-            blocks: vec![(pos, block)],
+            blocks: vec![(pos, block.into_block())],
             next_params: ParkourGenParams::basic_jump(pos, state),
             bunch_type: BunchType::Single,
         }
@@ -51,11 +51,7 @@ impl BunchOfBlocks {
                 };
                 blocks.push((
                     pos,
-                    if x == 0 && z == 0 {
-                        BlockState::STONE
-                    } else {
-                        BlockState::GRASS_BLOCK
-                    },
+                    BlockState::GRASS_BLOCK.into_block(),
                 ));
             }
         }
@@ -87,7 +83,7 @@ impl BunchOfBlocks {
                     y: pos.y + 3,
                     z: pos.z + 1,
                 },
-                block_type,
+                block_type.into_block(),
             ));
         }
 
@@ -98,7 +94,7 @@ impl BunchOfBlocks {
                     y: pos.y,
                     z: pos.z,
                 },
-                block_type,
+                block_type.into_block(),
             ));
         }
 
@@ -127,7 +123,7 @@ impl BunchOfBlocks {
                         y: pos.y + y,
                         z: pos.z + y * 2,
                     },
-                    block,
+                    block.into_block(),
                 ));
 
                 if y > 0 {
@@ -137,7 +133,15 @@ impl BunchOfBlocks {
                             y: pos.y + y,
                             z: pos.z + y * 2 - 1,
                         },
-                        slab,
+                        slab.into_block(),
+                    ));
+                    blocks.push((
+                        BlockPos {
+                            x: pos.x + x,
+                            y: pos.y + y - 1,
+                            z: pos.z + y * 2 - 1,
+                        },
+                        slab.set(PropName::Type, PropValue::Top).into_block()
                     ));
                 }
             }
@@ -158,30 +162,30 @@ impl BunchOfBlocks {
 
     pub fn place(&self, world: &mut ChunkLayer) {
         for (pos, block) in &self.blocks {
-            world.set_block(*pos, *block);
+            world.set_block(*pos, block.clone());
         }
 
         // debug only
-        world.set_block(
-            self.next_params.end_pos.get_in_direction(Direction::Up),
-            BlockState::RAIL,
-        );
-        world.set_block(
-            self.next_params.next_pos.get_in_direction(Direction::Up),
-            BlockState::REDSTONE_WIRE,
-        );
+        // world.set_block(
+        //     self.next_params.end_pos.get_in_direction(Direction::Up),
+        //     BlockState::RAIL.into_block(),
+        // );
+        // world.set_block(
+        //     self.next_params.next_pos.get_in_direction(Direction::Up),
+        //     BlockState::REDSTONE_WIRE.into_block(),
+        // );
 
-        if self.next_params.end_pos == self.next_params.next_pos {
-            world.set_block(
-                self.next_params.end_pos.get_in_direction(Direction::Up),
-                BlockState::GRASS,
-            );
-        }
+        // if self.next_params.end_pos == self.next_params.next_pos {
+        //     world.set_block(
+        //         self.next_params.end_pos.get_in_direction(Direction::Up),
+        //         BlockState::GRASS.into_block(),
+        //     );
+        // }
     }
 
     pub fn remove(&self, world: &mut ChunkLayer) {
         for (pos, _) in &self.blocks {
-            world.set_block(*pos, BlockState::AIR);
+            world.set_block(*pos, BlockState::AIR.into_block());
         }
     }
 
