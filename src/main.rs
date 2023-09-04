@@ -11,32 +11,10 @@ use valence::spawn::IsFlat;
 mod bunch_of_blocks;
 mod game_state;
 mod parkour_gen_params;
+mod block_types;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const VIEW_DIST: u8 = 10;
-
-const BLOCK_TYPES: [BlockState; 7] = [
-    BlockState::GRASS_BLOCK,
-    BlockState::OAK_LOG,
-    BlockState::BIRCH_LOG,
-    BlockState::OAK_LEAVES,
-    BlockState::BIRCH_LEAVES,
-    BlockState::DIRT,
-    BlockState::MOSS_BLOCK,
-];
-
-// (block, slab)
-const SLAB_TYPES: [(BlockState, BlockState); 6] = [
-    (BlockState::STONE, BlockState::STONE_SLAB),
-    (BlockState::COBBLESTONE, BlockState::COBBLESTONE_SLAB),
-    (
-        BlockState::MOSSY_COBBLESTONE,
-        BlockState::MOSSY_COBBLESTONE_SLAB,
-    ),
-    (BlockState::STONE_BRICKS, BlockState::STONE_BRICK_SLAB),
-    (BlockState::OAK_PLANKS, BlockState::OAK_SLAB),
-    (BlockState::SPRUCE_PLANKS, BlockState::SPRUCE_SLAB),
-];
 
 pub fn main() {
     App::new()

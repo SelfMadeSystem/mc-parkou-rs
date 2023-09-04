@@ -2,7 +2,7 @@ use noise::{utils::*, Fbm, SuperSimplex};
 use rand::{seq::SliceRandom, Rng};
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
-use crate::{game_state::GameState, parkour_gen_params::ParkourGenParams, BLOCK_TYPES, SLAB_TYPES};
+use crate::{block_types::*, game_state::GameState, parkour_gen_params::ParkourGenParams};
 
 /// A bunch of blocks that are spawned at once.
 pub struct BunchOfBlocks {
@@ -26,6 +26,23 @@ impl BunchOfBlocks {
 
     // Creates an island of blocks. Right now, it's just a circle.
     pub fn island(pos: BlockPos, size: i32, state: &GameState) -> Self {
+        fn get_x_radius(size: i32, z: i32) -> i32 {
+            let size = size as f32;
+            let mut z = z as f32;
+            if z == -size {
+                z = 0.25 - size;
+            } else if z == size {
+                z = size - 0.25;
+            }
+            (size * size - z * z).sqrt().round() as i32
+        }
+
+        fn get_dist_to_center(x: i32, z: i32) -> f32 {
+            let x = x as f32;
+            let z = z as f32;
+            (x * x + z * z).sqrt()
+        }
+
         let mut blocks = vec![];
 
         let mut rng = rand::thread_rng();
@@ -47,30 +64,53 @@ impl BunchOfBlocks {
             (map.get_value(z as usize, (x + map.size().1 as i32 / 2) as usize) * 5.0).round() as i32
         }
 
-        let min = get_height(&map, 0, 0).min(get_height(&map, 0, size * 2));
+        let (avg_end_height, (max_end_height, max_end_height_x), (min_start, min_start_x)) = {
+            let mut sum = 0;
+            let mut max = i32::MIN;
+            let mut max_x = 0i32;
+
+            let mut min = i32::MAX;
+            let mut min_x = 0i32;
+
+            let z = size * 2;
+
+            let s = get_x_radius(size, z - size);
+
+            for x in -s..=s {
+                {
+                    let y = get_height(&map, x, z);
+
+                    sum += y;
+
+                    if y > max || (y == max && x.abs() < max_x.abs()) {
+                        max = y;
+                        max_x = x;
+                    }
+                }
+
+                {
+                    let y = get_height(&map, x, 0);
+
+                    if y < min || (y == min && x.abs() < min_x.abs()) {
+                        min = y;
+                        min_x = x;
+                    }
+                }
+            }
+
+            (sum / (s * 2 + 1), (max, max_x), (min, min_x))
+        };
 
         let pos = BlockPos {
-            x: pos.x,
-            y: pos.y - get_height(&map, 0, 0),
+            x: pos.x - min_start_x,
+            y: pos.y - min_start,
             z: pos.z,
         };
 
+        let mut min_y = i32::MAX;
+
         for z in 0..=size * 2 {
-            // the min to max range of x values so that the island is a circle
-            // Since z starts at 0 and goes to size * 2, we need to subtract size
-            // to make it go from -size to size.
-            let s = {
-                let size = size as f32;
-                let mut z = z as f32;
-                if z == 0. {
-                    z = 0.25;
-                } else if z == size * 2. {
-                    z = size * 2. - 0.25;
-                }
-                ((size * size - (z - size) * (z - size)) as f32)
-                    .sqrt()
-                    .round() as i32
-            };
+            let s = get_x_radius(size, z - size);
             for x in -s..=s {
                 let y = get_height(&map, x, z);
 
@@ -80,8 +120,8 @@ impl BunchOfBlocks {
                     z: pos.z + z,
                 };
 
-                if y < min {
-                    for y in 1..=(min - y) {
+                if y < avg_end_height {
+                    for y in 1..=(avg_end_height - y) {
                         let pos = BlockPos {
                             x: pos.x,
                             y: pos.y + y,
@@ -95,20 +135,56 @@ impl BunchOfBlocks {
                     blocks.push((pos, BlockState::GRASS_BLOCK.into_block()));
                 }
 
-                for y in -8..0 {
+                {
                     let pos = BlockPos {
                         x: pos.x,
-                        y: pos.y + y,
+                        y: pos.y - 1,
                         z: pos.z,
                     };
-                    blocks.push((pos, BlockState::STONE.into_block()));
+                    blocks.push((pos, BlockState::DIRT.into_block()));
+                }
+
+                if y < min_y {
+                    min_y = y;
+                }
+            }
+        }
+
+        let pow = rng.gen_range(1f32..1.75f32);
+
+        for z in 0..=size * 2 {
+            let s = get_x_radius(size, z - size);
+            for x in -s..=s {
+                let dist = get_dist_to_center(x, z - size);
+
+                let y = get_height(&map, x, z);
+
+                let mut down_to = min_y - (size as f32 - dist + 1.).powf(pow).round() as i32;
+
+                down_to += (((y - min_y) as f32) * (dist / size as f32).powf(2.)) as i32;
+
+                if down_to < y {
+                    for y in down_to..y {
+                        let pos = BlockPos {
+                            x: pos.x + x,
+                            y: pos.y + y - 1,
+                            z: pos.z + z,
+                        };
+                        blocks.push((
+                            pos,
+                            UNDERGROUND_BLOCK_TYPES
+                                .choose(&mut rng)
+                                .unwrap()
+                                .into_block(),
+                        ));
+                    }
                 }
             }
         }
 
         let end_pos = BlockPos {
-            x: pos.x,
-            y: pos.y + get_height(&map, 0, size * 2),
+            x: pos.x + max_end_height_x,
+            y: pos.y + max_end_height,
             z: pos.z + size * 2,
         };
 
@@ -124,7 +200,7 @@ impl BunchOfBlocks {
         let mut rng = rand::thread_rng();
 
         let mut blocks = vec![];
-        let block_type = *BLOCK_TYPES.choose(&mut rng).unwrap();
+        let block_type = *GENERIC_BLOCK_TYPES.choose(&mut rng).unwrap();
 
         for x in -2..=2 {
             blocks.push((
@@ -266,7 +342,7 @@ impl BunchType {
         match self {
             Self::Single => BunchOfBlocks::single(
                 params.next_pos,
-                *BLOCK_TYPES.choose(&mut rng).unwrap(),
+                *GENERIC_BLOCK_TYPES.choose(&mut rng).unwrap(),
                 state,
             ),
             Self::Island => BunchOfBlocks::island(params.next_pos, rng.gen_range(2..8), state),
