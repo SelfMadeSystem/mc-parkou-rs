@@ -1,4 +1,4 @@
-use noise::{utils::*, Fbm, Perlin};
+use noise::{utils::*, Fbm, SuperSimplex};
 use rand::{seq::SliceRandom, Rng};
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
@@ -30,7 +30,7 @@ impl BunchOfBlocks {
 
         let mut rng = rand::thread_rng();
 
-        let mut fbm = Fbm::<Perlin>::new(rng.gen());
+        let mut fbm = Fbm::<SuperSimplex>::new(rng.gen());
         fbm.octaves = 4;
         fbm.frequency = 0.5;
         fbm.persistence = 0.5;
@@ -44,7 +44,7 @@ impl BunchOfBlocks {
             .build();
 
         fn get_height(map: &NoiseMap, x: i32, z: i32) -> i32 {
-            (map.get_value(z as usize, (x + map.size().1 as i32 / 2) as usize) * 3.0).round() as i32
+            (map.get_value(z as usize, (x + map.size().1 as i32 / 2) as usize) * 5.0).round() as i32
         }
 
         let min = get_height(&map, 0, 0).min(get_height(&map, 0, size * 2));
@@ -93,6 +93,15 @@ impl BunchOfBlocks {
                     blocks.push((pos, BlockState::DIRT.into_block()));
                 } else {
                     blocks.push((pos, BlockState::GRASS_BLOCK.into_block()));
+                }
+
+                for y in -8..0 {
+                    let pos = BlockPos {
+                        x: pos.x,
+                        y: pos.y + y,
+                        z: pos.z,
+                    };
+                    blocks.push((pos, BlockState::STONE.into_block()));
                 }
             }
         }
