@@ -4,14 +4,17 @@ use std::collections::VecDeque;
 
 use bunch_of_blocks::{BunchOfBlocks, BunchType};
 use game_state::GameState;
+use prediction::player_state::PlayerState;
+use rand::Rng;
 use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
 use valence::spawn::IsFlat;
 
+mod block_types;
 mod bunch_of_blocks;
 mod game_state;
 mod parkour_gen_params;
-mod block_types;
+mod prediction;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const VIEW_DIST: u8 = 10;
@@ -29,9 +32,7 @@ pub fn main() {
                 despawn_disconnected_clients,
             ),
         )
-        .add_systems(EventLoopUpdate, (
-            detect_stop_running,
-        ))
+        .add_systems(EventLoopUpdate, (detect_stop_running,))
         .run();
 }
 
@@ -67,6 +68,20 @@ fn init_clients(
             combo: 0,
             target_y: 0,
             stopped_running: false,
+            prev_pos: DVec3::new(
+                START_POS.x as f64 + 0.5,
+                START_POS.y as f64 + 1.0,
+                START_POS.z as f64 + 0.5,
+            ),
+            test_state: PlayerState::new(
+                DVec3::new(
+                    START_POS.x as f64 + 0.5,
+                    START_POS.y as f64 + 1.0,
+                    START_POS.z as f64 + 0.5,
+                ),
+                DVec3::ZERO,
+                0.0,
+            ),
         };
 
         let layer = ChunkLayer::new(ident!("overworld"), &dimensions, &biomes, &server);
@@ -85,6 +100,37 @@ fn reset_clients(
     )>,
 ) {
     for (mut client, mut pos, mut look, mut state, mut layer) in clients.iter_mut() {
+        state.test_state.yaw = look.yaw / 180.0 * std::f32::consts::PI;
+        state.test_state.vel = pos.0 - state.prev_pos;
+        if state.test_state.vel.y == 0. {
+            if state.test_state.vel.x == 0. && state.test_state.vel.z == 0. {
+                state.test_state.vel.x = -0.215 * state.test_state.yaw.sin() as f64;
+                state.test_state.vel.z = 0.215 * state.test_state.yaw.cos() as f64;
+            }
+            state.test_state.vel.y = 0.42f32 as f64;
+        }
+        state.test_state.pos = pos.0;
+        state.prev_pos = pos.0;
+
+        let mut rng = rand::thread_rng();
+        let rgb = Vec3::new(
+            rng.gen_range(0f32..1f32),
+            rng.gen_range(0f32..1f32),
+            rng.gen_range(0f32..1f32),
+        );
+
+        for _ in 0..32 {
+            client.play_particle(
+                &Particle::Dust { rgb, scale: 1. },
+                false,
+                state.test_state.pos,
+                Vec3::ZERO,
+                0.0,
+                1,
+            );
+            state.test_state.tick();
+        }
+
         let out_of_bounds = (pos.0.y as i32) < START_POS.y - 40;
 
         if out_of_bounds || state.is_added() {
@@ -132,10 +178,7 @@ fn reset_clients(
     }
 }
 
-fn detect_stop_running(
-    mut event: EventReader<SprintEvent>,
-    mut clients: Query<&mut GameState>,
-) {
+fn detect_stop_running(mut event: EventReader<SprintEvent>, mut clients: Query<&mut GameState>) {
     for mut state in clients.iter_mut() {
         if let Some(event) = event.iter().next() {
             if matches!(event.state, SprintState::Stop) {
