@@ -1,7 +1,6 @@
 #![allow(clippy::type_complexity)]
 
 use std::collections::VecDeque;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use bunch_of_blocks::{BunchOfBlocks, BunchType};
 use game_state::GameState;
@@ -30,7 +29,10 @@ const BLOCK_TYPES: [BlockState; 7] = [
 const SLAB_TYPES: [(BlockState, BlockState); 6] = [
     (BlockState::STONE, BlockState::STONE_SLAB),
     (BlockState::COBBLESTONE, BlockState::COBBLESTONE_SLAB),
-    (BlockState::MOSSY_COBBLESTONE, BlockState::MOSSY_COBBLESTONE_SLAB),
+    (
+        BlockState::MOSSY_COBBLESTONE,
+        BlockState::MOSSY_COBBLESTONE_SLAB,
+    ),
     (BlockState::STONE_BRICKS, BlockState::STONE_BRICK_SLAB),
     (BlockState::OAK_PLANKS, BlockState::OAK_SLAB),
     (BlockState::SPRUCE_PLANKS, BlockState::SPRUCE_SLAB),
@@ -49,6 +51,9 @@ pub fn main() {
                 despawn_disconnected_clients,
             ),
         )
+        .add_systems(EventLoopUpdate, (
+            detect_stop_running,
+        ))
         .run();
 }
 
@@ -83,7 +88,7 @@ fn init_clients(
             score: 0,
             combo: 0,
             target_y: 0,
-            last_block_timestamp: 0,
+            stopped_running: false,
         };
 
         let layer = ChunkLayer::new(ident!("overworld"), &dimensions, &biomes, &server);
@@ -149,6 +154,19 @@ fn reset_clients(
     }
 }
 
+fn detect_stop_running(
+    mut event: EventReader<SprintEvent>,
+    mut clients: Query<&mut GameState>,
+) {
+    for mut state in clients.iter_mut() {
+        if let Some(event) = event.iter().next() {
+            if matches!(event.state, SprintState::Stop) {
+                state.stopped_running = true;
+            }
+        }
+    }
+}
+
 fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mut ChunkLayer)>) {
     for (mut client, pos, mut state, mut layer) in clients.iter_mut() {
         if let Some(index) = state
@@ -157,18 +175,10 @@ fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mu
             .position(|block| block.has_reached(*pos))
         {
             if index > 0 {
-                let power_result = 2.0f32.powf((state.combo as f32) / 45.0);
-                let max_time_taken = (1000.0f32 * (index as f32) / power_result) as u128;
-
-                let current_time_millis = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis();
-
-                if current_time_millis - state.last_block_timestamp < max_time_taken {
-                    state.combo += index as u32
-                } else {
+                if state.stopped_running {
                     state.combo = 0
+                } else {
+                    state.combo += index as u32
                 }
 
                 for _ in 0..index {
@@ -238,8 +248,5 @@ fn generate_next_block(state: &mut GameState, layer: &mut ChunkLayer, in_game: b
     state.blocks.push_back(bunch);
 
     // Combo System
-    state.last_block_timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
+    state.stopped_running = false;
 }

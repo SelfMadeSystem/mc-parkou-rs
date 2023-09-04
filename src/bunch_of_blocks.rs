@@ -1,5 +1,6 @@
+use noise::{utils::*, Fbm, Perlin};
 use rand::{seq::SliceRandom, Rng};
-use valence::{prelude::*, layer::chunk::IntoBlock};
+use valence::{layer::chunk::IntoBlock, prelude::*};
 
 use crate::{game_state::GameState, parkour_gen_params::ParkourGenParams, BLOCK_TYPES, SLAB_TYPES};
 
@@ -27,6 +28,33 @@ impl BunchOfBlocks {
     pub fn island(pos: BlockPos, size: i32, state: &GameState) -> Self {
         let mut blocks = vec![];
 
+        let mut rng = rand::thread_rng();
+
+        let mut fbm = Fbm::<Perlin>::new(rng.gen());
+        fbm.octaves = 4;
+        fbm.frequency = 0.5;
+        fbm.persistence = 0.5;
+        fbm.lacunarity = 2.;
+        let a = size as f64 / 10.;
+        let map: NoiseMap = PlaneMapBuilder::<_, 2>::new(&fbm)
+            .set_size((size * 2 + 1) as usize, (size * 2 + 1) as usize)
+            .set_x_bounds(-a, a)
+            .set_y_bounds(-a, a)
+            .set_is_seamless(true)
+            .build();
+
+        fn get_height(map: &NoiseMap, x: i32, z: i32) -> i32 {
+            (map.get_value(z as usize, (x + map.size().1 as i32 / 2) as usize) * 3.0).round() as i32
+        }
+
+        let min = get_height(&map, 0, 0).min(get_height(&map, 0, size * 2));
+
+        let pos = BlockPos {
+            x: pos.x,
+            y: pos.y - get_height(&map, 0, 0),
+            z: pos.z,
+        };
+
         for z in 0..=size * 2 {
             // the min to max range of x values so that the island is a circle
             // Since z starts at 0 and goes to size * 2, we need to subtract size
@@ -44,21 +72,34 @@ impl BunchOfBlocks {
                     .round() as i32
             };
             for x in -s..=s {
+                let y = get_height(&map, x, z);
+
                 let pos = BlockPos {
                     x: pos.x + x,
-                    y: pos.y,
+                    y: pos.y + y,
                     z: pos.z + z,
                 };
-                blocks.push((
-                    pos,
-                    BlockState::GRASS_BLOCK.into_block(),
-                ));
+
+                if y < min {
+                    for y in 1..=(min - y) {
+                        let pos = BlockPos {
+                            x: pos.x,
+                            y: pos.y + y,
+                            z: pos.z,
+                        };
+                        blocks.push((pos, BlockState::WATER.into_block()));
+                    }
+
+                    blocks.push((pos, BlockState::DIRT.into_block()));
+                } else {
+                    blocks.push((pos, BlockState::GRASS_BLOCK.into_block()));
+                }
             }
         }
 
         let end_pos = BlockPos {
             x: pos.x,
-            y: pos.y,
+            y: pos.y + get_height(&map, 0, size * 2),
             z: pos.z + size * 2,
         };
 
@@ -141,7 +182,7 @@ impl BunchOfBlocks {
                             y: pos.y + y - 1,
                             z: pos.z + y * 2 - 1,
                         },
-                        slab.set(PropName::Type, PropValue::Top).into_block()
+                        slab.set(PropName::Type, PropValue::Top).into_block(),
                     ));
                 }
             }
@@ -219,7 +260,7 @@ impl BunchType {
                 *BLOCK_TYPES.choose(&mut rng).unwrap(),
                 state,
             ),
-            Self::Island => BunchOfBlocks::island(params.next_pos, rng.gen_range(1..5), state),
+            Self::Island => BunchOfBlocks::island(params.next_pos, rng.gen_range(2..8), state),
             Self::HeadJump => BunchOfBlocks::head_jump(params.end_pos, state),
             Self::RunUp => BunchOfBlocks::run_up(params.next_pos, state, rng.gen_range(2..5)),
         }

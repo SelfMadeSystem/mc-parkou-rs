@@ -11,5 +11,5 @@ pub struct GameState {
     pub score: u32,
     pub combo: u32,
     pub target_y: i32,
-    pub last_block_timestamp: u128,
+    pub stopped_running: bool,
 }
