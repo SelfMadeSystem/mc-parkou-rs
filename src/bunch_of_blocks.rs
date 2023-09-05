@@ -196,11 +196,20 @@ impl BunchOfBlocks {
     }
 
     /// Creates a head jump.
-    pub fn head_jump(pos: BlockPos, state: &GameState) -> Self {
+    pub fn head_jump(mut pos: BlockPos, state: &GameState) -> Self {
         let mut rng = rand::thread_rng();
 
         let mut blocks = vec![];
         let block_type = *GENERIC_BLOCK_TYPES.choose(&mut rng).unwrap();
+
+        if matches!(state.prev_type, Some(BunchType::HeadJump)) {
+            pos.z += 2;
+
+            blocks.push((
+                pos,
+                block_type.into_block(),
+            ));
+        }
 
         for x in -2..=2 {
             blocks.push((
@@ -213,24 +222,9 @@ impl BunchOfBlocks {
             ));
         }
 
-        if matches!(state.prev_type, Some(BunchType::HeadJump)) {
-            blocks.push((
-                BlockPos {
-                    x: pos.x,
-                    y: pos.y,
-                    z: pos.z,
-                },
-                block_type.into_block(),
-            ));
-        }
-
         return Self {
             blocks,
-            next_params: ParkourGenParams::fall(BlockPos {
-                x: pos.x,
-                y: pos.y,
-                z: pos.z + 2,
-            }),
+            next_params: ParkourGenParams::fall(pos),
             bunch_type: BunchType::HeadJump,
         };
     }
@@ -362,10 +356,10 @@ impl BunchType {
     pub fn random_any(_state: &GameState) -> Self {
         let mut rng = rand::thread_rng();
 
-        match rng.gen_range(0..3) {
+        match rng.gen_range(0..4) {
             0 => Self::Single,
             1 => Self::Island,
-            // 2 => Self::HeadJump,
+            2 => Self::HeadJump,
             _ => Self::RunUp,
         }
     }
@@ -383,7 +377,7 @@ impl BunchType {
         let mut rng = rand::thread_rng();
 
         match rng.gen_range(0..2) {
-            // 0 => Self::HeadJump,
+            0 => Self::HeadJump,
             _ => Self::Single,
         }
     }

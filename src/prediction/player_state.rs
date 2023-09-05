@@ -1,6 +1,7 @@
-use valence::{prelude::DVec3, BlockPos};
+use rand::Rng;
+use valence::{prelude::{DVec3, Vec3, Client}, BlockPos, protocol::Particle};
 
-use crate::utils::get_edge_of_block;
+use crate::utils::{get_edge_of_block, get_edge_of_block_dist};
 
 /*
  * Jump: net.minecraft.world.entity.LivingEntity: line ~1950
@@ -35,12 +36,22 @@ pub struct PlayerState {
     pub pos: DVec3,
     pub vel: DVec3,
     pub yaw: f32, // pitch doesn't matter for movement
+    color: Vec3,
 }
 
 /// A player's state at a given point in time.
 impl PlayerState {
     pub fn new(pos: DVec3, vel: DVec3, yaw: f32) -> Self {
-        Self { pos, vel, yaw }
+        Self { 
+            pos,
+            vel,
+            yaw,
+            color: Vec3::new(
+                rand::thread_rng().gen_range(0f32..1f32),
+                rand::thread_rng().gen_range(0f32..1f32),
+                rand::thread_rng().gen_range(0f32..1f32),
+            ),
+         }
     }
 
     pub fn running_jump(block_pos: BlockPos, yaw: f32) -> Self {
@@ -53,11 +64,15 @@ impl PlayerState {
     }
 
     pub fn head_hit_jump(block_pos: BlockPos, yaw: f32) -> Self {
-        let mut state = Self::new(get_edge_of_block(block_pos, yaw), DVec3::ZERO, yaw);
+        let mut state = Self::new(get_edge_of_block_dist(block_pos, yaw, 1), DVec3::ZERO, yaw);
         state.vel.x = -AVG_RUNNING_SPEED * yaw.sin() as f64;
         state.vel.z = AVG_RUNNING_SPEED * yaw.cos() as f64;
         state.pos.y += 1. + JUMP_HEAD_HIT;
         state
+    }
+
+    pub fn get_block_pos(&self) -> BlockPos {
+        BlockPos::new(self.pos.x as i32, self.pos.y.floor() as i32 - 1, self.pos.z as i32)
     }
 
     pub fn tick(&mut self) {
@@ -70,6 +85,36 @@ impl PlayerState {
         vel.z *= FRICTION as f64;
 
         self.vel = vel;
+    }
+
+    fn draw_particle(&self, client: &mut Client) {
+        client.play_particle(
+            &Particle::Dust { rgb: self.color, scale: 1. },
+            false,
+            self.pos,
+            Vec3::ZERO,
+            0.0,
+            1,
+        );
+    }
+
+    pub fn draw_particles(&self, ticks: usize, client: &mut Client) {
+        let mut state = self.clone();
+
+        for _ in 0..ticks {
+            state.draw_particle(client);
+            state.tick();
+        }
+    }
+
+    pub fn get_state_in_ticks(&self, ticks: u32) -> Self {
+        let mut state = self.clone();
+
+        for _ in 0..ticks {
+            state.tick();
+        }
+
+        state
     }
 
     fn get_accel(&self) -> DVec3 {

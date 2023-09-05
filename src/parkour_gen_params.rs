@@ -13,13 +13,21 @@ pub struct ParkourGenParams {
     pub end_pos: BlockPos,
     /// The position to expect the start of the next bunch of blocks.
     pub next_pos: BlockPos,
-    /// The initial PlayerState to use when generating the next bunch of blocks.
+    /// The initial PlayerState to expect the player to be in when they reach the end of the previous bunch.
     pub initial_state: PlayerState,
-    pub t: u32,
+    /// The final state to expect the player to be in when they reach the beginning of the next bunch.
+    pub next_state: PlayerState,
+    /// The number of ticks to expect the player to take to get from the end of the previous bunch to the beginning of the next bunch.
+    pub ticks: u32,
 }
 
 fn random_yaw() -> f32 {
-    rand::thread_rng().gen_range(-60.0..60.0) * std::f32::consts::PI / 180.0
+    random_yaw_dist(60.0)
+}
+
+fn random_yaw_dist(f: impl Into<f32>) -> f32 {
+    let f = f.into();
+    rand::thread_rng().gen_range(-f..f) * std::f32::consts::PI / 180.0
 }
 
 impl ParkourGenParams {
@@ -32,59 +40,40 @@ impl ParkourGenParams {
 
     pub fn basic_jump(pos: BlockPos, state: &GameState) -> Self {
         let initial_state = PlayerState::running_jump(pos, random_yaw());
-        let mut new_state = initial_state.clone();
+
         let mut rng = rand::thread_rng();
-        let mut t = 0;
-        match state.target_y {
-            0 => {
-                for _ in 0..rng.gen_range(10..=20) {
-                    new_state.tick();
-                    t += 1;
-                }
-            },
-            y if y > pos.y => {
-                for _ in 0..rng.gen_range(4..=8) {
-                    new_state.tick();
-                    t += 1;
-                }
-            }
-            _ => {
-                for _ in 0..rng.gen_range(5..=15) {
-                    new_state.tick();
-                    t += 1;
-                }
-            }
+        
+        let ticks = match state.target_y {
+            0 =>rng.gen_range(8..=16),
+            y if y > pos.y => rng.gen_range(4..=8),
+            _ => rng.gen_range(5..=14),
         };
-        let y = new_state.pos.y.floor() as i32 - pos.y - 1;
-        let z = new_state.pos.z.floor() as i32 - pos.z;// - rng.gen_range(0..2);
-        let x = new_state.pos.x as i32 - pos.x;
+        let next_state = initial_state.get_state_in_ticks(ticks);
+
         Self {
             end_pos: pos,
-            next_pos: BlockPos {
-                x: pos.x + x,
-                y: pos.y + y,
-                z: pos.z + z,
-            },
+            next_pos: next_state.get_block_pos(),
             initial_state,
-            t,
+            next_state,
+            ticks,
         }
     }
 
     pub fn fall(pos: BlockPos) -> Self {
+        let initial_state = PlayerState::head_hit_jump(pos, random_yaw_dist(35.));
+
         let mut rng = rand::thread_rng();
 
-        let z = rng.gen_range(1..4);
-        let x = rng.gen_range(-3..=3);
-        let y = -((z * z + x * x) as f32).sqrt() as i32 * 2;
+        let ticks = rng.gen_range(4..=10);
+
+        let next_state = initial_state.get_state_in_ticks(ticks);
+
         Self {
             end_pos: pos,
-            next_pos: BlockPos {
-                x: pos.x + x,
-                y: pos.y + y,
-                z: pos.z + z,
-            },
-            initial_state: PlayerState::head_hit_jump(pos, random_yaw()),
-            t: 16,
+            next_pos: next_state.get_block_pos(),
+            initial_state,
+            next_state,
+            ticks: 16,
         }
     }
 

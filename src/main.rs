@@ -5,7 +5,6 @@ use std::collections::VecDeque;
 use bunch_of_blocks::{BunchOfBlocks, BunchType};
 use game_state::GameState;
 use prediction::player_state::PlayerState;
-use rand::Rng;
 use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
 use valence::spawn::IsFlat;
@@ -112,47 +111,13 @@ fn reset_clients(
         // }
         state.test_state.pos = pos.0;
         state.prev_pos = pos.0;
-        
-        // let mut rng = rand::thread_rng();
-        // let rgb = Vec3::new(
-        //     rng.gen_range(0f32..1f32),
-        //     rng.gen_range(0f32..1f32),
-        //     rng.gen_range(0f32..1f32),
-        // );
 
-        // for _ in 0..32 {
-        //     client.play_particle(
-        //         &Particle::Dust { rgb, scale: 1. },
-        //         false,
-        //         state.test_state.pos,
-        //         Vec3::ZERO,
-        //         0.0,
-        //         1,
-        //     );
-        //     state.test_state.tick();
-        // }
+        state.test_state.draw_particles(32, &mut client);
 
         for bbb in state.blocks.iter() {
-            let mut rng = rand::thread_rng();
-            let rgb = Vec3::new(
-                rng.gen_range(0f32..1f32),
-                rng.gen_range(0f32..1f32),
-                rng.gen_range(0f32..1f32),
-            );
-
-            let mut pstate = bbb.next_params.initial_state.clone();
-
-            for _ in 0..bbb.next_params.t {
-                client.play_particle(
-                    &Particle::Dust { rgb, scale: 1. },
-                    false,
-                    pstate.pos,
-                    Vec3::ZERO,
-                    0.0,
-                    1,
-                );
-                pstate.tick();
-            }
+            bbb.next_params
+                .initial_state
+                .draw_particles(bbb.next_params.ticks as usize, &mut client);
         }
 
         let out_of_bounds = (pos.0.y as i32) < START_POS.y - 40;
