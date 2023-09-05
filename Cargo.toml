@@ -1,5 +1,5 @@
 [package]
-name = "mcservertest"
+name = "mc-parkou-rs"
 version = "0.1.0"
 edition = "2021"
 
