@@ -36,7 +36,7 @@ pub struct PlayerState {
     pub pos: DVec3,
     pub vel: DVec3,
     pub yaw: f32, // pitch doesn't matter for movement
-    color: Vec3,
+    pub color: Vec3,
 }
 
 /// A player's state at a given point in time.

@@ -2,7 +2,7 @@ use noise::{utils::*, Fbm, SuperSimplex};
 use rand::{seq::SliceRandom, Rng};
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
-use crate::{block_types::*, game_state::GameState, parkour_gen_params::ParkourGenParams};
+use crate::{block_types::*, game_state::GameState, parkour_gen_params::ParkourGenParams, prediction::player_state::PlayerState};
 
 /// A bunch of blocks that are spawned at once.
 pub struct BunchOfBlocks {
@@ -280,6 +280,32 @@ impl BunchOfBlocks {
         }
     }
 
+    /// Creates a slime block jump.
+    pub fn slime_jump(initial_pos: BlockPos, prev_state: &PlayerState, _state: &GameState) -> Self {
+        let next_params = ParkourGenParams::bounce(*prev_state, initial_pos);
+        let pos = next_params.end_pos;
+        let mut blocks = vec![];
+
+        for x in -1..=1 {
+            for z in -1..=1 {
+                blocks.push((
+                    BlockPos {
+                        x: pos.x + x,
+                        y: pos.y,
+                        z: pos.z + z,
+                    },
+                    BlockState::SLIME_BLOCK.into_block(),
+                ));
+            }
+        }
+
+        Self {
+            blocks,
+            next_params,
+            bunch_type: BunchType::SlimeJump,
+        }
+    }
+
     pub fn place(&self, world: &mut ChunkLayer) {
         for (pos, block) in &self.blocks {
             world.set_block(*pos, block.clone());
@@ -327,6 +353,7 @@ pub enum BunchType {
     Island,
     HeadJump,
     RunUp,
+    SlimeJump,
 }
 
 impl BunchType {
@@ -342,6 +369,7 @@ impl BunchType {
             Self::Island => BunchOfBlocks::island(params.next_pos, rng.gen_range(2..8), state),
             Self::HeadJump => BunchOfBlocks::head_jump(params.end_pos, state),
             Self::RunUp => BunchOfBlocks::run_up(params.next_pos, state, rng.gen_range(2..5)),
+            Self::SlimeJump => BunchOfBlocks::slime_jump(params.end_pos, &params.next_state, state),
         }
     }
 
@@ -356,18 +384,19 @@ impl BunchType {
     pub fn random_any(_state: &GameState) -> Self {
         let mut rng = rand::thread_rng();
 
-        match rng.gen_range(0..4) {
+        match rng.gen_range(0..5) {
             0 => Self::Single,
             1 => Self::Island,
             2 => Self::HeadJump,
-            _ => Self::RunUp,
+            3 => Self::RunUp,
+            _ => Self::SlimeJump,
         }
     }
 
     pub fn random_up() -> Self {
         let mut rng = rand::thread_rng();
 
-        match rng.gen_range(0..3) {
+        match rng.gen_range(0..2) {
             0 => Self::Single,
             _ => Self::RunUp,
         }
@@ -376,9 +405,10 @@ impl BunchType {
     pub fn random_down(_state: &GameState) -> Self {
         let mut rng = rand::thread_rng();
 
-        match rng.gen_range(0..2) {
+        match rng.gen_range(0..3) {
             0 => Self::HeadJump,
-            _ => Self::Single,
+            1 => Self::Single,
+            _ => Self::SlimeJump,
         }
     }
 }

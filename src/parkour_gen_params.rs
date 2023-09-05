@@ -42,9 +42,9 @@ impl ParkourGenParams {
         let initial_state = PlayerState::running_jump(pos, random_yaw());
 
         let mut rng = rand::thread_rng();
-        
+
         let ticks = match state.target_y {
-            0 =>rng.gen_range(8..=16),
+            0 => rng.gen_range(8..=16),
             y if y > pos.y => rng.gen_range(4..=8),
             _ => rng.gen_range(5..=14),
         };
@@ -74,6 +74,49 @@ impl ParkourGenParams {
             initial_state,
             next_state,
             ticks: 16,
+        }
+    }
+
+    pub fn bounce(state: PlayerState, initial_pos: BlockPos) -> Self {
+        let mut pos = state.get_block_pos();
+        let mut initial_state = state;
+        let mut next_state: PlayerState;
+        let mut new_pos: BlockPos;
+        let mut ticks: u32;
+
+        loop {
+            while initial_state.pos.y > pos.y as f64 {
+                initial_state.tick();
+            }
+
+            next_state = initial_state.clone();
+            next_state.pos.y = pos.y as f64;
+            next_state.vel.y *= -0.8;
+            ticks = 0;
+
+            while next_state.vel.y > 0. {
+                next_state.tick();
+                ticks += 1;
+            }
+
+            new_pos = next_state.get_block_pos();
+
+            if new_pos.y - pos.y >= 2 {
+                break;
+            }
+
+            pos.y -= 1;
+        }
+
+        initial_state.pos.y = pos.y as f64;
+        initial_state.vel.y *= -0.8;
+
+        Self {
+            end_pos: initial_state.get_block_pos(),
+            next_pos: new_pos,
+            initial_state,
+            next_state,
+            ticks,
         }
     }
 

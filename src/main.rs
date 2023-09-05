@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use bunch_of_blocks::{BunchOfBlocks, BunchType};
 use game_state::GameState;
 use prediction::player_state::PlayerState;
+use utils::particle_outline_block;
 use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
 use valence::spawn::IsFlat;
@@ -112,12 +113,15 @@ fn reset_clients(
         state.test_state.pos = pos.0;
         state.prev_pos = pos.0;
 
-        state.test_state.draw_particles(32, &mut client);
+        // state.test_state.draw_particles(32, &mut client);
 
         for bbb in state.blocks.iter() {
             bbb.next_params
                 .initial_state
                 .draw_particles(bbb.next_params.ticks as usize, &mut client);
+
+            particle_outline_block(bbb.next_params.end_pos, Vec3::new(1., 0., 0.), &mut client);
+            particle_outline_block(bbb.next_params.next_pos, Vec3::new(0., 1., 0.), &mut client);
         }
 
         let out_of_bounds = (pos.0.y as i32) < START_POS.y - 40;
