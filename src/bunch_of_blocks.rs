@@ -362,10 +362,10 @@ impl BunchType {
     pub fn random_any(_state: &GameState) -> Self {
         let mut rng = rand::thread_rng();
 
-        match rng.gen_range(0..4) {
+        match rng.gen_range(0..3) {
             0 => Self::Single,
             1 => Self::Island,
-            2 => Self::HeadJump,
+            // 2 => Self::HeadJump,
             _ => Self::RunUp,
         }
     }
@@ -383,7 +383,7 @@ impl BunchType {
         let mut rng = rand::thread_rng();
 
         match rng.gen_range(0..2) {
-            0 => Self::HeadJump,
+            // 0 => Self::HeadJump,
             _ => Self::Single,
         }
     }

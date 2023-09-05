@@ -15,6 +15,7 @@ mod bunch_of_blocks;
 mod game_state;
 mod parkour_gen_params;
 mod prediction;
+mod utils;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const VIEW_DIST: u8 = 10;
@@ -102,33 +103,56 @@ fn reset_clients(
     for (mut client, mut pos, mut look, mut state, mut layer) in clients.iter_mut() {
         state.test_state.yaw = look.yaw / 180.0 * std::f32::consts::PI;
         state.test_state.vel = pos.0 - state.prev_pos;
-        if state.test_state.vel.y == 0. {
-            if state.test_state.vel.x == 0. && state.test_state.vel.z == 0. {
-                state.test_state.vel.x = -0.215 * state.test_state.yaw.sin() as f64;
-                state.test_state.vel.z = 0.215 * state.test_state.yaw.cos() as f64;
-            }
-            state.test_state.vel.y = 0.42f32 as f64;
-        }
+        // if state.test_state.vel.y == 0. {
+        //     if state.test_state.vel.x == 0. && state.test_state.vel.z == 0. {
+        //         state.test_state.vel.x = -0.215 * state.test_state.yaw.sin() as f64;
+        //         state.test_state.vel.z = 0.215 * state.test_state.yaw.cos() as f64;
+        //     }
+        //     state.test_state.vel.y = 0.42f32 as f64;
+        // }
         state.test_state.pos = pos.0;
         state.prev_pos = pos.0;
+        
+        // let mut rng = rand::thread_rng();
+        // let rgb = Vec3::new(
+        //     rng.gen_range(0f32..1f32),
+        //     rng.gen_range(0f32..1f32),
+        //     rng.gen_range(0f32..1f32),
+        // );
 
-        let mut rng = rand::thread_rng();
-        let rgb = Vec3::new(
-            rng.gen_range(0f32..1f32),
-            rng.gen_range(0f32..1f32),
-            rng.gen_range(0f32..1f32),
-        );
+        // for _ in 0..32 {
+        //     client.play_particle(
+        //         &Particle::Dust { rgb, scale: 1. },
+        //         false,
+        //         state.test_state.pos,
+        //         Vec3::ZERO,
+        //         0.0,
+        //         1,
+        //     );
+        //     state.test_state.tick();
+        // }
 
-        for _ in 0..32 {
-            client.play_particle(
-                &Particle::Dust { rgb, scale: 1. },
-                false,
-                state.test_state.pos,
-                Vec3::ZERO,
-                0.0,
-                1,
+        for bbb in state.blocks.iter() {
+            let mut rng = rand::thread_rng();
+            let rgb = Vec3::new(
+                rng.gen_range(0f32..1f32),
+                rng.gen_range(0f32..1f32),
+                rng.gen_range(0f32..1f32),
             );
-            state.test_state.tick();
+
+            let mut pstate = bbb.next_params.initial_state.clone();
+
+            for _ in 0..bbb.next_params.t {
+                client.play_particle(
+                    &Particle::Dust { rgb, scale: 1. },
+                    false,
+                    pstate.pos,
+                    Vec3::ZERO,
+                    0.0,
+                    1,
+                );
+                pstate.tick();
+            }
         }
 
         let out_of_bounds = (pos.0.y as i32) < START_POS.y - 40;

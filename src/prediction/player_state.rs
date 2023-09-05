@@ -1,4 +1,6 @@
-use valence::prelude::DVec3;
+use valence::{prelude::DVec3, BlockPos};
+
+use crate::utils::get_edge_of_block;
 
 /*
  * Jump: net.minecraft.world.entity.LivingEntity: line ~1950
@@ -21,6 +23,14 @@ const ON_GROUND: bool = false;
 const SPEED: f32 = 0.13000001;
 const FLYING_SPEED: f32 = 0.02;
 
+
+const AVG_RUNNING_SPEED: f64 = 0.2873;
+const AVG_RUN_JUMP_SPEED: f64 = 0.47;
+const JUMP_VELOCITY: f64 = 0.42;
+const JUMP_HEAD_HIT: f64 = 0.2;
+
+
+#[derive(Debug, Clone, Copy)]
 pub struct PlayerState {
     pub pos: DVec3,
     pub vel: DVec3,
@@ -33,6 +43,23 @@ impl PlayerState {
         Self { pos, vel, yaw }
     }
 
+    pub fn running_jump(block_pos: BlockPos, yaw: f32) -> Self {
+        let mut state = Self::new(get_edge_of_block(block_pos, yaw), DVec3::ZERO, yaw);
+        state.pos.y += 1.;
+        state.vel.x = -AVG_RUN_JUMP_SPEED * yaw.sin() as f64;
+        state.vel.z = AVG_RUN_JUMP_SPEED * yaw.cos() as f64;
+        state.vel.y = JUMP_VELOCITY;
+        state
+    }
+
+    pub fn head_hit_jump(block_pos: BlockPos, yaw: f32) -> Self {
+        let mut state = Self::new(get_edge_of_block(block_pos, yaw), DVec3::ZERO, yaw);
+        state.vel.x = -AVG_RUNNING_SPEED * yaw.sin() as f64;
+        state.vel.z = AVG_RUNNING_SPEED * yaw.cos() as f64;
+        state.pos.y += 1. + JUMP_HEAD_HIT;
+        state
+    }
+
     pub fn tick(&mut self) {
         let mut vel = self.handle_relative_friction_and_calculate_movement(self.get_accel());
 
@@ -40,7 +67,7 @@ impl PlayerState {
         vel.y *= 0.9800000190734863; // drag
 
         vel.x *= FRICTION as f64;
-        vel.y *= FRICTION as f64;
+        vel.z *= FRICTION as f64;
 
         self.vel = vel;
     }
@@ -75,7 +102,7 @@ impl PlayerState {
     }
 }
 
-fn get_input_vector(p_20016_: DVec3, p_20017_: f32, p_20018_: f32) -> DVec3 {
+fn get_input_vector(p_20016_: DVec3, p_20017_: f32, yaw: f32) -> DVec3 {
     let d0 = p_20016_.length_squared();
     if d0 < 1.0E-7 {
         DVec3::ZERO
@@ -86,8 +113,8 @@ fn get_input_vector(p_20016_: DVec3, p_20017_: f32, p_20018_: f32) -> DVec3 {
             p_20016_
         } * p_20017_ as f64;
 
-        let f = (p_20018_ *  std::f32::consts::PI / 180.0).sin();
-        let f1 = (p_20018_ * std::f32::consts::PI / 180.0).cos();
+        let f = yaw.sin();
+        let f1 = yaw.cos();
 
         DVec3::new(
             vec3.x * f1 as f64 - vec3.z * f as f64,
