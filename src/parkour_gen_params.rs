@@ -52,7 +52,7 @@ impl ParkourGenParams {
         let mut next_pos = next_state.get_block_pos();
 
         if (next_pos.y - pos.y == 1 && next_pos.z - pos.z == 4)
-            || (next_pos.y - pos.y == 0 && next_pos.x - pos.x == 5)
+            || (next_pos.y - pos.y == 0 && next_pos.z - pos.z == 5)
         {
             next_pos.z -= 1; // I don't want 4 block jumps or 3 forward 1 up jumps
         }
@@ -80,7 +80,7 @@ impl ParkourGenParams {
             next_pos: next_state.get_block_pos(),
             initial_state,
             next_state,
-            ticks: 16,
+            ticks,
         }
     }
 
@@ -91,6 +91,10 @@ impl ParkourGenParams {
         let mut new_pos: BlockPos;
         let mut ticks: u32;
 
+        let mut rng = rand::thread_rng();
+
+        let ydiff = rng.gen_range(1..=3);
+
         loop {
             while initial_state.pos.y > pos.y as f64 {
                 initial_state.tick();
@@ -99,6 +103,7 @@ impl ParkourGenParams {
             next_state = initial_state.clone();
             next_state.pos.y = pos.y as f64;
             next_state.vel.y *= -0.8;
+            next_state.yaw = random_yaw_dist(35.);
             ticks = 0;
 
             while next_state.vel.y > 0. {
@@ -108,11 +113,28 @@ impl ParkourGenParams {
 
             new_pos = next_state.get_block_pos();
 
-            if new_pos.y - pos.y >= 2 {
-                break;
+            if new_pos.y - pos.y < ydiff {
+                pos.y -= 1;
+                continue;
             }
 
-            pos.y -= 1;
+            let y = next_state.pos.y.floor();
+
+            loop {
+                let mut new_next_state = next_state.clone();
+                new_next_state.tick();
+                ticks += 1;
+
+                if new_next_state.pos.y > y {
+                    next_state = new_next_state;
+                } else {
+                    break;
+                }
+            }
+
+            new_pos = next_state.get_block_pos();
+
+            break;
         }
 
         initial_state.pos.y = pos.y as f64;

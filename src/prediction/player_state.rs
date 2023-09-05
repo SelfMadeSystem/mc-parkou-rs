@@ -1,7 +1,7 @@
 use rand::Rng;
 use valence::{prelude::{DVec3, Vec3, Client}, BlockPos, protocol::Particle};
 
-use crate::utils::{get_edge_of_block, get_edge_of_block_dist};
+use crate::{utils::{get_edge_of_block, get_edge_of_block_dist}, line::Line3};
 
 /*
  * Jump: net.minecraft.world.entity.LivingEntity: line ~1950
@@ -72,7 +72,7 @@ impl PlayerState {
     }
 
     pub fn get_block_pos(&self) -> BlockPos {
-        BlockPos::new(self.pos.x as i32, self.pos.y.floor() as i32 - 1, self.pos.z as i32)
+        BlockPos::new(self.pos.x.floor() as i32, self.pos.y.floor() as i32 - 1, self.pos.z.floor() as i32)
     }
 
     pub fn tick(&mut self) {
@@ -105,6 +105,21 @@ impl PlayerState {
             state.draw_particle(client);
             state.tick();
         }
+    }
+
+    pub fn get_lines_for_number_of_ticks(&self, ticks: usize) -> Vec<Line3> {
+        let mut state = self.clone();
+        let mut pos = state.pos;
+        let mut lines = Vec::new();
+
+        for _ in 0..ticks {
+            state.tick();
+            let new_pos = state.pos;
+            lines.push(Line3::new(pos.as_vec3(), new_pos.as_vec3()));
+            pos = new_pos;
+        }
+
+        lines
     }
 
     pub fn get_state_in_ticks(&self, ticks: u32) -> Self {

@@ -1,7 +1,7 @@
 use valence::{BlockPos, prelude::{DVec3, Client, Vec3}, protocol::Particle};
 
 pub fn get_edge_of_block(pos: BlockPos, yaw: f32) -> DVec3 {
-    get_edge_of_block_dist(pos, yaw, 0.25)
+    get_edge_of_block_dist(pos, yaw, 0)
 }
 
 pub fn get_edge_of_block_dist(pos: BlockPos, yaw: f32, dist: impl Into<f64>) -> DVec3 {

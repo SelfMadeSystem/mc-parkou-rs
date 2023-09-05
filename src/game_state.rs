@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use valence::prelude::*;
 
-use crate::{bunch_of_blocks::{BunchOfBlocks, BunchType}, prediction::player_state::PlayerState};
+use crate::{bunch_of_blocks::{BunchOfBlocks, BunchType}, prediction::player_state::PlayerState, line::Line3};
 
 #[derive(Component)]
 pub struct GameState {
@@ -14,4 +14,6 @@ pub struct GameState {
     pub stopped_running: bool,
     pub prev_pos: DVec3,
     pub test_state: PlayerState,
+    pub entities: Vec<Entity>,
+    pub lines: Vec<Line3>,
 }

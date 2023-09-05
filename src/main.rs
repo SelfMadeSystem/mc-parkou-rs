@@ -6,6 +6,10 @@ use bunch_of_blocks::{BunchOfBlocks, BunchType};
 use game_state::GameState;
 use prediction::player_state::PlayerState;
 use utils::particle_outline_block;
+use valence::entity::block_display::{BlockDisplayEntityBundle, self};
+use valence::entity::display::Scale;
+use valence::entity::entity::NameVisible;
+use valence::entity::sheep::SheepEntityBundle;
 use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
 use valence::spawn::IsFlat;
@@ -17,13 +21,19 @@ mod parkour_gen_params;
 mod prediction;
 mod utils;
 mod weighted_vec;
+mod line;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const VIEW_DIST: u8 = 10;
 
 pub fn main() {
     App::new()
+        .insert_resource(NetworkSettings {
+            connection_mode: ConnectionMode::Offline,
+            ..Default::default()
+        })
         .add_plugins(DefaultPlugins)
+        .add_systems(Startup, setup)
         .add_systems(
             Update,
             (
@@ -31,6 +41,7 @@ pub fn main() {
                 reset_clients.after(init_clients),
                 manage_chunks.after(reset_clients).before(manage_blocks),
                 manage_blocks,
+                // spawn_lines,
                 despawn_disconnected_clients,
             ),
         )
@@ -38,25 +49,48 @@ pub fn main() {
         .run();
 }
 
+
+
+fn setup(
+    mut commands: Commands,
+    server: Res<Server>,
+    dimensions: Res<DimensionTypeRegistry>,
+    biomes: Res<BiomeRegistry>,
+) {
+    let layer = LayerBundle::new(ident!("overworld"), &dimensions, &biomes, &server);
+
+    commands.spawn(layer);
+}
+
+
 fn init_clients(
     mut clients: Query<
         (
             Entity,
             &mut Client,
+            &mut EntityLayerId,
             &mut VisibleChunkLayer,
+            &mut VisibleEntityLayers,
             &mut IsFlat,
             &mut GameMode,
         ),
         Added<Client>,
     >,
+    layers: Query<Entity, (With<ChunkLayer>, With<EntityLayer>)>,
     server: Res<Server>,
     dimensions: Res<DimensionTypeRegistry>,
     biomes: Res<BiomeRegistry>,
     mut commands: Commands,
 ) {
-    for (entity, mut client, mut visible_chunk_layer, mut is_flat, mut game_mode) in
+    for (entity, mut client, mut layer_id, mut visible_chunk_layer, mut visible_entity_layers, mut is_flat, mut game_mode) in
         clients.iter_mut()
     {
+        let layer = layers.single();
+
+        layer_id.0 = layer;
+        visible_chunk_layer.0 = layer;
+        visible_entity_layers.0.insert(layer);
+
         visible_chunk_layer.0 = entity;
         is_flat.0 = true;
         *game_mode = GameMode::Adventure;
@@ -84,6 +118,8 @@ fn init_clients(
                 DVec3::ZERO,
                 0.0,
             ),
+            entities: Vec::new(),
+            lines: Vec::new(),
         };
 
         let layer = ChunkLayer::new(ident!("overworld"), &dimensions, &biomes, &server);
@@ -101,7 +137,8 @@ fn reset_clients(
         &mut ChunkLayer,
     )>,
 ) {
-    for (mut client, mut pos, mut look, mut state, mut layer) in clients.iter_mut() {
+    for (mut client, mut pos, mut look, mut state, mut layer) in clients.iter_mut()
+    {
         state.test_state.yaw = look.yaw / 180.0 * std::f32::consts::PI;
         state.test_state.vel = pos.0 - state.prev_pos;
         // if state.test_state.vel.y == 0. {
@@ -116,7 +153,25 @@ fn reset_clients(
 
         // state.test_state.draw_particles(32, &mut client);
 
+        // for entity in state.entities.iter() {
+        //     commands.entity(*entity).despawn();
+        // }
+
+        // state.entities.clear();
+
+        // let command = commands.spawn(SheepEntityBundle {
+        //         position: *pos,
+        //         layer: *entity_layer_id,
+        //         entity_name_visible: NameVisible(true),
+        //         ..Default::default()
+        //     }).id();
+        
+        // state.entities.push(command);
+
+        // let mut lines = Vec::new();
+
         // for bbb in state.blocks.iter() {
+        //     // lines.append(&mut bbb.next_params.initial_state.get_lines_for_number_of_ticks(bbb.next_params.ticks as usize));
         //     bbb.next_params
         //         .initial_state
         //         .draw_particles(bbb.next_params.ticks as usize, &mut client);
@@ -124,6 +179,8 @@ fn reset_clients(
         //     particle_outline_block(bbb.next_params.end_pos, Vec3::new(1., 0., 0.), &mut client);
         //     particle_outline_block(bbb.next_params.next_pos, Vec3::new(0., 1., 0.), &mut client);
         // }
+
+        // state.lines = lines;
 
         let out_of_bounds = (pos.0.y as i32) < START_POS.y - 40;
 
@@ -179,6 +236,37 @@ fn detect_stop_running(mut event: EventReader<SprintEvent>, mut clients: Query<&
                 state.stopped_running = true;
             }
         }
+    }
+}
+
+fn spawn_lines(
+    mut commands: Commands,
+    mut clients: Query<(
+        &mut GameState,
+        &EntityLayerId
+    )>,
+) {
+    for (mut state, layer) in clients.iter_mut() {
+        for entity in state.entities.iter() {
+            commands.entity(*entity).insert(Despawned);
+        }
+
+        let mut entities = Vec::new();
+
+        for line in state.lines.iter() {
+            let mut display = BlockDisplayEntityBundle {
+                block_display_block_state: block_display::BlockState(BlockState::STONE),
+                position: Position(line.start.as_dvec3()),
+                display_scale: Scale(line.end - line.start),
+                ..Default::default()
+            };//line.to_block_display();
+            display.layer = *layer;
+            let cmd = commands.spawn(display);
+
+            entities.push(cmd.id());
+        }
+
+        state.entities = entities;
     }
 }
 
