@@ -16,6 +16,7 @@ mod game_state;
 mod parkour_gen_params;
 mod prediction;
 mod utils;
+mod weighted_vec;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const VIEW_DIST: u8 = 10;
@@ -115,14 +116,14 @@ fn reset_clients(
 
         // state.test_state.draw_particles(32, &mut client);
 
-        for bbb in state.blocks.iter() {
-            bbb.next_params
-                .initial_state
-                .draw_particles(bbb.next_params.ticks as usize, &mut client);
+        // for bbb in state.blocks.iter() {
+        //     bbb.next_params
+        //         .initial_state
+        //         .draw_particles(bbb.next_params.ticks as usize, &mut client);
 
-            particle_outline_block(bbb.next_params.end_pos, Vec3::new(1., 0., 0.), &mut client);
-            particle_outline_block(bbb.next_params.next_pos, Vec3::new(0., 1., 0.), &mut client);
-        }
+        //     particle_outline_block(bbb.next_params.end_pos, Vec3::new(1., 0., 0.), &mut client);
+        //     particle_outline_block(bbb.next_params.next_pos, Vec3::new(0., 1., 0.), &mut client);
+        // }
 
         let out_of_bounds = (pos.0.y as i32) < START_POS.y - 40;
 

@@ -2,7 +2,11 @@ use noise::{utils::*, Fbm, SuperSimplex};
 use rand::{seq::SliceRandom, Rng};
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
-use crate::{block_types::*, game_state::GameState, parkour_gen_params::ParkourGenParams, prediction::player_state::PlayerState};
+use crate::weighted_vec;
+use crate::{
+    block_types::*, game_state::GameState, parkour_gen_params::ParkourGenParams,
+    prediction::player_state::PlayerState, weighted_vec::WeightedVec,
+};
 
 /// A bunch of blocks that are spawned at once.
 pub struct BunchOfBlocks {
@@ -205,10 +209,7 @@ impl BunchOfBlocks {
         if matches!(state.prev_type, Some(BunchType::HeadJump)) {
             pos.z += 2;
 
-            blocks.push((
-                pos,
-                block_type.into_block(),
-            ));
+            blocks.push((pos, block_type.into_block()));
         }
 
         for x in -2..=2 {
@@ -281,8 +282,8 @@ impl BunchOfBlocks {
     }
 
     /// Creates a slime block jump.
-    pub fn slime_jump(initial_pos: BlockPos, prev_state: &PlayerState, _state: &GameState) -> Self {
-        let next_params = ParkourGenParams::bounce(*prev_state, initial_pos);
+    pub fn slime_jump(prev_state: &PlayerState, _state: &GameState) -> Self {
+        let next_params = ParkourGenParams::bounce(*prev_state);
         let pos = next_params.end_pos;
         let mut blocks = vec![];
 
@@ -347,7 +348,7 @@ impl BunchOfBlocks {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BunchType {
     Single,
     Island,
@@ -369,7 +370,7 @@ impl BunchType {
             Self::Island => BunchOfBlocks::island(params.next_pos, rng.gen_range(2..8), state),
             Self::HeadJump => BunchOfBlocks::head_jump(params.end_pos, state),
             Self::RunUp => BunchOfBlocks::run_up(params.next_pos, state, rng.gen_range(2..5)),
-            Self::SlimeJump => BunchOfBlocks::slime_jump(params.end_pos, &params.next_state, state),
+            Self::SlimeJump => BunchOfBlocks::slime_jump(&params.next_state, state),
         }
     }
 
@@ -379,36 +380,36 @@ impl BunchType {
             y if y > pos.y => BunchType::random_up(),
             _ => BunchType::random_down(state),
         }
+        .get_random()
+        .expect("WeightedVec is empty")
+        .clone()
     }
 
-    pub fn random_any(_state: &GameState) -> Self {
-        let mut rng = rand::thread_rng();
+    fn random_any(state: &GameState) -> WeightedVec<BunchType> {
+        let mut vec: WeightedVec<BunchType> = weighted_vec![
+            (Self::Single, 5.),
+            (Self::Island, 3.),
+            (Self::HeadJump, 1.),
+            (Self::RunUp, 3.),
+            (Self::SlimeJump, 1.),
+        ];
 
-        match rng.gen_range(0..5) {
-            0 => Self::Single,
-            1 => Self::Island,
-            2 => Self::HeadJump,
-            3 => Self::RunUp,
-            _ => Self::SlimeJump,
+        if state.prev_type == Some(Self::SlimeJump) {
+            vec.remove_element(&Self::HeadJump);
         }
+
+        vec
     }
 
-    pub fn random_up() -> Self {
-        let mut rng = rand::thread_rng();
-
-        match rng.gen_range(0..2) {
-            0 => Self::Single,
-            _ => Self::RunUp,
-        }
+    pub fn random_up() -> WeightedVec<BunchType> {
+        weighted_vec![(Self::Single, 5.), (Self::RunUp, 3.),]
     }
 
-    pub fn random_down(_state: &GameState) -> Self {
-        let mut rng = rand::thread_rng();
-
-        match rng.gen_range(0..3) {
-            0 => Self::HeadJump,
-            1 => Self::Single,
-            _ => Self::SlimeJump,
-        }
+    pub fn random_down(_state: &GameState) -> WeightedVec<BunchType> {
+        weighted_vec![
+            (Self::Single, 5.),
+            (Self::HeadJump, 2.),
+            (Self::SlimeJump, 1.),
+        ]
     }
 }

@@ -49,10 +49,17 @@ impl ParkourGenParams {
             _ => rng.gen_range(5..=14),
         };
         let next_state = initial_state.get_state_in_ticks(ticks);
+        let mut next_pos = next_state.get_block_pos();
+
+        if (next_pos.y - pos.y == 1 && next_pos.z - pos.z == 4)
+            || (next_pos.y - pos.y == 0 && next_pos.x - pos.x == 5)
+        {
+            next_pos.z -= 1; // I don't want 4 block jumps or 3 forward 1 up jumps
+        }
 
         Self {
             end_pos: pos,
-            next_pos: next_state.get_block_pos(),
+            next_pos,
             initial_state,
             next_state,
             ticks,
@@ -77,7 +84,7 @@ impl ParkourGenParams {
         }
     }
 
-    pub fn bounce(state: PlayerState, initial_pos: BlockPos) -> Self {
+    pub fn bounce(state: PlayerState) -> Self {
         let mut pos = state.get_block_pos();
         let mut initial_state = state;
         let mut next_state: PlayerState;
