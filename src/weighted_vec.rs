@@ -7,6 +7,7 @@ pub struct WeightedVec<T> {
     pub vec: Vec<(T, f32)>,
 }
 
+#[allow(dead_code)]
 impl <T>WeightedVec<T> {
     pub fn new() -> Self {
         Self { vec: Vec::new() }

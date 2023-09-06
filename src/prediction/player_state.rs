@@ -40,6 +40,7 @@ pub struct PlayerState {
 }
 
 /// A player's state at a given point in time.
+#[allow(dead_code)]
 impl PlayerState {
     pub fn new(pos: DVec3, vel: DVec3, yaw: f32) -> Self {
         Self { 

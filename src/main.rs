@@ -1,15 +1,12 @@
 #![allow(clippy::type_complexity)]
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use bunch_of_blocks::{BunchOfBlocks, BunchType};
 use game_state::GameState;
 use prediction::player_state::PlayerState;
 use utils::particle_outline_block;
-use valence::entity::block_display::{BlockDisplayEntityBundle, self};
-use valence::entity::display::Scale;
-use valence::entity::entity::NameVisible;
-use valence::entity::sheep::SheepEntityBundle;
+use valence::entity::block_display;
 use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
 use valence::spawn::IsFlat;
@@ -17,11 +14,11 @@ use valence::spawn::IsFlat;
 mod block_types;
 mod bunch_of_blocks;
 mod game_state;
+mod line;
 mod parkour_gen_params;
 mod prediction;
 mod utils;
 mod weighted_vec;
-mod line;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const VIEW_DIST: u8 = 10;
@@ -41,15 +38,13 @@ pub fn main() {
                 reset_clients.after(init_clients),
                 manage_chunks.after(reset_clients).before(manage_blocks),
                 manage_blocks,
-                // spawn_lines,
+                spawn_lines,
                 despawn_disconnected_clients,
             ),
         )
         .add_systems(EventLoopUpdate, (detect_stop_running,))
         .run();
 }
-
-
 
 fn setup(
     mut commands: Commands,
@@ -61,7 +56,6 @@ fn setup(
 
     commands.spawn(layer);
 }
-
 
 fn init_clients(
     mut clients: Query<
@@ -82,8 +76,15 @@ fn init_clients(
     biomes: Res<BiomeRegistry>,
     mut commands: Commands,
 ) {
-    for (entity, mut client, mut layer_id, mut visible_chunk_layer, mut visible_entity_layers, mut is_flat, mut game_mode) in
-        clients.iter_mut()
+    for (
+        entity,
+        mut client,
+        mut layer_id,
+        mut visible_chunk_layer,
+        mut visible_entity_layers,
+        mut is_flat,
+        mut game_mode,
+    ) in clients.iter_mut()
     {
         let layer = layers.single();
 
@@ -118,8 +119,8 @@ fn init_clients(
                 DVec3::ZERO,
                 0.0,
             ),
-            entities: Vec::new(),
-            lines: Vec::new(),
+            line_entities: HashMap::new(),
+            lines: HashSet::new(),
         };
 
         let layer = ChunkLayer::new(ident!("overworld"), &dimensions, &biomes, &server);
@@ -137,8 +138,7 @@ fn reset_clients(
         &mut ChunkLayer,
     )>,
 ) {
-    for (mut client, mut pos, mut look, mut state, mut layer) in clients.iter_mut()
-    {
+    for (mut client, mut pos, mut look, mut state, mut layer) in clients.iter_mut() {
         state.test_state.yaw = look.yaw / 180.0 * std::f32::consts::PI;
         state.test_state.vel = pos.0 - state.prev_pos;
         // if state.test_state.vel.y == 0. {
@@ -165,22 +165,35 @@ fn reset_clients(
         //         entity_name_visible: NameVisible(true),
         //         ..Default::default()
         //     }).id();
-        
+
         // state.entities.push(command);
 
-        // let mut lines = Vec::new();
+        let mut lines = Vec::new();
 
-        // for bbb in state.blocks.iter() {
-        //     // lines.append(&mut bbb.next_params.initial_state.get_lines_for_number_of_ticks(bbb.next_params.ticks as usize));
-        //     bbb.next_params
-        //         .initial_state
-        //         .draw_particles(bbb.next_params.ticks as usize, &mut client);
+        for bbb in state.blocks.iter() {
+            lines.append(
+                &mut bbb
+                    .next_params
+                    .initial_state
+                    .get_lines_for_number_of_ticks(bbb.next_params.ticks as usize),
+            );
 
-        //     particle_outline_block(bbb.next_params.end_pos, Vec3::new(1., 0., 0.), &mut client);
-        //     particle_outline_block(bbb.next_params.next_pos, Vec3::new(0., 1., 0.), &mut client);
-        // }
+            // lines.append(
+            //     &mut get_lines_for_block(bbb.next_params.next_pos)
+            // );
 
-        // state.lines = lines;
+            // lines.append(
+            //     &mut get_lines_for_block(bbb.next_params.end_pos)
+            // );
+            // bbb.next_params
+            //     .initial_state
+            //     .draw_particles(bbb.next_params.ticks as usize, &mut client);
+
+            particle_outline_block(bbb.next_params.end_pos, Vec3::new(1., 0., 0.), &mut client);
+            particle_outline_block(bbb.next_params.next_pos, Vec3::new(0., 1., 0.), &mut client);
+        }
+
+        state.lines = lines.into_iter().collect();
 
         let out_of_bounds = (pos.0.y as i32) < START_POS.y - 40;
 
@@ -239,34 +252,36 @@ fn detect_stop_running(mut event: EventReader<SprintEvent>, mut clients: Query<&
     }
 }
 
-fn spawn_lines(
-    mut commands: Commands,
-    mut clients: Query<(
-        &mut GameState,
-        &EntityLayerId
-    )>,
-) {
+fn spawn_lines(mut commands: Commands, mut clients: Query<(&mut GameState, &EntityLayerId)>) {
     for (mut state, layer) in clients.iter_mut() {
-        for entity in state.entities.iter() {
+        let mut to_remove = Vec::new();
+        for (line, entity) in state.line_entities.iter() {
+            if state.lines.contains(line) {
+                continue;
+            }
             commands.entity(*entity).insert(Despawned);
+            to_remove.push(*line);
         }
 
-        let mut entities = Vec::new();
+        for line in to_remove {
+            state.line_entities.remove(&line);
+        }
+
+        let mut entities = HashMap::new();
 
         for line in state.lines.iter() {
-            let mut display = BlockDisplayEntityBundle {
-                block_display_block_state: block_display::BlockState(BlockState::STONE),
-                position: Position(line.start.as_dvec3()),
-                display_scale: Scale(line.end - line.start),
-                ..Default::default()
-            };//line.to_block_display();
-            display.layer = *layer;
-            let cmd = commands.spawn(display);
+            if state.line_entities.contains_key(line) {
+                continue;
+            }
+            let mut bundle = line.to_block_display();
+            bundle.block_display_block_state = block_display::BlockState(BlockState::STONE);
+            bundle.layer = *layer;
+            let cmd = commands.spawn(bundle);
 
-            entities.push(cmd.id());
+            entities.insert(*line, cmd.id());
         }
 
-        state.entities = entities;
+        state.line_entities.extend(entities);
     }
 }
 

@@ -1,4 +1,10 @@
-use valence::{BlockPos, prelude::{DVec3, Client, Vec3}, protocol::Particle};
+use valence::{
+    prelude::{Client, DVec3, Vec3},
+    protocol::Particle,
+    BlockPos,
+};
+
+use crate::line::Line3;
 
 pub fn get_edge_of_block(pos: BlockPos, yaw: f32) -> DVec3 {
     get_edge_of_block_dist(pos, yaw, 0)
@@ -12,6 +18,7 @@ pub fn get_edge_of_block_dist(pos: BlockPos, yaw: f32, dist: impl Into<f64>) -> 
     pos + add * dist.into() // not optimal. does circle instead of square
 }
 
+#[allow(dead_code)]
 pub fn particle_outline_block(pos: BlockPos, color: Vec3, client: &mut Client) {
     let pos = DVec3::new(pos.x as f64, pos.y as f64, pos.z as f64);
 
@@ -63,11 +70,40 @@ pub fn particle_outline_block(pos: BlockPos, color: Vec3, client: &mut Client) {
 
 fn draw_particle(client: &mut Client, color: Vec3, pos: DVec3) {
     client.play_particle(
-        &Particle::Dust { rgb: color, scale: 1. },
+        &Particle::Dust {
+            rgb: color,
+            scale: 1.,
+        },
         false,
         pos,
         Vec3::ZERO,
         0.0,
         1,
     );
+}
+
+#[allow(dead_code)]
+pub fn get_lines_for_block(pos: BlockPos) -> Vec<Line3> {
+    let mut lines = Vec::new();
+
+    let pos = Vec3::new(pos.x as f32, pos.y as f32, pos.z as f32);
+
+    lines.push(Line3::new(pos, pos + Vec3::new(1., 0., 0.)));
+    lines.push(Line3::new(pos, pos + Vec3::new(0., 1., 0.)));
+    lines.push(Line3::new(pos, pos + Vec3::new(0., 0., 1.)));
+
+    lines.push(Line3::new(pos + Vec3::new(1., 0., 0.), pos + Vec3::new(1., 1., 0.)));
+    lines.push(Line3::new(pos + Vec3::new(1., 0., 0.), pos + Vec3::new(1., 0., 1.)));
+
+    lines.push(Line3::new(pos + Vec3::new(0., 1., 0.), pos + Vec3::new(1., 1., 0.)));
+    lines.push(Line3::new(pos + Vec3::new(0., 1., 0.), pos + Vec3::new(0., 1., 1.)));
+
+    lines.push(Line3::new(pos + Vec3::new(0., 0., 1.), pos + Vec3::new(1., 0., 1.)));
+    lines.push(Line3::new(pos + Vec3::new(0., 0., 1.), pos + Vec3::new(0., 1., 1.)));
+
+    lines.push(Line3::new(pos + Vec3::new(1., 1., 0.), pos + Vec3::new(1., 1., 1.)));
+    lines.push(Line3::new(pos + Vec3::new(1., 0., 1.), pos + Vec3::new(1., 1., 1.)));
+    lines.push(Line3::new(pos + Vec3::new(0., 1., 1.), pos + Vec3::new(1., 1., 1.)));
+
+    lines
 }

@@ -94,6 +94,9 @@ impl ParkourGenParams {
         let mut rng = rand::thread_rng();
 
         let ydiff = rng.gen_range(1..=3);
+        
+        initial_state.yaw = random_yaw_dist(35.);
+
 
         loop {
             while initial_state.pos.y > pos.y as f64 {
@@ -103,7 +106,6 @@ impl ParkourGenParams {
             next_state = initial_state.clone();
             next_state.pos.y = pos.y as f64;
             next_state.vel.y *= -0.8;
-            next_state.yaw = random_yaw_dist(35.);
             ticks = 0;
 
             while next_state.vel.y > 0. {
