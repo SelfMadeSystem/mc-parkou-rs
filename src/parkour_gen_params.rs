@@ -7,7 +7,7 @@ use crate::{
     prediction::player_state::PlayerState,
 };
 
-/// The parameters to generate the nex bunch of blocks.
+/// The parameters to generate the next bunch of blocks.
 pub struct ParkourGenParams {
     /// The position of the block to expect the player to be standing on when they reach the end of the previous bunch.
     pub end_pos: BlockPos,
