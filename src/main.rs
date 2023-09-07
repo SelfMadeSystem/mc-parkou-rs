@@ -40,6 +40,7 @@ pub fn main() {
                 manage_blocks,
                 spawn_lines,
                 despawn_disconnected_clients,
+                cleanup_clients,
             ),
         )
         .add_systems(EventLoopUpdate, (detect_stop_running,))
@@ -238,6 +239,16 @@ fn reset_clients(
             ]);
             look.yaw = 0.0;
             look.pitch = 0.0;
+        }
+    }
+}
+
+fn cleanup_clients(mut commands: Commands, mut disconnected_clients: RemovedComponents<Client>, mut query: Query<&GameState>) {
+    for entity in disconnected_clients.iter() {
+        if let Ok(state) = query.get(entity) {
+            for entity in state.line_entities.values() {
+                commands.entity(*entity).insert(Despawned);
+            }
         }
     }
 }

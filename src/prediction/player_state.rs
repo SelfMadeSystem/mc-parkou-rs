@@ -163,16 +163,16 @@ impl PlayerState {
     }
 }
 
-fn get_input_vector(p_20016_: DVec3, p_20017_: f32, yaw: f32) -> DVec3 {
-    let d0 = p_20016_.length_squared();
+fn get_input_vector(acecl: DVec3, speed: f32, yaw: f32) -> DVec3 {
+    let d0 = acecl.length_squared();
     if d0 < 1.0E-7 {
         DVec3::ZERO
     } else {
         let vec3 = if d0 > 1.0 {
-            p_20016_.normalize()
+            acecl.normalize()
         } else {
-            p_20016_
-        } * p_20017_ as f64;
+            acecl
+        } * speed as f64;
 
         let f = yaw.sin();
         let f1 = yaw.cos();
