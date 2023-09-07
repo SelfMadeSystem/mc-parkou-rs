@@ -243,7 +243,7 @@ fn reset_clients(
     }
 }
 
-fn cleanup_clients(mut commands: Commands, mut disconnected_clients: RemovedComponents<Client>, mut query: Query<&GameState>) {
+fn cleanup_clients(mut commands: Commands, mut disconnected_clients: RemovedComponents<Client>, query: Query<&GameState>) {
     for entity in disconnected_clients.iter() {
         if let Ok(state) = query.get(entity) {
             for entity in state.line_entities.values() {
