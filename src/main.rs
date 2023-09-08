@@ -94,7 +94,7 @@ fn init_clients(
 
         visible_chunk_layer.0 = entity;
         is_flat.0 = true;
-        *game_mode = GameMode::Creative;
+        *game_mode = GameMode::Adventure;
 
         client.send_chat_message("Welcome to epic infinite parkour game!".italic());
 
