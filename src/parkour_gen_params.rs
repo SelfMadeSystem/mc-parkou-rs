@@ -101,8 +101,6 @@ impl ParkourGenParams {
         let ydiff = rng.gen_range(1..=3);
         let ydiffmax = rng.gen_range(0..=2);
 
-        let yaw = initial_state.yaw * 180. / std::f32::consts::PI;
-
         if initial_state.yaw > 30. * std::f32::consts::PI / 180. {
             initial_state.yaw -= rng.gen_range(0. ..=15.) * std::f32::consts::PI / 180.;
         } else if initial_state.yaw < -30. * std::f32::consts::PI / 180. {
@@ -110,7 +108,6 @@ impl ParkourGenParams {
         } else {
             initial_state.yaw += rng.gen_range(-15. ..=15.) * std::f32::consts::PI / 180.;
         }
-        println!("yaw: {}, yaw: {}", yaw.floor(), (initial_state.yaw * 180. / std::f32::consts::PI).floor());
 
         let mut lines = Vec::new();
         let mut prev = initial_state.pos.as_vec3();
