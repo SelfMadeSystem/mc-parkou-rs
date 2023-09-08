@@ -1,10 +1,13 @@
 use valence::prelude::*;
 
+/// Represents a box of blocks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockBox {
     min: BlockPos,
     max: BlockPos,
 }
 
+#[allow(dead_code)]
 impl BlockBox {
     pub fn new(min: BlockPos, max: BlockPos) -> Self {
         Self { min, max }

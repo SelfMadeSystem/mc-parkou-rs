@@ -5,7 +5,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use bunch_of_blocks::{BunchOfBlocks, BunchType};
 use game_state::GameState;
 use prediction::player_state::PlayerState;
-use utils::particle_outline_block;
 use valence::entity::block_display;
 use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
@@ -95,7 +94,7 @@ fn init_clients(
 
         visible_chunk_layer.0 = entity;
         is_flat.0 = true;
-        *game_mode = GameMode::Adventure;
+        *game_mode = GameMode::Creative;
 
         client.send_chat_message("Welcome to epic infinite parkour game!".italic());
 
@@ -175,8 +174,7 @@ fn reset_clients(
             lines.append(
                 &mut bbb
                     .next_params
-                    .initial_state
-                    .get_lines_for_number_of_ticks(bbb.next_params.ticks as usize),
+                    .lines.clone(),
             );
 
             // lines.append(
@@ -190,8 +188,8 @@ fn reset_clients(
             //     .initial_state
             //     .draw_particles(bbb.next_params.ticks as usize, &mut client);
 
-            particle_outline_block(bbb.next_params.end_pos, Vec3::new(1., 0., 0.), &mut client);
-            particle_outline_block(bbb.next_params.next_pos, Vec3::new(0., 1., 0.), &mut client);
+            // particle_outline_block(bbb.next_params.end_pos, Vec3::new(1., 0., 0.), &mut client);
+            // particle_outline_block(bbb.next_params.next_pos, Vec3::new(0., 1., 0.), &mut client);
         }
 
         state.lines = lines.into_iter().collect();
@@ -243,7 +241,11 @@ fn reset_clients(
     }
 }
 
-fn cleanup_clients(mut commands: Commands, mut disconnected_clients: RemovedComponents<Client>, query: Query<&GameState>) {
+fn cleanup_clients(
+    mut commands: Commands,
+    mut disconnected_clients: RemovedComponents<Client>,
+    query: Query<&GameState>,
+) {
     for entity in disconnected_clients.iter() {
         if let Ok(state) = query.get(entity) {
             for entity in state.line_entities.values() {

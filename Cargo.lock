@@ -1062,6 +1062,7 @@ dependencies = [
  "lazy_static",
  "noise",
  "rand 0.8.5",
+ "serde",
  "valence",
 ]
 

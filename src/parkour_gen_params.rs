@@ -4,6 +4,7 @@ use valence::prelude::*;
 use crate::{
     bunch_of_blocks::{BunchOfBlocks, BunchType},
     game_state::GameState,
+    line::Line3,
     prediction::player_state::PlayerState,
 };
 
@@ -17,6 +18,8 @@ pub struct ParkourGenParams {
     pub initial_state: PlayerState,
     /// The final state to expect the player to be in when they reach the beginning of the next bunch.
     pub next_state: PlayerState,
+    /// The lines stuffs idk i dont want to explain it
+    pub lines: Vec<Line3>,
     /// The number of ticks to expect the player to take to get from the end of the previous bunch to the beginning of the next bunch.
     pub ticks: u32,
 }
@@ -48,7 +51,7 @@ impl ParkourGenParams {
             y if y > pos.y => rng.gen_range(4..=8),
             _ => rng.gen_range(5..=14),
         };
-        let next_state = initial_state.get_state_in_ticks(ticks);
+        let (next_state, lines) = initial_state.get_state_in_ticks(ticks);
         let mut next_pos = next_state.get_block_pos();
 
         if (next_pos.y - pos.y == 1 && next_pos.z - pos.z == 4)
@@ -62,6 +65,7 @@ impl ParkourGenParams {
             next_pos,
             initial_state,
             next_state,
+            lines,
             ticks,
         }
     }
@@ -73,13 +77,14 @@ impl ParkourGenParams {
 
         let ticks = rng.gen_range(4..=10);
 
-        let next_state = initial_state.get_state_in_ticks(ticks);
+        let (next_state, lines) = initial_state.get_state_in_ticks(ticks);
 
         Self {
             end_pos: pos,
             next_pos: next_state.get_block_pos(),
             initial_state,
             next_state,
+            lines,
             ticks,
         }
     }
@@ -94,13 +99,29 @@ impl ParkourGenParams {
         let mut rng = rand::thread_rng();
 
         let ydiff = rng.gen_range(1..=3);
-        
-        initial_state.yaw = random_yaw_dist(35.);
+        let ydiffmax = rng.gen_range(0..=2);
 
+        let yaw = initial_state.yaw * 180. / std::f32::consts::PI;
+
+        if initial_state.yaw > 30. * std::f32::consts::PI / 180. {
+            initial_state.yaw -= rng.gen_range(0. ..=15.) * std::f32::consts::PI / 180.;
+        } else if initial_state.yaw < -30. * std::f32::consts::PI / 180. {
+            initial_state.yaw += rng.gen_range(0. ..=15.) * std::f32::consts::PI / 180.;
+        } else {
+            initial_state.yaw += rng.gen_range(-15. ..=15.) * std::f32::consts::PI / 180.;
+        }
+        println!("yaw: {}, yaw: {}", yaw.floor(), (initial_state.yaw * 180. / std::f32::consts::PI).floor());
+
+        let mut lines = Vec::new();
+        let mut prev = initial_state.pos.as_vec3();
 
         loop {
             while initial_state.pos.y > pos.y as f64 {
                 initial_state.tick();
+
+                let next = initial_state.pos.as_vec3();
+                lines.push(Line3::new(prev, next));
+                prev = next;
             }
 
             next_state = initial_state.clone();
@@ -108,17 +129,27 @@ impl ParkourGenParams {
             next_state.vel.y *= -0.8;
             ticks = 0;
 
+            let mut new_lines = Vec::new();
+            let mut new_prev = next_state.pos.as_vec3();
+
             while next_state.vel.y > 0. {
                 next_state.tick();
                 ticks += 1;
+
+                let next = next_state.pos.as_vec3();
+                new_lines.push(Line3::new(new_prev, next));
+                new_prev = next;
             }
 
             new_pos = next_state.get_block_pos();
 
-            if new_pos.y - pos.y < ydiff {
+            if new_pos.y - pos.y < ydiff + ydiffmax {
                 pos.y -= 1;
                 continue;
             }
+
+            lines.extend(new_lines);
+            prev = new_prev;
 
             let y = next_state.pos.y.floor();
 
@@ -127,7 +158,11 @@ impl ParkourGenParams {
                 new_next_state.tick();
                 ticks += 1;
 
-                if new_next_state.pos.y > y {
+                let next = new_next_state.pos.as_vec3();
+                lines.push(Line3::new(prev, next));
+                prev = next;
+
+                if new_next_state.pos.y > y - ydiffmax as f64 {
                     next_state = new_next_state;
                 } else {
                     break;
@@ -147,6 +182,7 @@ impl ParkourGenParams {
             next_pos: new_pos,
             initial_state,
             next_state,
+            lines,
             ticks,
         }
     }

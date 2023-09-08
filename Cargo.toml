@@ -10,4 +10,4 @@ noise = "0.8.2"
 rand = "0.8.5"
 valence = { git = "https://github.com/valence-rs/valence" }
 lazy_static = "1.4.0"
-
+serde = { version = "1.0.188", features = ["derive"] }

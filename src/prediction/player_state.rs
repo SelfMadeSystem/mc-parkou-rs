@@ -25,7 +25,7 @@ const SPEED: f32 = 0.13000001;
 const FLYING_SPEED: f32 = 0.02;
 
 
-const AVG_RUNNING_SPEED: f64 = 0.2873;
+const AVG_RUNNING_SPEED: f64 = 0.28;
 const AVG_RUN_JUMP_SPEED: f64 = 0.47;
 const JUMP_VELOCITY: f64 = 0.42;
 const JUMP_HEAD_HIT: f64 = 0.2;
@@ -123,14 +123,20 @@ impl PlayerState {
         lines
     }
 
-    pub fn get_state_in_ticks(&self, ticks: u32) -> Self {
+    pub fn get_state_in_ticks(&self, ticks: u32) -> (Self, Vec<Line3>) {
         let mut state = self.clone();
 
+        let mut lines = Vec::new();
+
+        let mut prev = state.pos;
         for _ in 0..ticks {
             state.tick();
+            let new_pos = state.pos;
+            lines.push(Line3::new(prev.as_vec3(), new_pos.as_vec3()));
+            prev = new_pos;
         }
 
-        state
+        (state, lines)
     }
 
     fn get_accel(&self) -> DVec3 {
