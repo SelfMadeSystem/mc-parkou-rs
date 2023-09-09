@@ -1,7 +1,14 @@
 use rand::Rng;
-use valence::{prelude::{DVec3, Vec3, Client}, BlockPos, protocol::Particle};
+use valence::{
+    prelude::{Client, DVec3, Vec3},
+    protocol::Particle,
+    BlockPos,
+};
 
-use crate::{utils::{get_edge_of_block, get_edge_of_block_dist}, line::Line3};
+use crate::{
+    line::Line3,
+    utils::{get_edge_of_block, get_edge_of_block_dist},
+};
 
 /*
  * Jump: net.minecraft.world.entity.LivingEntity: line ~1950
@@ -24,15 +31,13 @@ const ON_GROUND: bool = false;
 const SPEED: f32 = 0.13000001;
 const FLYING_SPEED: f32 = 0.02;
 
-
 const AVG_RUNNING_SPEED: f64 = 0.28;
 const AVG_RUN_JUMP_SPEED: f64 = 0.47;
 const JUMP_VELOCITY: f64 = 0.42;
 const JUMP_HEAD_HIT: f64 = 0.2;
 
-
 #[derive(Debug, Clone, Copy)]
-pub struct PlayerState {
+pub struct PredictionState {
     pub pos: DVec3,
     pub vel: DVec3,
     pub yaw: f32, // pitch doesn't matter for movement
@@ -41,9 +46,9 @@ pub struct PlayerState {
 
 /// A player's state at a given point in time.
 #[allow(dead_code)]
-impl PlayerState {
+impl PredictionState {
     pub fn new(pos: DVec3, vel: DVec3, yaw: f32) -> Self {
-        Self { 
+        Self {
             pos,
             vel,
             yaw,
@@ -52,7 +57,7 @@ impl PlayerState {
                 rand::thread_rng().gen_range(0f32..1f32),
                 rand::thread_rng().gen_range(0f32..1f32),
             ),
-         }
+        }
     }
 
     pub fn running_jump(block_pos: BlockPos, yaw: f32) -> Self {
@@ -73,7 +78,11 @@ impl PlayerState {
     }
 
     pub fn get_block_pos(&self) -> BlockPos {
-        BlockPos::new(self.pos.x.floor() as i32, self.pos.y.floor() as i32 - 1, self.pos.z.floor() as i32)
+        BlockPos::new(
+            self.pos.x.floor() as i32,
+            self.pos.y.floor() as i32 - 1,
+            self.pos.z.floor() as i32,
+        )
     }
 
     pub fn tick(&mut self) {
@@ -90,7 +99,10 @@ impl PlayerState {
 
     fn draw_particle(&self, client: &mut Client) {
         client.play_particle(
-            &Particle::Dust { rgb: self.color, scale: 1. },
+            &Particle::Dust {
+                rgb: self.color,
+                scale: 1.,
+            },
             false,
             self.pos,
             Vec3::ZERO,
@@ -174,11 +186,7 @@ fn get_input_vector(acecl: DVec3, speed: f32, yaw: f32) -> DVec3 {
     if d0 < 1.0E-7 {
         DVec3::ZERO
     } else {
-        let vec3 = if d0 > 1.0 {
-            acecl.normalize()
-        } else {
-            acecl
-        } * speed as f64;
+        let vec3 = if d0 > 1.0 { acecl.normalize() } else { acecl } * speed as f64;
 
         let f = yaw.sin();
         let f1 = yaw.cos();

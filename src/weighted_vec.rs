@@ -74,6 +74,14 @@ impl <T>WeightedVec<T> {
     }
 }
 
+impl <T>From<Vec<T>> for WeightedVec<T> {
+    fn from(vec: Vec<T>) -> Self {
+        Self {
+            vec: vec.into_iter().map(|element| (element, 1.0)).collect(),
+        }
+    }
+}
+
 impl<T> std::ops::Index<usize> for WeightedVec<T> {
     type Output = T;
 
@@ -110,7 +118,13 @@ impl<T> std::iter::Extend<(T, f32)> for WeightedVec<T> {
 ///    (1, 1.0),
 ///    (2, 2.0),
 ///    (3, 3.0),
-/// ];
+/// ]; // this one has weights
+/// 
+/// let weighted_vec = weighted_vec![
+///   1,
+///   2,
+///   3,
+/// ]; // this one doesn't have weights
 /// ```
 #[macro_export]
 macro_rules! weighted_vec {
@@ -118,6 +132,14 @@ macro_rules! weighted_vec {
         $crate::weighted_vec::WeightedVec::from_iter(vec![
             $(
                 ($element, $weight),
+            )*
+        ])
+    };
+
+    ($($element:expr),* $(,)?) => {
+        $crate::weighted_vec::WeightedVec::from_iter(vec![
+            $(
+                ($element, 1.0),
             )*
         ])
     };

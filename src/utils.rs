@@ -1,3 +1,4 @@
+use rand::Rng;
 use valence::{
     prelude::{Client, DVec3, Vec3},
     protocol::Particle,
@@ -106,4 +107,28 @@ pub fn get_lines_for_block(pos: BlockPos) -> Vec<Line3> {
     lines.push(Line3::new(pos + Vec3::new(0., 1., 1.), pos + Vec3::new(1., 1., 1.)));
 
     lines
+}
+
+pub fn to_rad(deg: f32) -> f32 {
+    deg * std::f32::consts::PI / 180.0
+}
+
+pub fn to_deg(rad: f32) -> f32 {
+    rad * 180.0 / std::f32::consts::PI
+}
+
+pub fn random_yaw() -> f32 {
+    random_yaw_dist(60.0)
+}
+
+pub fn random_yaw_dist(f: impl Into<f32>) -> f32 {
+    let f = f.into();
+    to_rad(rand::thread_rng().gen_range(-f..f))
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum JumpDirection {
+    Up,
+    Down,
+    DoesntMatter,
 }

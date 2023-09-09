@@ -5,7 +5,7 @@ use crate::{
     bunch_of_blocks::{BunchOfBlocks, BunchType},
     game_state::GameState,
     line::Line3,
-    prediction::player_state::PlayerState,
+    prediction::prediction_state::PredictionState,
 };
 
 /// The parameters to generate the next bunch of blocks.
@@ -15,9 +15,9 @@ pub struct ParkourGenParams {
     /// The position to expect the start of the next bunch of blocks.
     pub next_pos: BlockPos,
     /// The initial PlayerState to expect the player to be in when they reach the end of the previous bunch.
-    pub initial_state: PlayerState,
+    pub initial_state: PredictionState,
     /// The final state to expect the player to be in when they reach the beginning of the next bunch.
-    pub next_state: PlayerState,
+    pub next_state: PredictionState,
     /// The lines stuffs idk i dont want to explain it
     pub lines: Vec<Line3>,
     /// The number of ticks to expect the player to take to get from the end of the previous bunch to the beginning of the next bunch.
@@ -42,7 +42,7 @@ impl ParkourGenParams {
     // }
 
     pub fn basic_jump(pos: BlockPos, state: &GameState) -> Self {
-        let initial_state = PlayerState::running_jump(pos, random_yaw());
+        let initial_state = PredictionState::running_jump(pos, random_yaw());
 
         let mut rng = rand::thread_rng();
 
@@ -71,7 +71,7 @@ impl ParkourGenParams {
     }
 
     pub fn fall(pos: BlockPos) -> Self {
-        let initial_state = PlayerState::head_hit_jump(pos, random_yaw_dist(35.));
+        let initial_state = PredictionState::head_hit_jump(pos, random_yaw_dist(35.));
 
         let mut rng = rand::thread_rng();
 
@@ -89,17 +89,17 @@ impl ParkourGenParams {
         }
     }
 
-    pub fn bounce(state: PlayerState) -> Self {
+    pub fn bounce(state: PredictionState) -> Self {
         let mut pos = state.get_block_pos();
         let mut initial_state = state;
-        let mut next_state: PlayerState;
+        let mut next_state: PredictionState;
         let mut new_pos: BlockPos;
         let mut ticks: u32;
 
         let mut rng = rand::thread_rng();
 
         let ydiff = rng.gen_range(1..=3);
-        let ydiffmax = rng.gen_range(0..=2);
+        let ydiffmax = rng.gen_range(0..=1);
 
         if initial_state.yaw > 30. * std::f32::consts::PI / 180. {
             initial_state.yaw -= rng.gen_range(0. ..=15.) * std::f32::consts::PI / 180.;

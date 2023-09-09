@@ -2,24 +2,29 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use bunch_of_blocks::{BunchOfBlocks, BunchType};
 use game_state::GameState;
-use prediction::player_state::PlayerState;
+use generation::block_collection::{BlockChoice, BlockCollection};
+use generation::generator::{GenerationType, Generator};
+use generation::theme::GenerationTheme;
+use prediction::prediction_state::PredictionState;
+use utils::JumpDirection;
 use valence::entity::block_display;
 use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
 use valence::spawn::IsFlat;
 
 mod block_types;
-mod bunch_of_blocks;
 mod game_state;
+mod generation;
 mod line;
-mod parkour_gen_params;
 mod prediction;
 mod utils;
 mod weighted_vec;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
+const DIFF: i32 = 10;
+const MIN_Y: i32 = START_POS.y - DIFF;
+const MAX_Y: i32 = START_POS.y + DIFF;
 const VIEW_DIST: u8 = 10;
 
 pub fn main() {
@@ -99,8 +104,26 @@ fn init_clients(
         client.send_chat_message("Welcome to epic infinite parkour game!".italic());
 
         let state = GameState {
-            blocks: VecDeque::new(),
-            prev_type: None,
+            generations: VecDeque::new(),
+            direction: JumpDirection::DoesntMatter,
+            theme: GenerationTheme::new(
+                "name",
+                weighted_vec![(
+                    GenerationType::Single(BlockCollection(BlockChoice {
+                        blocks: weighted_vec![
+                            BlockState::GRASS_BLOCK,
+                            BlockState::OAK_LOG,
+                            BlockState::BIRCH_LOG,
+                            BlockState::OAK_LEAVES,
+                            BlockState::BIRCH_LEAVES,
+                            BlockState::DIRT,
+                            BlockState::MOSS_BLOCK,
+                        ],
+                        uniform: false,
+                    })),
+                    1.0
+                )],
+            ),
             score: 0,
             combo: 0,
             target_y: 0,
@@ -110,7 +133,7 @@ fn init_clients(
                 START_POS.y as f64 + 1.0,
                 START_POS.z as f64 + 0.5,
             ),
-            test_state: PlayerState::new(
+            test_state: PredictionState::new(
                 DVec3::new(
                     START_POS.x as f64 + 0.5,
                     START_POS.y as f64 + 1.0,
@@ -170,12 +193,8 @@ fn reset_clients(
 
         let mut lines = Vec::new();
 
-        for bbb in state.blocks.iter() {
-            lines.append(
-                &mut bbb
-                    .next_params
-                    .lines.clone(),
-            );
+        for gen in state.generations.iter() {
+            lines.append(&mut gen.lines.clone());
 
             // lines.append(
             //     &mut get_lines_for_block(bbb.next_params.next_pos)
@@ -217,14 +236,13 @@ fn reset_clients(
             state.score = 0;
             state.combo = 0;
 
-            for block in &state.blocks {
+            for block in &state.generations {
                 block.remove(&mut layer)
             }
-            state.blocks.clear();
-            let blocc = BunchOfBlocks::single(START_POS, BlockState::STONE, &*state);
-            blocc.place(&mut layer);
-            state.blocks.push_back(blocc);
-            state.prev_type = Some(BunchType::Single);
+            state.generations.clear();
+            let gen = Generator::first_in_generation(START_POS, &state.theme);
+            gen.place(&mut layer);
+            state.generations.push_back(gen);
 
             for _ in 0..10 {
                 generate_next_block(&mut state, &mut layer, false);
@@ -301,7 +319,7 @@ fn spawn_lines(mut commands: Commands, mut clients: Query<(&mut GameState, &Enti
 fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mut ChunkLayer)>) {
     for (mut client, pos, mut state, mut layer) in clients.iter_mut() {
         if let Some(index) = state
-            .blocks
+            .generations
             .iter()
             .position(|block| block.has_reached(*pos))
         {
@@ -356,27 +374,44 @@ fn manage_chunks(mut clients: Query<(&Position, &OldPosition, &mut ChunkLayer), 
 
 fn generate_next_block(state: &mut GameState, layer: &mut ChunkLayer, in_game: bool) {
     if in_game {
-        let removed_block = state.blocks.pop_front().unwrap();
+        let removed_block = state.generations.pop_front().unwrap();
         removed_block.remove(layer);
 
         state.score += 1
     }
 
-    let next_params = &state.blocks.back().unwrap().next_params;
-    let last_pos = next_params.end_pos;
+    let prev_gen = state.generations.back().unwrap();
 
-    if last_pos.y == START_POS.y {
-        state.target_y = 0
-    } else if last_pos.y < START_POS.y - 20 || last_pos.y > START_POS.y + 20 {
+    if prev_gen.end_state.get_block_pos().y < MIN_Y {
         state.target_y = START_POS.y;
+        state.direction = JumpDirection::Up;
+    } else if prev_gen.end_state.get_block_pos().y > MAX_Y {
+        state.target_y = START_POS.y;
+        state.direction = JumpDirection::Down;
+    } else {
+        match state.direction {
+            JumpDirection::Up => {
+                if prev_gen.end_state.get_block_pos().y >= state.target_y {
+                    state.direction = JumpDirection::DoesntMatter;
+                }
+            }
+            JumpDirection::Down => {
+                if prev_gen.end_state.get_block_pos().y <= state.target_y {
+                    state.direction = JumpDirection::DoesntMatter;
+                }
+            }
+            _ => {}
+        }
     }
 
-    let bunch = next_params.generate(&*state);
+    let next_gen = Generator::next_in_generation(
+        state.direction,
+        &state.theme,
+        prev_gen,
+    );
 
-    state.prev_type = Some(bunch.bunch_type);
-
-    bunch.place(layer);
-    state.blocks.push_back(bunch);
+    next_gen.place(layer);
+    state.generations.push_back(next_gen);
 
     // Combo System
     state.stopped_running = false;
