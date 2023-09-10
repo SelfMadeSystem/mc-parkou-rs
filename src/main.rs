@@ -108,30 +108,61 @@ fn init_clients(
             direction: JumpDirection::DoesntMatter,
             theme: GenerationTheme::new(
                 "name",
-                weighted_vec![(
-                    GenerationType::Single(BlockCollection(BlockChoice {
-                        blocks: weighted_vec![
-                            BlockState::GRASS_BLOCK,
-                            BlockState::OAK_LOG,
-                            BlockState::BIRCH_LOG,
-                            BlockState::OAK_LEAVES,
-                            BlockState::BIRCH_LEAVES,
-                            BlockState::DIRT,
-                            BlockState::MOSS_BLOCK,
-                        ],
-                        uniform: false,
-                    })),
-                    1.0
-                ),
-                (
-                    GenerationType::Ramp(BlockSlabCollection(BlockChoice {
-                        blocks: weighted_vec![
-                            BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB)
-                        ],
-                        uniform: false,
-                    })),
-                    1.0
-                )],
+                weighted_vec![
+                    (
+                        GenerationType::Single(BlockCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockState::GRASS_BLOCK,
+                                BlockState::OAK_LOG,
+                                BlockState::BIRCH_LOG,
+                                BlockState::OAK_LEAVES,
+                                BlockState::BIRCH_LEAVES,
+                                BlockState::DIRT,
+                                BlockState::MOSS_BLOCK,
+                            ],
+                            uniform: false,
+                        })),
+                        10.0
+                    ),
+                    (
+                        GenerationType::Ramp(BlockSlabCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB),
+                                BlockSlab::new(
+                                    BlockState::COBBLESTONE,
+                                    BlockState::COBBLESTONE_SLAB
+                                ),
+                                BlockSlab::new(
+                                    BlockState::MOSSY_COBBLESTONE,
+                                    BlockState::MOSSY_COBBLESTONE_SLAB
+                                ),
+                            ],
+                            uniform: false,
+                        })),
+                        1.0
+                    ),
+                    (
+                        GenerationType::Ramp(BlockSlabCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockSlab::new(BlockState::OAK_PLANKS, BlockState::OAK_SLAB),
+                                BlockSlab::new(
+                                    BlockState::SPRUCE_PLANKS,
+                                    BlockState::SPRUCE_SLAB
+                                ),
+                                BlockSlab::new(
+                                    BlockState::BIRCH_PLANKS,
+                                    BlockState::BIRCH_SLAB
+                                ),
+                                BlockSlab::new(
+                                    BlockState::JUNGLE_PLANKS,
+                                    BlockState::JUNGLE_SLAB
+                                ),
+                            ],
+                            uniform: false,
+                        })),
+                        1.0
+                    )
+                ],
             ),
             score: 0,
             combo: 0,
@@ -413,11 +444,7 @@ fn generate_next_block(state: &mut GameState, layer: &mut ChunkLayer, in_game: b
         }
     }
 
-    let next_gen = Generator::next_in_generation(
-        state.direction,
-        &state.theme,
-        prev_gen,
-    );
+    let next_gen = Generator::next_in_generation(state.direction, &state.theme, prev_gen);
 
     next_gen.place(layer);
     state.generations.push_back(next_gen);

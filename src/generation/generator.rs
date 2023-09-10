@@ -147,13 +147,12 @@ impl Generator {
 
                 let get_block = || get_block_slab().block.into_block();
 
-                let get_slab = || get_block_slab().slab.into_block();
-
-                let get_top_slab = || {
-                    get_block_slab()
-                        .slab
-                        .set(PropName::Type, PropValue::Top)
-                        .into_block()
+                let get_slab = || {
+                    let slab = get_block_slab().slab;
+                    (
+                        slab.into_block(),
+                        slab.set(PropName::Type, PropValue::Top).into_block(),
+                    )
                 };
 
                 // can't be block pos as slabs are half blocks
@@ -192,8 +191,9 @@ impl Generator {
                     for b in get_blocks_between(left, right) {
                         let c = BlockPos::new(b.x, b.y - 1, b.z);
                         if !block_map.contains_key(&c) {
-                            block_map.entry(c).or_insert(get_top_slab());
-                            block_map.entry(b).or_insert(get_slab());
+                            let (slab, top) = get_slab();
+                            block_map.entry(c).or_insert(top);
+                            block_map.entry(b).or_insert(slab);
                         }
                     }
 
