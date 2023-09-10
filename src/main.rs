@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use game_state::GameState;
-use generation::block_collection::{BlockChoice, BlockCollection};
+use generation::block_collection::*;
 use generation::generator::{GenerationType, Generator};
 use generation::theme::GenerationTheme;
 use prediction::prediction_state::PredictionState;
@@ -118,6 +118,15 @@ fn init_clients(
                             BlockState::BIRCH_LEAVES,
                             BlockState::DIRT,
                             BlockState::MOSS_BLOCK,
+                        ],
+                        uniform: false,
+                    })),
+                    1.0
+                ),
+                (
+                    GenerationType::Ramp(BlockSlabCollection(BlockChoice {
+                        blocks: weighted_vec![
+                            BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB)
                         ],
                         uniform: false,
                     })),

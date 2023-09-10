@@ -93,18 +93,45 @@ pub fn get_lines_for_block(pos: BlockPos) -> Vec<Line3> {
     lines.push(Line3::new(pos, pos + Vec3::new(0., 1., 0.)));
     lines.push(Line3::new(pos, pos + Vec3::new(0., 0., 1.)));
 
-    lines.push(Line3::new(pos + Vec3::new(1., 0., 0.), pos + Vec3::new(1., 1., 0.)));
-    lines.push(Line3::new(pos + Vec3::new(1., 0., 0.), pos + Vec3::new(1., 0., 1.)));
+    lines.push(Line3::new(
+        pos + Vec3::new(1., 0., 0.),
+        pos + Vec3::new(1., 1., 0.),
+    ));
+    lines.push(Line3::new(
+        pos + Vec3::new(1., 0., 0.),
+        pos + Vec3::new(1., 0., 1.),
+    ));
 
-    lines.push(Line3::new(pos + Vec3::new(0., 1., 0.), pos + Vec3::new(1., 1., 0.)));
-    lines.push(Line3::new(pos + Vec3::new(0., 1., 0.), pos + Vec3::new(0., 1., 1.)));
+    lines.push(Line3::new(
+        pos + Vec3::new(0., 1., 0.),
+        pos + Vec3::new(1., 1., 0.),
+    ));
+    lines.push(Line3::new(
+        pos + Vec3::new(0., 1., 0.),
+        pos + Vec3::new(0., 1., 1.),
+    ));
 
-    lines.push(Line3::new(pos + Vec3::new(0., 0., 1.), pos + Vec3::new(1., 0., 1.)));
-    lines.push(Line3::new(pos + Vec3::new(0., 0., 1.), pos + Vec3::new(0., 1., 1.)));
+    lines.push(Line3::new(
+        pos + Vec3::new(0., 0., 1.),
+        pos + Vec3::new(1., 0., 1.),
+    ));
+    lines.push(Line3::new(
+        pos + Vec3::new(0., 0., 1.),
+        pos + Vec3::new(0., 1., 1.),
+    ));
 
-    lines.push(Line3::new(pos + Vec3::new(1., 1., 0.), pos + Vec3::new(1., 1., 1.)));
-    lines.push(Line3::new(pos + Vec3::new(1., 0., 1.), pos + Vec3::new(1., 1., 1.)));
-    lines.push(Line3::new(pos + Vec3::new(0., 1., 1.), pos + Vec3::new(1., 1., 1.)));
+    lines.push(Line3::new(
+        pos + Vec3::new(1., 1., 0.),
+        pos + Vec3::new(1., 1., 1.),
+    ));
+    lines.push(Line3::new(
+        pos + Vec3::new(1., 0., 1.),
+        pos + Vec3::new(1., 1., 1.),
+    ));
+    lines.push(Line3::new(
+        pos + Vec3::new(0., 1., 1.),
+        pos + Vec3::new(1., 1., 1.),
+    ));
 
     lines
 }
@@ -126,9 +153,130 @@ pub fn random_yaw_dist(f: impl Into<f32>) -> f32 {
     to_rad(rand::thread_rng().gen_range(-f..f))
 }
 
+pub fn get_blocks_between(start: Vec3, end: Vec3) -> Vec<BlockPos> {
+    let mut blocks = Vec::new();
+
+    let gx0 = start.x;
+    let gy0 = start.y;
+    let gz0 = start.z;
+
+    let gx1 = end.x;
+    let gy1 = end.y;
+    let gz1 = end.z;
+
+    let gx0idx = gx0.floor() as i32;
+    let gy0idx = gy0.floor() as i32;
+    let gz0idx = gz0.floor() as i32;
+
+    let gx1idx = gx1.floor() as i32;
+    let gy1idx = gy1.floor() as i32;
+    let gz1idx = gz1.floor() as i32;
+
+    let sx = if gx1idx > gx0idx {
+        1
+    } else {
+        if gx1idx < gx0idx {
+            -1
+        } else {
+            0
+        }
+    };
+    let sy = if gy1idx > gy0idx {
+        1
+    } else {
+        if gy1idx < gy0idx {
+            -1
+        } else {
+            0
+        }
+    };
+    let sz = if gz1idx > gz0idx {
+        1
+    } else {
+        if gz1idx < gz0idx {
+            -1
+        } else {
+            0
+        }
+    };
+
+    let mut gx = gx0idx;
+    let mut gy = gy0idx;
+    let mut gz = gz0idx;
+
+    //Planes for each axis that we will next cross
+    let gxp = gx0idx + (if gx1idx > gx0idx { 1 } else { 0 });
+    let gyp = gy0idx + (if gy1idx > gy0idx { 1 } else { 0 });
+    let gzp = gz0idx + (if gz1idx > gz0idx { 1 } else { 0 });
+
+    //Only used for multiplying up the error margins
+    let vx = if gx1 == gx0 { 1. } else { gx1 - gx0 };
+    let vy = if gy1 == gy0 { 1. } else { gy1 - gy0 };
+    let vz = if gz1 == gz0 { 1. } else { gz1 - gz0 };
+
+    //Error is normalized to vx * vy * vz so we only have to multiply up
+    let vxvy = vx * vy;
+    let vxvz = vx * vz;
+    let vyvz = vy * vz;
+
+    //Error from the next plane accumulators, scaled up by vx*vy*vz
+    // gx0 + vx * rx == gxp
+    // vx * rx == gxp - gx0
+    // rx == (gxp - gx0) / vx
+    let mut errx = (gxp as f32 - gx0) * vyvz;
+    let mut erry = (gyp as f32 - gy0) * vxvz;
+    let mut errz = (gzp as f32 - gz0) * vxvy;
+
+    let derrx = sx as f32 * vyvz;
+    let derry = sy as f32 * vxvz;
+    let derrz = sz as f32 * vxvy;
+
+    loop {
+        blocks.push(BlockPos::new(gx, gy, gz));
+
+        if gx == gx1idx && gy == gy1idx && gz == gz1idx {
+            break;
+        }
+
+        //Which plane do we cross first?
+        let xr = errx.abs();
+        let yr = erry.abs();
+        let zr = errz.abs();
+
+        if sx != 0 && (sy == 0 || xr < yr) && (sz == 0 || xr < zr) {
+            gx += sx;
+            errx += derrx;
+        } else if sy != 0 && (sz == 0 || yr < zr) {
+            gy += sy;
+            erry += derry;
+        } else if sz != 0 {
+            gz += sz;
+            errz += derrz;
+        }
+    }
+
+    blocks
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum JumpDirection {
     Up,
     Down,
     DoesntMatter,
+}
+
+pub trait AsBlockPos {
+    fn as_block_pos(&self) -> BlockPos;
+}
+
+impl AsBlockPos for DVec3 {
+    fn as_block_pos(&self) -> BlockPos {
+        BlockPos::new(self.x as i32, self.y as i32, self.z as i32)
+    }
+}
+
+impl AsBlockPos for Vec3 {
+    fn as_block_pos(&self) -> BlockPos {
+        BlockPos::new(self.x as i32, self.y as i32, self.z as i32)
+    }
 }

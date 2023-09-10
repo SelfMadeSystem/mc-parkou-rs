@@ -1,4 +1,6 @@
-use crate::{prediction::prediction_state::PredictionState, utils::*, line::Line3};
+use std::collections::HashMap;
+
+use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
 use super::{block_collection::*, generation::Generation, theme::GenerationTheme};
 use rand::Rng;
@@ -24,7 +26,7 @@ use valence::{layer::chunk::IntoBlock, prelude::*};
 pub enum GenerationType {
     Single(BlockCollection),
     // Slime,
-    // Ramp(BlockSlabCollection),
+    Ramp(BlockSlabCollection),
     // Island(TerrainBlockCollection),
     // Bridge(BridgeBlockCollection),
     // Indoor(IndoorBlockCollection),
@@ -52,15 +54,17 @@ impl Generator {
     pub fn first_in_generation(start: BlockPos, theme: &GenerationTheme) -> Generation {
         let theme = theme.clone();
         let s = Self {
-            generation_type: theme.get_random_generation_type(),
+            generation_type: theme.generation_types[0].clone(),
             theme,
             start: BlockPos::new(0, 0, 0),
         };
 
-        let mut g = s.generate(Vec::new()); // no lines for first generation
+        let yaw = random_yaw();
+
+        let mut g = s.generate(JumpDirection::DoesntMatter, yaw, Vec::new()); // no lines for first generation
 
         g.offset = start;
-        g.end_state = PredictionState::running_jump(start, random_yaw());
+        g.end_state = PredictionState::running_jump(start, yaw);
 
         g
     }
@@ -97,28 +101,128 @@ impl Generator {
             }
         };
 
-        g.generate(lines)
+        g.generate(direction, generation.end_state.yaw, lines)
     }
 
-    pub fn generate(&self, lines: Vec<Line3>) -> Generation {
+    pub fn generate(&self, direction: JumpDirection, yaw: f32, lines: Vec<Line3>) -> Generation {
         let mut blocks = Vec::new();
-        let offset: BlockPos;
+        let offset: BlockPos = self.start;
         let end_state: PredictionState;
 
         match &self.generation_type {
-            GenerationType::Single(block) => {
+            GenerationType::Single(BlockCollection(collection)) => {
                 blocks.push((
                     BlockPos::new(0, 0, 0),
-                    block
-                        .0
+                    collection
                         .blocks
                         .get_random()
                         .expect("No blocks in block collection")
                         .into_block(),
                 ));
                 end_state = PredictionState::running_jump(self.start, random_yaw());
-                offset = self.start;
-            } // ...
+            }
+            GenerationType::Ramp(BlockSlabCollection(collection)) => {
+                // TODO: Not great. Should be a better way to do this.
+                let index = collection.blocks.get_random_index().unwrap();
+                let uniform = collection.uniform;
+                let mut rng = rand::thread_rng();
+                let new_yaw = random_yaw();
+
+                let height = ((yaw - new_yaw).abs()).round() as i32 + 1;
+                let down = match direction {
+                    JumpDirection::Up => true,
+                    JumpDirection::Down => false,
+                    JumpDirection::DoesntMatter => rng.gen(),
+                };
+
+                let yaw_change = (new_yaw - yaw) / height as f32;
+
+                let get_block_slab = || {
+                    if uniform {
+                        collection.blocks[index].clone()
+                    } else {
+                        collection.blocks.get_random().unwrap().clone()
+                    }
+                };
+
+                let get_block = || get_block_slab().block.into_block();
+
+                let get_slab = || get_block_slab().slab.into_block();
+
+                let get_top_slab = || {
+                    get_block_slab()
+                        .slab
+                        .set(PropName::Type, PropValue::Top)
+                        .into_block()
+                };
+
+                // can't be block pos as slabs are half blocks
+                let mut pos = Vec3::new(0., 0., 0.);
+
+                let mut curr_yaw = yaw;
+
+                let get_pos_left =
+                    |pos: Vec3, yaw: f32| pos + (Vec3::new(yaw.cos(), 0., yaw.sin()) * 2f32.sqrt());
+
+                let get_pos_right = |pos: Vec3, yaw: f32| {
+                    pos + (Vec3::new(-yaw.cos(), 0., -yaw.sin()) * 2f32.sqrt())
+                };
+
+                let mut block_map = HashMap::new();
+
+                for _ in 0..height {
+                    let left = get_pos_left(pos, curr_yaw);
+                    let right = get_pos_right(pos, curr_yaw);
+
+                    for b in get_blocks_between(left, right) {
+                        block_map.entry(b).or_insert(get_block());
+                    }
+
+                    pos.x -= (curr_yaw.sin() * 2f32.sqrt()).clamp(-1., 1.);
+                    pos.z += (curr_yaw.cos() * 2f32.sqrt()).clamp(-1., 1.);
+                    pos = pos.round();
+
+                    if !down {
+                        pos.y += 1.;
+                    }
+
+                    let left = get_pos_left(pos, curr_yaw);
+                    let right = get_pos_right(pos, curr_yaw);
+
+                    for b in get_blocks_between(left, right) {
+                        let c = BlockPos::new(b.x, b.y - 1, b.z);
+                        if !block_map.contains_key(&c) {
+                            block_map.entry(c).or_insert(get_top_slab());
+                            block_map.entry(b).or_insert(get_slab());
+                        }
+                    }
+
+                    if down {
+                        pos.y -= 1.;
+                    }
+
+                    curr_yaw += yaw_change;
+
+                    pos.x -= (curr_yaw.sin() * 2f32.sqrt()).clamp(-1., 1.);
+                    pos.z += (curr_yaw.cos() * 2f32.sqrt()).clamp(-1., 1.);
+                    pos = pos.round();
+                }
+
+                let left = get_pos_left(pos, curr_yaw);
+                let right = get_pos_right(pos, curr_yaw);
+
+                for b in get_blocks_between(left, right) {
+                    block_map.entry(b).or_insert(get_block());
+                }
+                block_map.entry(pos.as_block_pos()).or_insert(get_block());
+
+                for (pos, block) in block_map {
+                    blocks.push((pos, block));
+                }
+
+                end_state =
+                    PredictionState::running_jump(self.start + pos.round().as_block_pos(), new_yaw);
+            }
         }
 
         Generation::new(blocks, offset, end_state, lines)

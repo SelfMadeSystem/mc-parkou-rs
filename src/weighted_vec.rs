@@ -72,6 +72,23 @@ impl <T>WeightedVec<T> {
 
         None
     }
+
+    pub fn get_random_index(&self) -> Option<usize> {
+        let mut rng = rand::thread_rng();
+
+        let total_weight = self.vec.iter().map(|(_, weight)| weight).sum();
+
+        let mut random = rng.gen_range(0.0..total_weight);
+
+        for (index, (_, weight)) in self.vec.iter().enumerate() {
+            random -= weight;
+            if random <= 0.0 {
+                return Some(index);
+            }
+        }
+
+        None
+    }
 }
 
 impl <T>From<Vec<T>> for WeightedVec<T> {
