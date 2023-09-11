@@ -60,9 +60,13 @@ impl PredictionState {
         }
     }
 
-    pub fn running_jump(block_pos: BlockPos, yaw: f32) -> Self {
-        let mut state = Self::new(get_edge_of_block(block_pos, yaw), DVec3::ZERO, yaw);
-        state.pos.y += 1.;
+    pub fn running_jump_block(mut block_pos: BlockPos, yaw: f32) -> Self {
+        block_pos.y += 1;
+        Self::running_jump_vec(get_edge_of_block(block_pos, yaw), yaw)
+    }
+
+    pub fn running_jump_vec(pos: DVec3, yaw: f32) -> Self {
+        let mut state = Self::new(pos, DVec3::ZERO, yaw);
         state.vel.x = -AVG_RUN_JUMP_SPEED * yaw.sin() as f64;
         state.vel.z = AVG_RUN_JUMP_SPEED * yaw.cos() as f64;
         state.vel.y = JUMP_VELOCITY;

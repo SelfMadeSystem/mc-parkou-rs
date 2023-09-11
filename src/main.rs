@@ -25,7 +25,7 @@ const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const DIFF: i32 = 10;
 const MIN_Y: i32 = START_POS.y - DIFF;
 const MAX_Y: i32 = START_POS.y + DIFF;
-const VIEW_DIST: u8 = 10;
+const VIEW_DIST: u8 = 16;
 
 pub fn main() {
     App::new()
@@ -99,7 +99,7 @@ fn init_clients(
 
         visible_chunk_layer.0 = entity;
         is_flat.0 = true;
-        *game_mode = GameMode::Adventure;
+        *game_mode = GameMode::Creative; // TODO: Change to adventure
 
         client.send_chat_message("Welcome to epic infinite parkour game!".italic());
 
@@ -145,23 +145,52 @@ fn init_clients(
                         GenerationType::Ramp(BlockSlabCollection(BlockChoice {
                             blocks: weighted_vec![
                                 BlockSlab::new(BlockState::OAK_PLANKS, BlockState::OAK_SLAB),
-                                BlockSlab::new(
-                                    BlockState::SPRUCE_PLANKS,
-                                    BlockState::SPRUCE_SLAB
-                                ),
-                                BlockSlab::new(
-                                    BlockState::BIRCH_PLANKS,
-                                    BlockState::BIRCH_SLAB
-                                ),
-                                BlockSlab::new(
-                                    BlockState::JUNGLE_PLANKS,
-                                    BlockState::JUNGLE_SLAB
-                                ),
+                                BlockSlab::new(BlockState::SPRUCE_PLANKS, BlockState::SPRUCE_SLAB),
+                                BlockSlab::new(BlockState::BIRCH_PLANKS, BlockState::BIRCH_SLAB),
+                                BlockSlab::new(BlockState::JUNGLE_PLANKS, BlockState::JUNGLE_SLAB),
                             ],
                             uniform: false,
                         })),
                         1.0
-                    )
+                    ),
+                    (
+                        GenerationType::Indoor(IndoorBlockCollection {
+                            walls: BlockCollection(BlockChoice {
+                                blocks: weighted_vec![BlockState::BRICKS,],
+                                uniform: true
+                            }),
+                            floor: Some(BlockCollection(BlockChoice {
+                                blocks: weighted_vec![BlockState::WATER,],
+                                uniform: true
+                            })),
+                            platforms: BlockSlabCollection(BlockChoice {
+                                blocks: weighted_vec![
+                                    BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB),
+                                ],
+                                uniform: true
+                            })
+                        }),
+                        10.0
+                    ),
+                    (
+                        GenerationType::Indoor(IndoorBlockCollection {
+                            walls: BlockCollection(BlockChoice {
+                                blocks: weighted_vec![BlockState::BRICKS,],
+                                uniform: true
+                            }),
+                            floor: Some(BlockCollection(BlockChoice {
+                                blocks: weighted_vec![BlockState::COBBLED_DEEPSLATE,],
+                                uniform: true
+                            })),
+                            platforms: BlockSlabCollection(BlockChoice {
+                                blocks: weighted_vec![
+                                    BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB),
+                                ],
+                                uniform: true
+                            })
+                        }),
+                        10.0
+                    ),
                 ],
             ),
             score: 0,

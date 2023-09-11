@@ -5,7 +5,7 @@ use valence::{
     BlockPos,
 };
 
-use crate::line::Line3;
+use crate::{line::Line3, prediction::prediction_state::PredictionState};
 
 pub fn get_edge_of_block(pos: BlockPos, yaw: f32) -> DVec3 {
     get_edge_of_block_dist(pos, yaw, 0)
@@ -136,21 +136,13 @@ pub fn get_lines_for_block(pos: BlockPos) -> Vec<Line3> {
     lines
 }
 
-pub fn to_rad(deg: f32) -> f32 {
-    deg * std::f32::consts::PI / 180.0
-}
-
-pub fn to_deg(rad: f32) -> f32 {
-    rad * 180.0 / std::f32::consts::PI
-}
-
 pub fn random_yaw() -> f32 {
     random_yaw_dist(60.0)
 }
 
 pub fn random_yaw_dist(f: impl Into<f32>) -> f32 {
     let f = f.into();
-    to_rad(rand::thread_rng().gen_range(-f..f))
+    rand::thread_rng().gen_range(-f..f).to_radians()
 }
 
 pub fn get_blocks_between(start: Vec3, end: Vec3) -> Vec<BlockPos> {
@@ -258,6 +250,27 @@ pub fn get_blocks_between(start: Vec3, end: Vec3) -> Vec<BlockPos> {
     blocks
 }
 
+pub fn prediction_can_reach(from: DVec3, to: BlockPos) -> bool {
+    let yaw = (to.x as f64 - from.x).atan2(to.z as f64 - from.z) as f32;
+
+    let mut state = PredictionState::running_jump_vec(from, yaw);
+
+    loop {
+        let pos = state.pos.as_block_pos();
+
+        if pos.y >= to.y && pos.x >= to.x && pos.z >= to.z && pos.x <= to.x + 1 && pos.z <= to.z + 1
+        {
+            return true;
+        }
+
+        if pos.y < to.y && state.vel.y < 0.0 {
+            return false;
+        }
+
+        state.tick();
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum JumpDirection {
     Up,
@@ -278,5 +291,15 @@ impl AsBlockPos for DVec3 {
 impl AsBlockPos for Vec3 {
     fn as_block_pos(&self) -> BlockPos {
         BlockPos::new(self.x as i32, self.y as i32, self.z as i32)
+    }
+}
+
+pub trait ToVec3 {
+    fn to_vec3(&self) -> Vec3;
+}
+
+impl ToVec3 for BlockPos {
+    fn to_vec3(&self) -> Vec3 {
+        Vec3::new(self.x as f32, self.y as f32, self.z as f32)
     }
 }

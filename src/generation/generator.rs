@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, f32::consts::PI};
 
 use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
 use super::{block_collection::*, generation::Generation, theme::GenerationTheme};
 use rand::Rng;
-use valence::{layer::chunk::IntoBlock, prelude::*};
+use valence::{layer::chunk::IntoBlock, math::IVec3, prelude::*};
 
 /// The `GenerationType` enum represents the different types of parkour generations
 /// that can be used.
@@ -29,7 +29,7 @@ pub enum GenerationType {
     Ramp(BlockSlabCollection),
     // Island(TerrainBlockCollection),
     // Bridge(BridgeBlockCollection),
-    // Indoor(IndoorBlockCollection),
+    Indoor(IndoorBlockCollection),
     // Custom(CustomGeneration),
 }
 
@@ -64,7 +64,7 @@ impl Generator {
         let mut g = s.generate(JumpDirection::DoesntMatter, yaw, Vec::new()); // no lines for first generation
 
         g.offset = start;
-        g.end_state = PredictionState::running_jump(start, yaw);
+        g.end_state = PredictionState::running_jump_block(start, yaw);
 
         g
     }
@@ -106,7 +106,7 @@ impl Generator {
 
     pub fn generate(&self, direction: JumpDirection, yaw: f32, lines: Vec<Line3>) -> Generation {
         let mut blocks = Vec::new();
-        let offset: BlockPos = self.start;
+        let mut offset: BlockPos = self.start;
         let end_state: PredictionState;
 
         match &self.generation_type {
@@ -119,7 +119,7 @@ impl Generator {
                         .expect("No blocks in block collection")
                         .into_block(),
                 ));
-                end_state = PredictionState::running_jump(self.start, random_yaw());
+                end_state = PredictionState::running_jump_block(self.start, random_yaw());
             }
             GenerationType::Ramp(BlockSlabCollection(collection)) => {
                 // TODO: Not great. Should be a better way to do this.
@@ -155,7 +155,6 @@ impl Generator {
                     )
                 };
 
-                // can't be block pos as slabs are half blocks
                 let mut pos = Vec3::new(0., 0., 0.);
 
                 let mut curr_yaw = yaw;
@@ -220,11 +219,256 @@ impl Generator {
                     blocks.push((pos, block));
                 }
 
-                end_state =
-                    PredictionState::running_jump(self.start + pos.round().as_block_pos(), new_yaw);
+                end_state = PredictionState::running_jump_block(
+                    self.start + pos.round().as_block_pos(),
+                    new_yaw,
+                );
+            }
+            GenerationType::Indoor(collection) => {
+                let indoor = IndoorGenerator::new(collection.clone());
+
+                let (a, b, c) = indoor.generate();
+
+                offset = offset - a;
+                blocks = b;
+                end_state = PredictionState::running_jump_block(offset + c, random_yaw_dist(30.));
+                // walls can be in the way
             }
         }
 
         Generation::new(blocks, offset, end_state, lines)
+    }
+}
+
+struct IndoorGenerator {
+    // TODO: NestedGenerator or something idk
+    // TODO: Integrate with the combo system
+    collection: IndoorBlockCollection,
+    wall_index: usize,
+    floor_index: usize,
+    platform_index: usize,
+}
+
+impl IndoorGenerator {
+    fn new(collection: IndoorBlockCollection) -> Self {
+        let mut rng = rand::thread_rng();
+        Self {
+            wall_index: rng.gen_range(0..collection.walls.0.blocks.len()),
+            floor_index: match &collection.floor {
+                Some(floor) => rng.gen_range(0..floor.0.blocks.len()),
+                None => 0,
+            },
+            platform_index: rng.gen_range(0..collection.platforms.0.blocks.len()),
+            collection,
+        }
+    }
+
+    fn get_wall(&self) -> Block {
+        let wall = if self.collection.walls.0.uniform {
+            self.collection.walls.0.blocks[self.wall_index].clone()
+        } else {
+            self.collection.walls.0.blocks.get_random().unwrap().clone()
+        };
+        wall.into_block()
+    }
+
+    fn get_floor(&self) -> Block {
+        match &self.collection.floor {
+            Some(floor) => {
+                let floor = if floor.0.uniform {
+                    floor.0.blocks[self.floor_index].clone()
+                } else {
+                    floor.0.blocks.get_random().unwrap().clone()
+                };
+                floor.into_block()
+            }
+            None => BlockState::AIR.into_block(),
+        }
+    }
+
+    fn get_platform_block_slab(&self) -> BlockSlab {
+        let platform = if self.collection.platforms.0.uniform {
+            self.collection.platforms.0.blocks[self.platform_index].clone()
+        } else {
+            self.collection
+                .platforms
+                .0
+                .blocks
+                .get_random()
+                .unwrap()
+                .clone()
+        };
+        platform
+    }
+
+    fn get_platform(&self) -> (Block, Block) {
+        let platform = self.get_platform_block_slab();
+        (platform.block.into_block(), platform.slab.into_block())
+    }
+
+    fn generate(&self) -> (BlockPos, Vec<(BlockPos, Block)>, BlockPos) {
+        let mut blocks = Vec::new();
+        let mut rng = rand::thread_rng();
+
+        let size: IVec3 = IVec3::new(rng.gen_range(5..=10), 7, rng.gen_range(15..=30));
+
+        self.generate_walls(&mut blocks, &size);
+        let platform_level = self.generate_floor(&mut blocks, &size);
+        let (start, end) = self.generate_start_end(&mut blocks, &size, platform_level);
+        self.generate_platforms(&mut blocks, &size, platform_level, start, end);
+
+        (start, blocks, end)
+    }
+
+    fn generate_walls(&self, blocks: &mut Vec<(BlockPos, Block)>, size: &IVec3) {
+        let mut pos = BlockPos::new(0, 0, 0);
+
+        let mut wall_blocks = Vec::new();
+
+        for y in 0..size.y {
+            for z in 0..size.z {
+                let pos = BlockPos::new(pos.x, pos.y + y, pos.z + z);
+                wall_blocks.push((pos, self.get_wall()));
+
+                let pos = BlockPos::new(pos.x + size.x - 1, pos.y, pos.z);
+
+                wall_blocks.push((pos, self.get_wall()));
+            }
+        }
+
+        pos.y += size.y;
+
+        for x in 0..size.x {
+            for z in 0..size.z {
+                let pos = BlockPos::new(pos.x + x, pos.y, pos.z + z);
+                wall_blocks.push((pos, self.get_wall()));
+            }
+        }
+
+        blocks.append(&mut wall_blocks);
+    }
+
+    fn generate_floor(&self, blocks: &mut Vec<(BlockPos, Block)>, size: &IVec3) -> i32 {
+        if let Some(floor) = &self.collection.floor {
+            let mut pos = BlockPos::new(0, 0, 0);
+
+            let mut floor_blocks = Vec::new();
+
+            let liquid = floor.0.blocks.len() == 1 && floor.0.blocks[0].is_liquid();
+
+            if liquid {
+                for x in 1..size.x - 1 {
+                    for z in 0..size.z {
+                        let pos = BlockPos::new(pos.x + x, pos.y, pos.z + z);
+                        floor_blocks.push((pos, self.get_wall()));
+                    }
+                }
+
+                pos.y += 1;
+            }
+
+            for x in 1..size.x - 1 {
+                for z in 0..size.z {
+                    let pos = BlockPos::new(pos.x + x, pos.y, pos.z + z);
+                    floor_blocks.push((pos, self.get_floor()));
+                }
+            }
+
+            blocks.append(&mut floor_blocks);
+
+            2
+        } else {
+            0
+        }
+    }
+
+    fn generate_start_end(
+        &self,
+        blocks: &mut Vec<(BlockPos, Block)>,
+        size: &IVec3,
+        platform_level: i32,
+    ) -> (BlockPos, BlockPos) {
+        let mut rng = rand::thread_rng();
+        // TODO: Improve
+
+        let start = BlockPos::new(rng.gen_range(1..size.x - 1), platform_level, 0);
+        let end = BlockPos::new(rng.gen_range(1..size.x - 1), platform_level, size.z - 1);
+
+        if platform_level > 0 {
+            for x in 1..size.x - 1 {
+                blocks.push((BlockPos::new(x, 1, 0), self.get_wall()));
+            }
+        }
+
+        blocks.push((start, self.get_platform().0));
+
+        blocks.push((end, self.get_platform().0));
+
+        (start, end)
+    }
+
+    fn generate_platforms(
+        &self,
+        blocks: &mut Vec<(BlockPos, Block)>,
+        size: &IVec3,
+        floor_level: i32,
+        prev: BlockPos,
+        end: BlockPos,
+    ) {
+        // FIXME: Sometimes goes past end
+        if prev.z >= end.z || prev.to_vec3().distance_squared(end.to_vec3()) < 4f32.powi(2) {
+            return;
+        }
+
+        let mut rng = rand::thread_rng();
+
+        const DIST: f32 = 4.;
+
+        let min_yaw = if prev.x as f32 - 1. >= DIST {
+            999.
+        } else {
+            PI / 2. - ((prev.x as f32 - 1.) / DIST).acos()
+        }
+        .min(45f32.to_radians())
+            * -1.;
+
+        let max_yaw = if (size.x - 2 - prev.x) as f32 >= DIST {
+            999.
+        } else {
+            PI / 2. - ((size.x - 2 - prev.x) as f32 / DIST).acos()
+        }
+        .min(45f32.to_radians());
+
+        let yaw = -rng.gen_range(min_yaw..=max_yaw);
+        let mut prediction = PredictionState::running_jump_block(prev, yaw);
+
+        loop {
+            let mut new_prediction = prediction.clone();
+            new_prediction.tick();
+
+            // uncertain if this will cause an infinite loop
+            // hopefully not
+            if new_prediction.pos.x < 1. || new_prediction.pos.x >= size.x as f64 - 1. {
+                eprintln!("Platform out of bounds. yaw: {:.2} min_yaw: {:.2}, max_yaw: {:.2}, prev: {:?}, size: {:?}", yaw.to_degrees(), min_yaw.to_degrees(), max_yaw.to_degrees(), prev, size);
+                eprintln!("{}", new_prediction.pos.x);
+                eprintln!("{}", new_prediction.vel.x);
+                // try again. TODO: Improve
+
+                self.generate_platforms(blocks, size, floor_level, prev, end);
+                return;
+            }
+
+            if new_prediction.vel.y > 0. || new_prediction.pos.y > floor_level as f64 + 1. {
+                prediction = new_prediction;
+            } else {
+                break;
+            }
+        }
+
+        let pos = prediction.get_block_pos();
+
+        blocks.push((pos, self.get_platform().0)); // TODO: Improve
+
+        self.generate_platforms(blocks, size, floor_level, pos, end);
     }
 }
