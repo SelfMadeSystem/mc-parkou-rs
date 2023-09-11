@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use rand::Rng;
 use valence::{
     prelude::{Client, DVec3, Vec3},
@@ -7,7 +9,7 @@ use valence::{
 
 use crate::{
     line::Line3,
-    utils::{get_edge_of_block, get_edge_of_block_dist},
+    utils::{get_edge_of_block, get_edge_of_block_dist, AsBlockPos},
 };
 
 /*
@@ -35,6 +37,12 @@ const AVG_RUNNING_SPEED: f64 = 0.28;
 const AVG_RUN_JUMP_SPEED: f64 = 0.47;
 const JUMP_VELOCITY: f64 = 0.42;
 const JUMP_HEAD_HIT: f64 = 0.2;
+
+// const PLAYER_WIDTH: f64 = 0.6;
+// const PLAYER_HEIGHT: f64 = 1.8;
+
+const PLAYER_WIDTH: f64 = 0.8; // bigger for margin of error
+const PLAYER_HEIGHT: f64 = 2.0;
 
 #[derive(Debug, Clone, Copy)]
 pub struct PredictionState {
@@ -81,12 +89,36 @@ impl PredictionState {
         state
     }
 
+    /// Gets the block pos below the player's feet.
     pub fn get_block_pos(&self) -> BlockPos {
         BlockPos::new(
             self.pos.x.floor() as i32,
             self.pos.y.floor() as i32 - 1,
             self.pos.z.floor() as i32,
         )
+    }
+
+    /// Gets the block poses the player is currently intersecting.
+    pub fn get_intersected_blocks(&self) -> Vec<BlockPos> {
+        let mut poses = HashSet::new();
+
+        let mut pos = self.pos.clone() - DVec3::new(PLAYER_WIDTH / 2., 0., PLAYER_WIDTH / 2.);
+
+        for x in 0..=2 {
+            for y in 0..=2 {
+                for z in 0..=2 {
+                    let block_pos = BlockPos::new(
+                        (pos.x + x as f64 * PLAYER_WIDTH / 2.).floor() as i32,
+                        (pos.y + y as f64 * PLAYER_HEIGHT / 2.).floor() as i32,
+                        (pos.z + z as f64 * PLAYER_WIDTH / 2.).floor() as i32,
+                    );
+
+                    poses.insert(block_pos);
+                }
+            }
+        }
+
+        poses.into_iter().collect()
     }
 
     pub fn tick(&mut self) {

@@ -2,7 +2,7 @@ use rand::Rng;
 use valence::{
     prelude::{Client, DVec3, Vec3},
     protocol::Particle,
-    BlockPos,
+    BlockPos, math::IVec3,
 };
 
 use crate::{line::Line3, prediction::prediction_state::PredictionState};
@@ -269,6 +269,26 @@ pub fn prediction_can_reach(from: DVec3, to: BlockPos) -> bool {
 
         state.tick();
     }
+}
+
+pub fn get_min_max_yaw(prev: BlockPos, size: &IVec3) -> (f32, f32) {
+    const DIST: f32 = 5.;
+
+    let min_yaw = if prev.x as f32 - 1. >= DIST {
+        999.
+    } else {
+        std::f32::consts::PI / 2. - ((prev.x as f32 - 1.) / DIST).acos()
+    }
+    .min(45f32.to_radians())
+        * -1.;
+
+    let max_yaw = if (size.x - 2 - prev.x) as f32 >= DIST {
+        999.
+    } else {
+        std::f32::consts::PI / 2. - ((size.x - 2 - prev.x) as f32 / DIST).acos()
+    }
+    .min(45f32.to_radians());
+    (min_yaw, max_yaw)
 }
 
 #[derive(Clone, Copy, Debug)]

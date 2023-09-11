@@ -1,4 +1,4 @@
-use std::{collections::HashMap, f32::consts::PI};
+use std::collections::{HashMap, HashSet};
 
 use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
@@ -20,6 +20,7 @@ use valence::{layer::chunk::IntoBlock, math::IVec3, prelude::*};
 /// create a bridge as well as wall blocks.
 /// * `Indoor`: The `Indoor` variant represents blocks that are used to create an
 /// indoor area.
+/// * `Cave`: The `Cave` variant represents blocks that are used to create a cave.
 /// * `Custom`: The `Custom` variant represents a custom parkour generation. It has
 /// preset blocks, a start position, and an end position.
 #[derive(Clone, Debug)]
@@ -30,6 +31,7 @@ pub enum GenerationType {
     // Island(TerrainBlockCollection),
     // Bridge(BridgeBlockCollection),
     Indoor(IndoorBlockCollection),
+    Cave(BlockCollection),
     // Custom(CustomGeneration),
 }
 
@@ -227,12 +229,21 @@ impl Generator {
             GenerationType::Indoor(collection) => {
                 let indoor = IndoorGenerator::new(collection.clone());
 
-                let (a, b, c) = indoor.generate();
+                let (start, bloccs, end) = indoor.generate();
 
-                offset = offset - a;
-                blocks = b;
-                end_state = PredictionState::running_jump_block(offset + c, random_yaw_dist(30.));
+                offset = offset - start;
+                blocks = bloccs;
+                end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.));
                 // walls can be in the way
+            }
+            GenerationType::Cave(BlockCollection(collection)) => {
+                let cave = CaveGenerator::new(collection.clone());
+
+                let (start, bloccs, end) = cave.generate();
+
+                offset = offset - start;
+                blocks = bloccs;
+                end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.));
             }
         }
 
@@ -314,8 +325,7 @@ impl IndoorGenerator {
 
         let platform_level = self.get_platform_level();
         let start = self.generate_start(&mut blocks, &size, platform_level);
-        let end = self
-            .generate_platforms(&mut blocks, &size, platform_level, start);
+        let end = self.generate_platforms(&mut blocks, &size, platform_level, start);
 
         size.z = end.z + 1;
 
@@ -425,22 +435,7 @@ impl IndoorGenerator {
 
         let mut rng = rand::thread_rng();
 
-        const DIST: f32 = 5.;
-
-        let min_yaw = if prev.x as f32 - 1. >= DIST {
-            999.
-        } else {
-            PI / 2. - ((prev.x as f32 - 1.) / DIST).acos()
-        }
-        .min(45f32.to_radians())
-            * -1.;
-
-        let max_yaw = if (size.x - 2 - prev.x) as f32 >= DIST {
-            999.
-        } else {
-            PI / 2. - ((size.x - 2 - prev.x) as f32 / DIST).acos()
-        }
-        .min(45f32.to_radians());
+        let (min_yaw, max_yaw) = get_min_max_yaw(prev, size);
 
         let yaw = -rng.gen_range(min_yaw..=max_yaw);
         let mut prediction = PredictionState::running_jump_block(prev, yaw);
@@ -454,7 +449,13 @@ impl IndoorGenerator {
             if new_prediction.pos.x < 1. || new_prediction.pos.x >= size.x as f64 - 1. {
                 eprintln!("Platform out of bounds. yaw: {:.2} min_yaw: {:.2}, max_yaw: {:.2}, prev: {:?}, size: {:?}", yaw.to_degrees(), min_yaw.to_degrees(), max_yaw.to_degrees(), prev, size);
                 eprintln!("{}", new_prediction.pos.x);
-                eprintln!("{}", new_prediction.pos.with_y(0.).distance(prev.to_vec3().as_dvec3().with_y(0.)));
+                eprintln!(
+                    "{}",
+                    new_prediction
+                        .pos
+                        .with_y(0.)
+                        .distance(prev.to_vec3().as_dvec3().with_y(0.))
+                );
                 eprintln!("{}", new_prediction.vel.x);
                 // try again. TODO: Improve
 
@@ -473,5 +474,145 @@ impl IndoorGenerator {
         blocks.push((pos, self.get_platform().0)); // TODO: Improve
 
         self.generate_platforms(blocks, size, floor_level, pos)
+    }
+}
+
+struct CaveGenerator {
+    collection: BlockChoice<BlockState>,
+    index: usize,
+}
+
+impl CaveGenerator {
+    pub fn new(collection: BlockChoice<BlockState>) -> Self {
+        let i = collection.blocks.get_random_index().unwrap();
+        Self {
+            collection,
+            index: i,
+        }
+    }
+
+    fn get_block(&self) -> Block {
+        let block = if self.collection.uniform {
+            self.collection.blocks[self.index].clone()
+        } else {
+            self.collection.blocks.get_random().unwrap().clone()
+        };
+        block.into_block()
+    }
+
+    pub fn generate(&self) -> (BlockPos, Vec<(BlockPos, Block)>, BlockPos) {
+        let mut blocks = Vec::new();
+
+        let mut rng = rand::thread_rng();
+
+        let mut size: IVec3 = IVec3::new(
+            rng.gen_range(10..=20),
+            rng.gen_range(8..=16),
+            rng.gen_range(15..=60),
+        );
+
+        let start = BlockPos::new(size.x / 2, 2, 0);
+
+        let mut platform_blocks = vec![(start, self.get_block())];
+        let mut air = Vec::new();
+
+        let end = self.generate_platforms(&mut air, &mut platform_blocks, &size, start);
+
+        size.z = end.z + 1;
+
+        self.fill(&mut blocks, &size);
+
+        blocks.append(&mut air);
+        blocks.append(&mut platform_blocks);
+
+        (start, blocks, end)
+    }
+
+    fn fill(&self, blocks: &mut Vec<(BlockPos, Block)>, size: &IVec3) {
+        let pos = BlockPos::new(0, 0, 0);
+
+        for x in 0..size.x {
+            for y in 0..size.y {
+                for z in 0..size.z {
+                    let pos = BlockPos::new(pos.x + x, pos.y + y, pos.z + z);
+                    blocks.push((pos, self.get_block()));
+                }
+            }
+        }
+    }
+
+    fn generate_platforms(
+        &self,
+        air: &mut Vec<(BlockPos, Block)>,
+        blocks: &mut Vec<(BlockPos, Block)>,
+        size: &IVec3,
+        prev: BlockPos,
+    ) -> BlockPos {
+        if prev.z >= size.z - 1 {
+            println!("prev.z: {}, size.z: {}", prev.z, size.z);
+            return prev;
+        }
+
+        let mut rng = rand::thread_rng();
+
+        let (min_yaw, max_yaw) = get_min_max_yaw(prev, size);
+
+        let yaw = -rng.gen_range(min_yaw..=max_yaw);
+
+        let mut prediction = PredictionState::running_jump_block(prev, yaw);
+
+        let target_y = if prev.y <= 1 {
+            prev.y + 1
+        } else if prev.y >= size.y - 3 {
+            prev.y - rng.gen_range(1..=3)
+        } else {
+            prev.y + rng.gen_range(-1..=1)
+        };
+
+        let mut intersected_blocks = HashSet::new();
+
+        loop {
+            let mut new_prediction = prediction.clone();
+            new_prediction.tick();
+
+            // uncertain if this will cause an infinite loop
+            // hopefully not
+            if new_prediction.pos.x < 1. || new_prediction.pos.x >= size.x as f64 - 1. {
+                eprintln!("Platform out of bounds. yaw: {:.2} min_yaw: {:.2}, max_yaw: {:.2}, prev: {:?}, size: {:?}", yaw.to_degrees(), min_yaw.to_degrees(), max_yaw.to_degrees(), prev, size);
+                eprintln!("{}", new_prediction.pos.x);
+                eprintln!(
+                    "{}",
+                    new_prediction
+                        .pos
+                        .with_y(0.)
+                        .distance(prev.to_vec3().as_dvec3().with_y(0.))
+                );
+                eprintln!("{}", new_prediction.vel.x);
+                // try again. TODO: Improve
+
+                return self.generate_platforms(air, blocks, size, prev);
+            }
+
+            if new_prediction.vel.y > 0. || new_prediction.pos.y > target_y as f64 {
+                prediction = new_prediction;
+                intersected_blocks.insert(prediction.get_intersected_blocks());
+            } else {
+                break;
+            }
+        }
+
+        for b in intersected_blocks {
+            for b in b {
+                air.push((b, BlockState::AIR.into_block()));
+
+                for y in 0..b.y {
+                    air.push((BlockPos::new(b.x, y, b.z), BlockState::AIR.into_block()));
+                }
+            }
+        }
+
+        blocks.push((prediction.get_block_pos(), self.get_block()));
+
+        self.generate_platforms(air, blocks, size, prediction.get_block_pos())
     }
 }

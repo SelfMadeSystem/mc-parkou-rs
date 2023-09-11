@@ -164,13 +164,14 @@ fn init_clients(
                                 uniform: true
                             })),
                             platforms: BlockSlabCollection(BlockChoice {
-                                blocks: weighted_vec![
-                                    BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB),
-                                ],
+                                blocks: weighted_vec![BlockSlab::new(
+                                    BlockState::STONE,
+                                    BlockState::STONE_SLAB
+                                ),],
                                 uniform: true
                             })
                         }),
-                        10.0
+                        1.0
                     ),
                     (
                         GenerationType::Indoor(IndoorBlockCollection {
@@ -183,13 +184,14 @@ fn init_clients(
                                 uniform: true
                             })),
                             platforms: BlockSlabCollection(BlockChoice {
-                                blocks: weighted_vec![
-                                    BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB),
-                                ],
+                                blocks: weighted_vec![BlockSlab::new(
+                                    BlockState::STONE,
+                                    BlockState::STONE_SLAB
+                                ),],
                                 uniform: true
                             })
                         }),
-                        10.0
+                        1.0
                     ),
                     (
                         GenerationType::Indoor(IndoorBlockCollection {
@@ -199,14 +201,26 @@ fn init_clients(
                             }),
                             floor: None,
                             platforms: BlockSlabCollection(BlockChoice {
-                                blocks: weighted_vec![
-                                    BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB),
-                                ],
+                                blocks: weighted_vec![BlockSlab::new(
+                                    BlockState::STONE,
+                                    BlockState::STONE_SLAB
+                                ),],
                                 uniform: true
                             })
                         }),
-                        10.0
+                        1.0
                     ),
+                    (
+                        GenerationType::Cave(BlockCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockState::STONE,
+                                BlockState::COBBLESTONE,
+                                BlockState::MOSSY_COBBLESTONE,
+                            ],
+                            uniform: false,
+                        })),
+                        1.0
+                    )
                 ],
             ),
             score: 0,
