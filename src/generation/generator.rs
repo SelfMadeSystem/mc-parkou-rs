@@ -549,7 +549,6 @@ impl CaveGenerator {
         prev: BlockPos,
     ) -> BlockPos {
         if prev.z >= size.z - 1 {
-            println!("prev.z: {}, size.z: {}", prev.z, size.z);
             return prev;
         }
 
