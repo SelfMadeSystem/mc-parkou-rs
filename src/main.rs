@@ -191,6 +191,22 @@ fn init_clients(
                         }),
                         10.0
                     ),
+                    (
+                        GenerationType::Indoor(IndoorBlockCollection {
+                            walls: BlockCollection(BlockChoice {
+                                blocks: weighted_vec![BlockState::BRICKS,],
+                                uniform: true
+                            }),
+                            floor: None,
+                            platforms: BlockSlabCollection(BlockChoice {
+                                blocks: weighted_vec![
+                                    BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB),
+                                ],
+                                uniform: true
+                            })
+                        }),
+                        10.0
+                    ),
                 ],
             ),
             score: 0,

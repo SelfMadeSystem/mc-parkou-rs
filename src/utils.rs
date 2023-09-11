@@ -303,3 +303,23 @@ impl ToVec3 for BlockPos {
         Vec3::new(self.x as f32, self.y as f32, self.z as f32)
     }
 }
+
+pub trait DVec3With {
+    fn with_x(&self, x: f64) -> DVec3;
+    fn with_y(&self, y: f64) -> DVec3;
+    fn with_z(&self, z: f64) -> DVec3;
+}
+
+impl DVec3With for DVec3 {
+    fn with_x(&self, x: f64) -> DVec3 {
+        DVec3::new(x, self.y, self.z)
+    }
+
+    fn with_y(&self, y: f64) -> DVec3 {
+        DVec3::new(self.x, y, self.z)
+    }
+
+    fn with_z(&self, z: f64) -> DVec3 {
+        DVec3::new(self.x, self.y, z)
+    }
+}

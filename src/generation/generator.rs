@@ -310,14 +310,26 @@ impl IndoorGenerator {
         let mut blocks = Vec::new();
         let mut rng = rand::thread_rng();
 
-        let size: IVec3 = IVec3::new(rng.gen_range(5..=10), 7, rng.gen_range(15..=30));
+        let mut size: IVec3 = IVec3::new(rng.gen_range(5..=10), 7, rng.gen_range(15..=30));
 
+        let platform_level = self.get_platform_level();
+        let start = self.generate_start(&mut blocks, &size, platform_level);
+        let end = self
+            .generate_platforms(&mut blocks, &size, platform_level, start);
+
+        size.z = end.z + 1;
+
+        self.generate_floor(&mut blocks, &size);
         self.generate_walls(&mut blocks, &size);
-        let platform_level = self.generate_floor(&mut blocks, &size);
-        let (start, end) = self.generate_start_end(&mut blocks, &size, platform_level);
-        self.generate_platforms(&mut blocks, &size, platform_level, start, end);
 
         (start, blocks, end)
+    }
+
+    fn get_platform_level(&self) -> i32 {
+        match &self.collection.floor {
+            Some(_) => 2,
+            _ => 0,
+        }
     }
 
     fn generate_walls(&self, blocks: &mut Vec<(BlockPos, Block)>, size: &IVec3) {
@@ -348,7 +360,7 @@ impl IndoorGenerator {
         blocks.append(&mut wall_blocks);
     }
 
-    fn generate_floor(&self, blocks: &mut Vec<(BlockPos, Block)>, size: &IVec3) -> i32 {
+    fn generate_floor(&self, blocks: &mut Vec<(BlockPos, Block)>, size: &IVec3) {
         if let Some(floor) = &self.collection.floor {
             let mut pos = BlockPos::new(0, 0, 0);
 
@@ -368,31 +380,26 @@ impl IndoorGenerator {
             }
 
             for x in 1..size.x - 1 {
-                for z in 0..size.z {
+                for z in if liquid { 1 } else { 0 }..size.z {
                     let pos = BlockPos::new(pos.x + x, pos.y, pos.z + z);
                     floor_blocks.push((pos, self.get_floor()));
                 }
             }
 
             blocks.append(&mut floor_blocks);
-
-            2
-        } else {
-            0
         }
     }
 
-    fn generate_start_end(
+    fn generate_start(
         &self,
         blocks: &mut Vec<(BlockPos, Block)>,
         size: &IVec3,
         platform_level: i32,
-    ) -> (BlockPos, BlockPos) {
+    ) -> BlockPos {
         let mut rng = rand::thread_rng();
         // TODO: Improve
 
         let start = BlockPos::new(rng.gen_range(1..size.x - 1), platform_level, 0);
-        let end = BlockPos::new(rng.gen_range(1..size.x - 1), platform_level, size.z - 1);
 
         if platform_level > 0 {
             for x in 1..size.x - 1 {
@@ -402,9 +409,7 @@ impl IndoorGenerator {
 
         blocks.push((start, self.get_platform().0));
 
-        blocks.push((end, self.get_platform().0));
-
-        (start, end)
+        start
     }
 
     fn generate_platforms(
@@ -413,16 +418,14 @@ impl IndoorGenerator {
         size: &IVec3,
         floor_level: i32,
         prev: BlockPos,
-        end: BlockPos,
-    ) {
-        // FIXME: Sometimes goes past end
-        if prev.z >= end.z || prev.to_vec3().distance_squared(end.to_vec3()) < 4f32.powi(2) {
-            return;
+    ) -> BlockPos {
+        if prev.z >= size.z - 1 {
+            return prev;
         }
 
         let mut rng = rand::thread_rng();
 
-        const DIST: f32 = 4.;
+        const DIST: f32 = 5.;
 
         let min_yaw = if prev.x as f32 - 1. >= DIST {
             999.
@@ -451,11 +454,11 @@ impl IndoorGenerator {
             if new_prediction.pos.x < 1. || new_prediction.pos.x >= size.x as f64 - 1. {
                 eprintln!("Platform out of bounds. yaw: {:.2} min_yaw: {:.2}, max_yaw: {:.2}, prev: {:?}, size: {:?}", yaw.to_degrees(), min_yaw.to_degrees(), max_yaw.to_degrees(), prev, size);
                 eprintln!("{}", new_prediction.pos.x);
+                eprintln!("{}", new_prediction.pos.with_y(0.).distance(prev.to_vec3().as_dvec3().with_y(0.)));
                 eprintln!("{}", new_prediction.vel.x);
                 // try again. TODO: Improve
 
-                self.generate_platforms(blocks, size, floor_level, prev, end);
-                return;
+                return self.generate_platforms(blocks, size, floor_level, prev);
             }
 
             if new_prediction.vel.y > 0. || new_prediction.pos.y > floor_level as f64 + 1. {
@@ -469,6 +472,6 @@ impl IndoorGenerator {
 
         blocks.push((pos, self.get_platform().0)); // TODO: Improve
 
-        self.generate_platforms(blocks, size, floor_level, pos, end);
+        self.generate_platforms(blocks, size, floor_level, pos)
     }
 }
