@@ -60,3 +60,14 @@ impl Line3 {
         bundle
     }
 }
+
+impl std::ops::Add<Vec3> for Line3 {
+    type Output = Self;
+
+    fn add(self, rhs: Vec3) -> Self::Output {
+        Self {
+            start: self.start + rhs,
+            end: self.end + rhs,
+        }
+    }
+}
