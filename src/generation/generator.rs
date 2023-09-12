@@ -4,7 +4,11 @@ use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*
 
 use super::{block_collection::*, generation::Generation, theme::GenerationTheme};
 use rand::Rng;
-use valence::{layer::chunk::IntoBlock, math::IVec3, prelude::*};
+use valence::{
+    layer::chunk::IntoBlock,
+    math::{IVec2, IVec3},
+    prelude::*,
+};
 
 /// The `GenerationType` enum represents the different types of parkour generations
 /// that can be used.
@@ -252,7 +256,7 @@ impl Generator {
 }
 
 struct IndoorGenerator {
-    // TODO: NestedGenerator or something idk
+    // TODO: NestedGenerator or CompositeGenerator or something idk
     // TODO: Integrate with the combo system
     collection: IndoorBlockCollection,
     wall_index: usize,
@@ -507,16 +511,33 @@ impl CaveGenerator {
 
         let mut size: IVec3 = IVec3::new(
             rng.gen_range(10..=20),
-            rng.gen_range(8..=16),
+            rng.gen_range(12..=18),
             rng.gen_range(15..=60),
         );
 
-        let start = BlockPos::new(size.x / 2, 2, 0);
+        let start = BlockPos::new(size.x / 2, 1, 0);
 
         let mut platform_blocks = vec![(start, self.get_block())];
         let mut air = Vec::new();
 
-        let end = self.generate_platforms(&mut air, &mut platform_blocks, &size, start);
+        let end = self.generate_platforms(
+            &mut air,
+            &mut platform_blocks,
+            &size,
+            start,
+            HashSet::from([
+                IVec2::new(start.x - 1, start.z - 1),
+                IVec2::new(start.x, start.z - 1),
+                IVec2::new(start.x + 1, start.z - 1),
+                IVec2::new(start.x - 1, start.z),
+                IVec2::new(start.x, start.z),
+                IVec2::new(start.x + 1, start.z),
+                IVec2::new(start.x - 1, start.z + 1),
+                IVec2::new(start.x, start.z + 1),
+                IVec2::new(start.x + 1, start.z + 1),
+            ]),
+            1,
+        );
 
         size.z = end.z + 1;
 
@@ -531,8 +552,8 @@ impl CaveGenerator {
     fn fill(&self, blocks: &mut Vec<(BlockPos, Block)>, size: &IVec3) {
         let pos = BlockPos::new(0, 0, 0);
 
-        for x in 0..size.x {
-            for y in 0..size.y {
+        for x in -1..size.x + 1 {
+            for y in -1..size.y + 1 {
                 for z in 0..size.z {
                     let pos = BlockPos::new(pos.x + x, pos.y + y, pos.z + z);
                     blocks.push((pos, self.get_block()));
@@ -547,7 +568,11 @@ impl CaveGenerator {
         blocks: &mut Vec<(BlockPos, Block)>,
         size: &IVec3,
         prev: BlockPos,
+        prev_xz_air: HashSet<IVec2>,
+        floor_level: i32,
     ) -> BlockPos {
+        // FIXME: Sometimes, next to the platform, there is an unescapable hole.
+        // FIXME: If 2 down, sometimes the ramp back up gets cut off.
         if prev.z >= size.z - 1 {
             return prev;
         }
@@ -560,13 +585,15 @@ impl CaveGenerator {
 
         let mut prediction = PredictionState::running_jump_block(prev, yaw);
 
-        let target_y = if prev.y <= 1 {
-            prev.y + 1
-        } else if prev.y >= size.y - 3 {
-            prev.y - rng.gen_range(1..=3)
+        let target_y = if prev.y <= 3 {
+            prev.y + 2
+        } else if prev.y >= size.y - 5 {
+            prev.y
         } else {
-            prev.y + rng.gen_range(-1..=1)
+            prev.y + rng.gen_range(0..=2)
         };
+
+        let mut xz_air = HashSet::new();
 
         let mut intersected_blocks = HashSet::new();
 
@@ -589,29 +616,75 @@ impl CaveGenerator {
                 eprintln!("{}", new_prediction.vel.x);
                 // try again. TODO: Improve
 
-                return self.generate_platforms(air, blocks, size, prev);
+                return self.generate_platforms(air, blocks, size, prev, prev_xz_air, floor_level);
             }
 
             if new_prediction.vel.y > 0. || new_prediction.pos.y > target_y as f64 {
                 prediction = new_prediction;
-                intersected_blocks.insert(prediction.get_intersected_blocks());
+                let blocks = prediction.get_intersected_blocks();
+                for b in blocks.iter() {
+                    xz_air.insert(IVec2::new(b.x as i32, b.z as i32));
+                }
+                intersected_blocks.insert(blocks);
             } else {
                 break;
             }
         }
 
+        let mut floor_level = floor_level;
+
+        let mut all_xz = xz_air.clone();
+        all_xz.extend(prev_xz_air);
+
+        if !(all_xz.contains(&IVec2::new(prev.x - 1, prev.z - 1))
+            && all_xz.contains(&IVec2::new(prev.x - 1, prev.z))
+            && all_xz.contains(&IVec2::new(prev.x - 1, prev.z + 1))
+            || all_xz.contains(&IVec2::new(prev.x + 1, prev.z - 1))
+                && all_xz.contains(&IVec2::new(prev.x + 1, prev.z))
+                && all_xz.contains(&IVec2::new(prev.x + 1, prev.z + 1)))
+        {
+            floor_level = floor_level.max(prev.y - 1);
+            floor_level = floor_level.min(target_y - 2);
+            
+            for z in 1..=prev.y - floor_level {
+                for y in floor_level..=prev.y - z {
+                    blocks.push((BlockPos::new(prev.x, y, prev.z + z), self.get_block()));
+                    blocks.push((
+                        BlockPos::new(prev.x + z - 1, y, prev.z + 1),
+                        self.get_block(),
+                    ));
+                    blocks.push((
+                        BlockPos::new(prev.x - z + 1, y, prev.z + 1),
+                        self.get_block(),
+                    ));
+                }
+            }
+
+            // FIXME: Very much not ideal
+            blocks.push((BlockPos::new(prev.x - 1, floor_level - 1, prev.z), self.get_block()));
+            blocks.push((BlockPos::new(prev.x + 1, floor_level - 1, prev.z), self.get_block()));
+            blocks.push((BlockPos::new(prev.x - 1, floor_level - 1, prev.z + 1), self.get_block()));
+            blocks.push((BlockPos::new(prev.x, floor_level - 1, prev.z + 1), self.get_block()));
+            blocks.push((BlockPos::new(prev.x + 1, floor_level - 1, prev.z + 1), self.get_block()));
+        } else {
+            floor_level = floor_level.min(target_y - 2);
+        }
+
+        let pos = prediction.get_block_pos();
+        blocks.push((pos, self.get_block()));
+
         for b in intersected_blocks {
             for b in b {
-                air.push((b, BlockState::AIR.into_block()));
-
-                for y in 0..b.y {
+                for y in floor_level..=b.y {
                     air.push((BlockPos::new(b.x, y, b.z), BlockState::AIR.into_block()));
                 }
             }
         }
 
-        blocks.push((prediction.get_block_pos(), self.get_block()));
+        for y in 1..pos.y {
+            blocks.push((BlockPos::new(pos.x, y, pos.z), self.get_block()));
+        }
 
-        self.generate_platforms(air, blocks, size, prediction.get_block_pos())
+        self.generate_platforms(air, blocks, size, pos, xz_air, floor_level)
     }
 }

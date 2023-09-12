@@ -1,12 +1,12 @@
-use valence::{prelude::*, layer::chunk::IntoBlock};
+use valence::{layer::chunk::IntoBlock, prelude::*};
 
-use crate::{prediction::prediction_state::PredictionState, line::Line3};
+use crate::{line::Line3, prediction::prediction_state::PredictionState};
 
 /// The `Generation` struct represents a parkour generation.
 ///
 /// Properties:
 ///
-/// * `blocks`: The `blocks` property is of type `Vec<(BlockPos, Block)>`. It
+/// * `blocks`: The `blocks` property is of type `Vec<(BlockPos, Block)>`. It represents
 /// blocks that are generated.
 /// * `offset`: The `offset` property is of type `BlockPos`. It represents the offset
 /// of the parkour generation.

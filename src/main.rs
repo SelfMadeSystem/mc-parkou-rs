@@ -25,7 +25,7 @@ const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const DIFF: i32 = 10;
 const MIN_Y: i32 = START_POS.y - DIFF;
 const MAX_Y: i32 = START_POS.y + DIFF;
-const VIEW_DIST: u8 = 16;
+const VIEW_DIST: u8 = 32;
 
 pub fn main() {
     App::new()
@@ -219,7 +219,7 @@ fn init_clients(
                             ],
                             uniform: false,
                         })),
-                        1.0
+                        10.0
                     )
                 ],
             ),

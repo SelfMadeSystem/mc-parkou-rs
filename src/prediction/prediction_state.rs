@@ -9,7 +9,7 @@ use valence::{
 
 use crate::{
     line::Line3,
-    utils::{get_edge_of_block, get_edge_of_block_dist, AsBlockPos},
+    utils::*,
 };
 
 /*
@@ -102,7 +102,7 @@ impl PredictionState {
     pub fn get_intersected_blocks(&self) -> Vec<BlockPos> {
         let mut poses = HashSet::new();
 
-        let mut pos = self.pos.clone() - DVec3::new(PLAYER_WIDTH / 2., 0., PLAYER_WIDTH / 2.);
+        let pos = self.pos.clone() - DVec3::new(PLAYER_WIDTH / 2., 0., PLAYER_WIDTH / 2.);
 
         for x in 0..=2 {
             for y in 0..=2 {
