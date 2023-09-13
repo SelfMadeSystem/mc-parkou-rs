@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
-use super::{block_collection::*, generation::Generation, theme::GenerationTheme};
+use super::{block_collection::*, generation::*, theme::GenerationTheme};
 use rand::Rng;
 use valence::{
     layer::chunk::IntoBlock,
@@ -118,6 +118,7 @@ impl Generator {
     ) -> Generation {
         let mut blocks = HashMap::new();
         let mut offset: BlockPos = self.start;
+        let mut children = Vec::new();
         let end_state: PredictionState;
 
         match &self.generation_type {
@@ -238,12 +239,12 @@ impl Generator {
             GenerationType::Indoor(collection) => {
                 let indoor = IndoorGenerator::new(collection.clone());
 
-                let (start, bloccs, end, linez) = indoor.generate();
+                let (start, bloccs, end, linez, childrenz) = indoor.generate();
 
                 offset = offset - start;
                 blocks = bloccs;
-                end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.));
-                // walls can be in the way
+                children = childrenz;
+                end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.)); // walls can be in the way
 
                 for line in linez {
                     lines.push(line + offset.to_vec3());
@@ -252,10 +253,11 @@ impl Generator {
             GenerationType::Cave(BlockCollection(collection)) => {
                 let cave = CaveGenerator::new(collection.clone());
 
-                let (start, bloccs, end, linez) = cave.generate();
+                let (start, bloccs, end, linez, childrenz) = cave.generate();
 
                 offset = offset - start;
                 blocks = bloccs;
+                children = childrenz;
                 end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.));
 
                 for line in linez {
@@ -264,7 +266,7 @@ impl Generator {
             }
         }
 
-        Generation::new(blocks, offset, end_state, lines)
+        Generation::new(blocks, children, offset, end_state, lines)
     }
 }
 
@@ -276,6 +278,14 @@ struct IndoorGenerator {
     floor_index: usize,
     platform_index: usize,
 }
+
+type GenerateResult = (
+    BlockPos,
+    HashMap<BlockPos, Block>,
+    BlockPos,
+    Vec<Line3>,
+    Vec<ChildGeneration>,
+);
 
 impl IndoorGenerator {
     fn new(collection: IndoorBlockCollection) -> Self {
@@ -334,7 +344,7 @@ impl IndoorGenerator {
         (platform.block.into_block(), platform.slab.into_block())
     }
 
-    fn generate(&self) -> (BlockPos, HashMap<BlockPos, Block>, BlockPos, Vec<Line3>) {
+    fn generate(&self) -> GenerateResult {
         let mut blocks = HashMap::new();
         let mut rng = rand::thread_rng();
 
@@ -342,16 +352,18 @@ impl IndoorGenerator {
 
         let mut lines = Vec::new();
 
+        let mut children = Vec::new();
+
         let platform_level = self.get_platform_level();
         let start = self.generate_start(&mut blocks, &size, platform_level);
-        let end = self.generate_platforms(&mut blocks, &size, platform_level, start, &mut lines);
+        let end = self.generate_platforms(&size, platform_level, start, &mut lines, &mut children);
 
         size.z = end.z + 1;
 
         self.generate_floor(&mut blocks, &size);
         self.generate_walls(&mut blocks, &size);
 
-        (start, blocks, end, lines)
+        (start, blocks, end, lines, children)
     }
 
     fn get_platform_level(&self) -> i32 {
@@ -443,11 +455,11 @@ impl IndoorGenerator {
 
     fn generate_platforms(
         &self,
-        blocks: &mut HashMap<BlockPos, Block>,
         size: &IVec3,
         floor_level: i32,
         prev: BlockPos,
         lines: &mut Vec<Line3>,
+        children: &mut Vec<ChildGeneration>,
     ) -> BlockPos {
         if prev.z >= size.z - 1 {
             return prev;
@@ -481,7 +493,7 @@ impl IndoorGenerator {
                 eprintln!("{}", new_prediction.vel.x);
                 // try again. TODO: Improve
 
-                return self.generate_platforms(blocks, size, floor_level, prev, lines);
+                return self.generate_platforms(size, floor_level, prev, lines, children);
             }
 
             if new_prediction.vel.y > 0. || new_prediction.pos.y > floor_level as f64 + 1. {
@@ -498,11 +510,14 @@ impl IndoorGenerator {
 
         let pos = prediction.get_block_pos();
 
-        blocks.insert(pos, self.get_platform().0); // TODO: Improve
+        children.push(ChildGeneration::new(HashMap::from([(
+            pos,
+            self.get_platform().0,
+        )])));
 
         lines.append(&mut new_lines);
 
-        self.generate_platforms(blocks, size, floor_level, pos, lines)
+        self.generate_platforms(size, floor_level, pos, lines, children)
     }
 }
 
@@ -529,9 +544,7 @@ impl CaveGenerator {
         block.into_block()
     }
 
-    pub fn generate(&self) -> (BlockPos, HashMap<BlockPos, Block>, BlockPos, Vec<Line3>) {
-        let mut blocks = HashMap::new();
-
+    pub fn generate(&self) -> GenerateResult {
         let mut rng = rand::thread_rng();
 
         let mut size: IVec3 = IVec3::new(
@@ -544,12 +557,13 @@ impl CaveGenerator {
 
         let mut lines = Vec::new();
 
-        let mut platform_blocks = HashMap::from([(start, self.get_block())]);
+        let mut blocks = HashMap::new();
+        let mut children = Vec::new();
         let mut air = HashSet::new();
 
         let end = self.generate_platforms(
             &mut air,
-            &mut platform_blocks,
+            &mut children,
             &size,
             start,
             HashSet::from([
@@ -575,9 +589,9 @@ impl CaveGenerator {
             blocks.insert(air, BlockState::AIR.into_block());
         }
 
-        blocks.extend(platform_blocks);
+        blocks.insert(start, self.get_block());
 
-        (start, blocks, end, lines)
+        (start, blocks, end, lines, children)
     }
 
     fn fill(&self, blocks: &mut HashMap<BlockPos, Block>, size: &IVec3) {
@@ -596,7 +610,7 @@ impl CaveGenerator {
     fn generate_platforms(
         &self,
         air: &mut HashSet<BlockPos>,
-        blocks: &mut HashMap<BlockPos, Block>,
+        children: &mut Vec<ChildGeneration>,
         size: &IVec3,
         prev: BlockPos,
         prev_xz_air: HashSet<IVec2>,
@@ -610,6 +624,8 @@ impl CaveGenerator {
         }
 
         let mut rng = rand::thread_rng();
+
+        let mut blocks = HashMap::new();
 
         let (min_yaw, max_yaw) = get_min_max_yaw(prev, size);
 
@@ -650,7 +666,7 @@ impl CaveGenerator {
 
                 return self.generate_platforms(
                     air,
-                    blocks,
+                    children,
                     size,
                     prev,
                     prev_xz_air,
@@ -697,6 +713,10 @@ impl CaveGenerator {
             floor_level = floor_level.max(prev.y - 1);
             floor_level = floor_level.min(target_y - 2);
 
+            let mut prev_child = children.pop().expect("No children");
+
+            let mut blocks = prev_child.blocks;
+
             for z in 1..=prev.y - floor_level {
                 for y in floor_level..=prev.y - z {
                     blocks.insert(BlockPos::new(prev.x, y, prev.z + z), self.get_block());
@@ -719,6 +739,10 @@ impl CaveGenerator {
                 blocks.insert(BlockPos::new(prev.x, y, prev.z + 1), self.get_block());
                 blocks.insert(BlockPos::new(prev.x + 1, y, prev.z + 1), self.get_block());
             }
+
+            prev_child.blocks = blocks;
+
+            children.push(prev_child);
         } else {
             floor_level = floor_level.min(target_y - 2);
             floor_level = floor_level.max(target_y - 3);
@@ -738,6 +762,8 @@ impl CaveGenerator {
 
         lines.extend(new_lines);
 
-        self.generate_platforms(air, blocks, size, pos, xz_air, floor_level, lines)
+        children.push(ChildGeneration::new(blocks));
+
+        self.generate_platforms(air, children, size, pos, xz_air, floor_level, lines)
     }
 }

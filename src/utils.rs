@@ -277,10 +277,12 @@ pub fn prediction_can_reach(from: DVec3, to: BlockPos) -> bool {
     }
 }
 
-pub fn get_player_floor_blocks(pos: DVec3) -> Vec<BlockPos> {
+pub fn get_player_floor_blocks(mut pos: DVec3) -> Vec<BlockPos> {
     let mut blocks = Vec::new();
-
-    let pos = pos.with_y(pos.y - 0.1);
+    
+    if pos.y % 1. == 0. {
+        pos.y -= 1.;
+    }
 
     let x0 = pos.x - PLAYER_WIDTH / 2.;
     let x1 = pos.x + PLAYER_WIDTH / 2.;

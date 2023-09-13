@@ -219,7 +219,7 @@ fn init_clients(
                             ],
                             uniform: false,
                         })),
-                        10.0
+                        1.0
                     )
                 ],
             ),
@@ -416,41 +416,49 @@ fn spawn_lines(mut commands: Commands, mut clients: Query<(&mut GameState, &Enti
 }
 
 fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mut ChunkLayer)>) {
-    for (mut client, pos, mut state, mut layer) in clients.iter_mut() {
+    for (client, pos, mut state, mut layer) in clients.iter_mut() {
         if let Some(index) = state
             .generations
             .iter()
             .position(|block| block.has_reached(*pos))
         {
             if index > 0 {
-                if state.stopped_running {
-                    state.combo = 0
-                } else {
-                    state.combo += index as u32
-                }
-
                 for _ in 0..index {
                     generate_next_block(&mut state, &mut layer, true)
                 }
 
-                let pitch = 0.9 + ((state.combo as f32) - 1.0) * 0.05;
-                client.play_sound(
-                    Sound::BlockNoteBlockBass,
-                    SoundCategory::Master,
-                    pos.0,
-                    1.0,
-                    pitch,
-                );
-
-                if state.score < 50 && state.score % 10 == 0
-                    || state.score == 75
-                    || state.score >= 100 && state.score % 50 == 0
-                {
-                    client.set_title("");
-                    client.set_subtitle(state.score.to_string().color(Color::LIGHT_PURPLE).bold());
-                }
+                reached_thing(state, index as u32, client, pos);
+            } else if state.generations[0].has_reached_child(*pos) {
+                state.score += 1;
+                reached_thing(state, 1, client, pos);
             }
         }
+    }
+}
+
+fn reached_thing(mut state: Mut<'_, GameState>, index: u32, mut client: Mut<'_, Client>, pos: &Position) {
+    if state.stopped_running {
+        state.combo = 0;
+    } else {
+        state.combo += index;
+    }
+
+    let pitch = 0.9 + ((state.combo as f32) - 1.0) * 0.05;
+    client.play_sound(
+        Sound::BlockNoteBlockBass,
+        SoundCategory::Master,
+        pos.0,
+        1.0,
+        pitch,
+    );
+
+    if true
+        || state.score < 50 && state.score % 10 == 0
+        || state.score == 75
+        || state.score >= 100 && state.score % 50 == 0
+    {
+        client.set_title("");
+        client.set_subtitle(state.score.to_string().color(Color::LIGHT_PURPLE).bold());
     }
 }
 
