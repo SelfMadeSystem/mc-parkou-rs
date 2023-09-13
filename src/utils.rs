@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use rand::Rng;
 use valence::{
     math::IVec3,
@@ -8,8 +10,8 @@ use valence::{
 
 use crate::{line::Line3, prediction::prediction_state::PredictionState};
 
-const PLAYER_WIDTH: f64 = 0.6;
-const PLAYER_HEIGHT: f64 = 1.8;
+pub const PLAYER_WIDTH: f64 = 0.6;
+pub const PLAYER_HEIGHT: f64 = 1.8;
 
 pub fn get_edge_of_block(pos: BlockPos, yaw: f32) -> DVec3 {
     get_edge_of_block_dist(pos, yaw, 0)
