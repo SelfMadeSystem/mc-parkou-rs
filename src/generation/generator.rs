@@ -622,8 +622,6 @@ impl CaveGenerator {
             prev.y + rng.gen_range(0..=2)
         };
 
-        let mut xz_air = HashSet::new();
-
         let mut intersected_blocks = HashSet::new();
 
         let mut new_lines = Vec::new();
@@ -666,19 +664,22 @@ impl CaveGenerator {
 
                 prediction = new_prediction;
                 let blocks = prediction.get_intersected_blocks();
-                for b in blocks.iter() {
-                    xz_air.insert(IVec2::new(b.x as i32, b.z as i32));
-                }
-                intersected_blocks.insert(blocks);
+                intersected_blocks.extend(blocks);
             } else {
                 break;
             }
         }
+        let pos = prediction.get_block_pos();
+
+        intersected_blocks.retain(|b| {
+            prediction.yaw >= 0. && b.x >= pos.x || prediction.yaw <= 0. && b.x <= pos.x
+        });
 
         let mut floor_level = floor_level;
 
-        let mut all_xz = xz_air.clone();
-        all_xz.extend(prev_xz_air);
+        let mut all_xz = prev_xz_air.clone();
+        let xz_air: HashSet<_> = intersected_blocks.iter().map(|b| IVec2::new(b.x, b.z)).collect();
+        all_xz.extend(xz_air.clone());
 
         if !(all_xz.contains(&IVec2::new(prev.x - 1, prev.z - 1))
             && all_xz.contains(&IVec2::new(prev.x - 1, prev.z))
@@ -706,39 +707,22 @@ impl CaveGenerator {
 
             // FIXME: Very much not ideal
             for y in 1..floor_level {
-                blocks.push((
-                    BlockPos::new(prev.x - 1, y, prev.z),
-                    self.get_block(),
-                ));
-                blocks.push((
-                    BlockPos::new(prev.x + 1, y, prev.z),
-                    self.get_block(),
-                ));
-                blocks.push((
-                    BlockPos::new(prev.x - 1, y, prev.z + 1),
-                    self.get_block(),
-                ));
-                blocks.push((
-                    BlockPos::new(prev.x, y, prev.z + 1),
-                    self.get_block(),
-                ));
-                blocks.push((
-                    BlockPos::new(prev.x + 1, y, prev.z + 1),
-                    self.get_block(),
-                ));
+                blocks.push((BlockPos::new(prev.x - 1, y, prev.z), self.get_block()));
+                blocks.push((BlockPos::new(prev.x + 1, y, prev.z), self.get_block()));
+                blocks.push((BlockPos::new(prev.x - 1, y, prev.z + 1), self.get_block()));
+                blocks.push((BlockPos::new(prev.x, y, prev.z + 1), self.get_block()));
+                blocks.push((BlockPos::new(prev.x + 1, y, prev.z + 1), self.get_block()));
             }
         } else {
             floor_level = floor_level.min(target_y - 2);
+            floor_level = floor_level.max(target_y - 3);
         }
 
-        let pos = prediction.get_block_pos();
         blocks.push((pos, self.get_block()));
 
         for b in intersected_blocks {
-            for b in b {
-                for y in floor_level..=b.y {
-                    air.push((BlockPos::new(b.x, y, b.z), BlockState::AIR.into_block()));
-                }
+            for y in floor_level..=b.y {
+                air.push((BlockPos::new(b.x, y, b.z), BlockState::AIR.into_block()));
             }
         }
 
