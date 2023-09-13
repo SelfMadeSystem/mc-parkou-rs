@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
-use crate::{line::Line3, prediction::prediction_state::PredictionState};
+use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
 /// The `Generation` struct represents a parkour generation.
 ///
@@ -53,12 +53,14 @@ impl Generation {
 
     /// Returns true if the player has reached any of the blocks.
     pub fn has_reached(&self, pos: Position) -> bool {
-        let pos = BlockPos::new(
-            (pos.0.x - 0.5).round() as i32,
-            pos.0.y as i32 - 1,
-            (pos.0.z - 0.5).round() as i32,
-        ) - self.offset;
+        let poses = get_player_floor_blocks(pos.0);
 
-        self.blocks.contains_key(&pos) || self.blocks.contains_key(&(pos + BlockPos::new(0, 1, 0)))
+        for pos in poses {
+            if self.blocks.contains_key(&(pos - self.offset)) {
+                return true;
+            }
+        }
+
+        false
     }
 }

@@ -1,11 +1,15 @@
 use rand::Rng;
 use valence::{
+    math::IVec3,
     prelude::{Client, DVec3, Vec3},
     protocol::Particle,
-    BlockPos, math::IVec3,
+    BlockPos,
 };
 
 use crate::{line::Line3, prediction::prediction_state::PredictionState};
+
+const PLAYER_WIDTH: f64 = 0.6;
+const PLAYER_HEIGHT: f64 = 1.8;
 
 pub fn get_edge_of_block(pos: BlockPos, yaw: f32) -> DVec3 {
     get_edge_of_block_dist(pos, yaw, 0)
@@ -269,6 +273,34 @@ pub fn prediction_can_reach(from: DVec3, to: BlockPos) -> bool {
 
         state.tick();
     }
+}
+
+pub fn get_player_floor_blocks(pos: DVec3) -> Vec<BlockPos> {
+    let mut blocks = Vec::new();
+
+    let pos = pos.with_y(pos.y - 0.1);
+
+    let x0 = pos.x - PLAYER_WIDTH / 2.;
+    let x1 = pos.x + PLAYER_WIDTH / 2.;
+
+    let z0 = pos.z - PLAYER_WIDTH / 2.;
+    let z1 = pos.z + PLAYER_WIDTH / 2.;
+
+    let y = pos.y.floor() as i32;
+
+    let x0idx = x0.floor() as i32;
+    let x1idx = x1.floor() as i32;
+
+    let z0idx = z0.floor() as i32;
+    let z1idx = z1.floor() as i32;
+
+    for x in x0idx..=x1idx {
+        for z in z0idx..=z1idx {
+            blocks.push(BlockPos::new(x, y, z));
+        }
+    }
+
+    blocks
 }
 
 pub fn get_min_max_yaw(prev: BlockPos, size: &IVec3) -> (f32, f32) {
