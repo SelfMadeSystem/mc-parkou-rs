@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
 use crate::{line::Line3, prediction::prediction_state::PredictionState};
@@ -6,7 +8,7 @@ use crate::{line::Line3, prediction::prediction_state::PredictionState};
 ///
 /// Properties:
 ///
-/// * `blocks`: The `blocks` property is of type `Vec<(BlockPos, Block)>`. It represents
+/// * `blocks`: The `blocks` property is of type `HashMap<BlockPos, Block>`. It represents
 /// blocks that are generated.
 /// * `offset`: The `offset` property is of type `BlockPos`. It represents the offset
 /// of the parkour generation.
@@ -16,7 +18,7 @@ use crate::{line::Line3, prediction::prediction_state::PredictionState};
 /// player takes through the parkour generation.
 #[derive(Clone, Debug)]
 pub struct Generation {
-    pub blocks: Vec<(BlockPos, Block)>,
+    pub blocks: HashMap<BlockPos, Block>,
     pub offset: BlockPos,
     pub end_state: PredictionState,
     pub lines: Vec<Line3>,
@@ -24,7 +26,7 @@ pub struct Generation {
 
 impl Generation {
     pub fn new(
-        blocks: Vec<(BlockPos, Block)>,
+        blocks: HashMap<BlockPos, Block>,
         offset: BlockPos,
         end_state: PredictionState,
         lines: Vec<Line3>,
@@ -57,6 +59,6 @@ impl Generation {
             (pos.0.z - 0.5).round() as i32,
         ) - self.offset;
 
-        self.blocks.iter().any(|(block_pos, _)| *block_pos == pos)
+        self.blocks.contains_key(&pos) || self.blocks.contains_key(&(pos + BlockPos::new(0, 1, 0)))
     }
 }
