@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*, alt_block::*};
+use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
 use super::{block_collection::*, generation::*, theme::GenerationTheme};
 use rand::Rng;
@@ -265,23 +265,129 @@ impl Generator {
                 }
             }
             GenerationType::Snake(BlockCollection(collection)) => {
-                blocks.insert(
-                    BlockPos::new(0, 0, 0),
-                    BlockState::BARRIER, // doesn't matter as it will be replaced
-                );
-                let block = collection.blocks.get_random().unwrap().clone();
-                alt_blocks.insert(
-                    BlockPos::new(0, 0, 0),
-                    AltBlock::Tick(
-                        vec![
-                            (AltBlockState::Block(block), 10),
-                            (AltBlockState::SmallBlock(block), 10),
-                        ],
-                        0,
-                    ),
-                );
+                // TODO: Make this better
+                // For now, it's just large square
+                let mut rng = rand::thread_rng();
 
-                end_state = PredictionState::running_jump_block(self.start, random_yaw());
+                let size = rng.gen_range(4..=14);
+                let snake_count = 2;
+                let total_blocks = (size as u32 * 4 - 4) / snake_count;
+                let snake_length = size as u32 * 4 / 5;
+                let delay = rng.gen_range(4..10);
+                let block = collection.blocks.get_random().unwrap().clone();
+
+                for i in 0..size {
+                    {
+                        let x = i - size / 2;
+                        let z = 0;
+
+                        blocks.insert(
+                            BlockPos::new(x, 0, z),
+                            BlockState::BARRIER, // doesn't matter as it will be replaced
+                        );
+
+                        alt_blocks.insert(
+                            BlockPos::new(x, 0, z),
+                            AltBlock::Tick(
+                                vec![
+                                    (AltBlockState::Block(block), snake_length * delay),
+                                    (
+                                        AltBlockState::SmallBlock(block),
+                                        (total_blocks - snake_length) * delay,
+                                    ),
+                                ],
+                                i as u32 * delay,
+                            ),
+                        );
+                    }
+
+                    if i > 0 && i < size - 1 {
+                        let mut x = size / 2;
+                        if size % 2 == 0 {
+                            x -= 1;
+                        }
+                        let z = i;
+
+                        blocks.insert(
+                            BlockPos::new(x, 0, z),
+                            BlockState::BARRIER, // doesn't matter as it will be replaced
+                        );
+
+                        alt_blocks.insert(
+                            BlockPos::new(x, 0, z),
+                            AltBlock::Tick(
+                                vec![
+                                    (AltBlockState::Block(block), snake_length * delay),
+                                    (
+                                        AltBlockState::SmallBlock(block),
+                                        (total_blocks - snake_length) * delay,
+                                    ),
+                                ],
+                                (i + size - 1) as u32 * delay,
+                            ),
+                        );
+                    }
+
+                    {
+                        let mut x = size / 2 - i;
+                        if size % 2 == 0 {
+                            x -= 1;
+                        }
+                        let z = size - 1;
+
+                        blocks.insert(
+                            BlockPos::new(x, 0, z),
+                            BlockState::BARRIER, // doesn't matter as it will be replaced
+                        );
+
+                        alt_blocks.insert(
+                            BlockPos::new(x, 0, z),
+                            AltBlock::Tick(
+                                vec![
+                                    (AltBlockState::Block(block), snake_length * delay),
+                                    (
+                                        AltBlockState::SmallBlock(block),
+                                        (total_blocks - snake_length) * delay,
+                                    ),
+                                ],
+                                (i + size * 2 - 2) as u32 * delay,
+                            ),
+                        );
+                    }
+
+                    if i > 0 && i < size - 1 {
+                        let x = -size / 2;
+                        let z = size - 1 - i;
+
+                        blocks.insert(
+                            BlockPos::new(x, 0, z),
+                            BlockState::BARRIER, // doesn't matter as it will be replaced
+                        );
+
+                        alt_blocks.insert(
+                            BlockPos::new(x, 0, z),
+                            AltBlock::Tick(
+                                vec![
+                                    (AltBlockState::Block(block), snake_length * delay),
+                                    (
+                                        AltBlockState::SmallBlock(block),
+                                        (total_blocks - snake_length) * delay,
+                                    ),
+                                ],
+                                (i + size * 3 - 3) as u32 * delay,
+                            ),
+                        );
+                    }
+                }
+
+                end_state = PredictionState::running_jump_block(
+                    BlockPos {
+                        x: self.start.x,
+                        y: self.start.y,
+                        z: self.start.z + size - 1,
+                    },
+                    random_yaw(),
+                );
             }
         }
 
@@ -527,10 +633,10 @@ impl IndoorGenerator {
 
         let pos = prediction.get_block_pos();
 
-        children.push(ChildGeneration::new(HashMap::from([(
-            pos,
-            self.get_platform().0,
-        )]), HashMap::new()));
+        children.push(ChildGeneration::new(
+            HashMap::from([(pos, self.get_platform().0)]),
+            HashMap::new(),
+        ));
 
         lines.append(&mut new_lines);
 
