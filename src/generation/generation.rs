@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
-use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*};
+use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*, alt_block::*};
 
 /// The `Generation` struct represents a parkour generation.
 ///
@@ -12,6 +12,8 @@ use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*
 /// blocks that are generated.
 /// * `children`: The `children` property is of type `Vec<ChildGeneration>`. It represents
 /// child generations that are generated.
+/// * `alt_blocks`: The `alt_blocks` property is of type `HashMap<BlockPos, AltBlock>`. It
+/// represents blocks that change under certain conditions.
 /// * `offset`: The `offset` property is of type `BlockPos`. It represents the offset
 /// of the parkour generation.
 /// * `end_state`: The `end_state` property is of type `PredictionState`. It represents
@@ -22,6 +24,7 @@ use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*
 pub struct Generation {
     pub blocks: HashMap<BlockPos, BlockState>,
     pub children: Vec<ChildGeneration>,
+    pub alt_blocks: HashMap<BlockPos, AltBlock>,
     pub offset: BlockPos,
     pub end_state: PredictionState,
     pub lines: Vec<Line3>,
@@ -31,6 +34,7 @@ impl Generation {
     pub fn new(
         blocks: HashMap<BlockPos, BlockState>,
         children: Vec<ChildGeneration>,
+        alt_blocks: HashMap<BlockPos, AltBlock>,
         offset: BlockPos,
         end_state: PredictionState,
         lines: Vec<Line3>,
@@ -38,6 +42,7 @@ impl Generation {
         Self {
             blocks,
             children,
+            alt_blocks,
             offset,
             end_state,
             lines,
@@ -63,6 +68,18 @@ impl Generation {
 
         for child in &self.children {
             child.remove(world, self.offset);
+        }
+    }
+
+    /// Updates the alt blocks in the generation.
+    pub fn update_alt_blocks(&self, params: &AltBlockParams, world: &mut ChunkLayer) {
+        for (pos, block) in &self.alt_blocks {
+            let block = block.get_block(params);
+            world.set_block(*pos + self.offset, block.into_block());
+        }
+
+        for child in &self.children {
+            child.update_alt_blocks(params, world, self.offset);
         }
     }
 
@@ -126,18 +143,22 @@ impl Generation {
 ///
 /// * `blocks`: The `blocks` property is of type `HashMap<BlockPos, &BlockState>`. It represents
 /// blocks that are generated.
+/// * `alt_blocks`: The `alt_blocks` property is of type `HashMap<BlockPos, AltBlock>`. It
+/// represents blocks that change under certain conditions.
 /// * `reached`: The `reached` property is of type `bool`. It represents whether or not
 /// the child generation has been reached by the player.
 #[derive(Clone, Debug)]
 pub struct ChildGeneration {
     pub blocks: HashMap<BlockPos, BlockState>,
+    pub alt_blocks: HashMap<BlockPos, AltBlock>,
     pub reached: bool,
 }
 
 impl ChildGeneration {
-    pub fn new(blocks: HashMap<BlockPos, BlockState>) -> Self {
+    pub fn new(blocks: HashMap<BlockPos, BlockState>, alt_blocks: HashMap<BlockPos, AltBlock>) -> Self {
         Self {
             blocks,
+            alt_blocks,
             reached: false,
         }
     }
@@ -153,6 +174,14 @@ impl ChildGeneration {
     pub fn remove(&self, world: &mut ChunkLayer, offset: BlockPos) {
         for (pos, _) in &self.blocks {
             world.set_block(*pos + offset, BlockState::AIR.into_block());
+        }
+    }
+
+    /// Updates the alt blocks in the generation.
+    pub fn update_alt_blocks(&self, params: &AltBlockParams, world: &mut ChunkLayer, offset: BlockPos) {
+        for (pos, block) in &self.alt_blocks {
+            let block = block.get_block(params);
+            world.set_block(*pos + offset, block.into_block());
         }
     }
 

@@ -2,6 +2,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
+use alt_block::AltBlockParams;
 use game_state::GameState;
 use generation::block_collection::*;
 use generation::generator::{GenerationType, Generator};
@@ -20,6 +21,7 @@ mod line;
 mod prediction;
 mod utils;
 mod weighted_vec;
+mod alt_block;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const DIFF: i32 = 10;
@@ -42,6 +44,7 @@ pub fn main() {
                 reset_clients.after(init_clients),
                 manage_chunks.after(reset_clients).before(manage_blocks),
                 manage_blocks,
+                update_alt_blocks,
                 spawn_lines,
                 despawn_disconnected_clients,
                 cleanup_clients,
@@ -227,6 +230,7 @@ fn init_clients(
             combo: 0,
             target_y: 0,
             stopped_running: false,
+            tick: 0,
             prev_pos: DVec3::new(
                 START_POS.x as f64 + 0.5,
                 START_POS.y as f64 + 1.0,
@@ -368,6 +372,22 @@ fn cleanup_clients(
             for entity in state.line_entities.values() {
                 commands.entity(*entity).insert(Despawned);
             }
+        }
+    }
+}
+
+fn update_alt_blocks(
+    mut clients: Query<(&mut GameState, &mut ChunkLayer/* , &Position, &OldPosition */)>,
+) {
+    for (mut state, mut layer/* , pos, old_pos */) in clients.iter_mut() {
+        state.tick += 1;
+
+        let params = AltBlockParams {
+            ticks: state.tick,
+        };
+
+        for gen in state.generations.iter_mut() {
+            gen.update_alt_blocks(&params, &mut layer);
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*};
+use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*, alt_block::AltBlock};
 
 use super::{block_collection::*, generation::*, theme::GenerationTheme};
 use rand::Rng;
@@ -116,6 +116,7 @@ impl Generator {
         mut lines: Vec<Line3>,
     ) -> Generation {
         let mut blocks = HashMap::new();
+        let mut alt_blocks = HashMap::new();
         let mut offset: BlockPos = self.start;
         let mut children = Vec::new();
         let end_state: PredictionState;
@@ -129,6 +130,20 @@ impl Generator {
                         .get_random()
                         .expect("No blocks in block collection"),
                 );
+
+                // TODO: Move this to dedicated generation type as this is just for testing
+                alt_blocks.insert(
+                    BlockPos::new(0, 0, 0),
+                    AltBlock::Tick(
+                        vec![
+                            (BlockState::RED_WOOL, 10),
+                            (BlockState::GREEN_WOOL, 10),
+                            (BlockState::BLUE_WOOL, 10),
+                        ],
+                        0,
+                    ),
+                );
+
                 end_state = PredictionState::running_jump_block(self.start, random_yaw());
             }
             GenerationType::Ramp(BlockSlabCollection(collection)) => {
@@ -261,7 +276,7 @@ impl Generator {
             }
         }
 
-        Generation::new(blocks, children, offset, end_state, lines)
+        Generation::new(blocks, children, alt_blocks, offset, end_state, lines)
     }
 }
 
@@ -506,7 +521,7 @@ impl IndoorGenerator {
         children.push(ChildGeneration::new(HashMap::from([(
             pos,
             self.get_platform().0,
-        )])));
+        )]), HashMap::new()));
 
         lines.append(&mut new_lines);
 
@@ -610,7 +625,6 @@ impl CaveGenerator {
         lines: &mut Vec<Line3>,
     ) -> BlockPos {
         // FIXME: Sometimes, next to the platform, there is an unescapable hole.
-        // FIXME: If 2 down, sometimes the ramp back up gets cut off.
         if prev.z >= size.z - 1 {
             return prev;
         }
@@ -759,7 +773,7 @@ impl CaveGenerator {
 
         lines.extend(new_lines);
 
-        children.push(ChildGeneration::new(blocks));
+        children.push(ChildGeneration::new(blocks, HashMap::new()));
 
         self.generate_platforms(air, children, size, pos, xz_air, floor_level, lines)
     }

@@ -18,6 +18,7 @@ pub struct GameState {
     pub score: u32,
     pub combo: u32,
     pub stopped_running: bool,
+    pub tick: u32,
     pub prev_pos: DVec3,
     pub test_state: PredictionState,
     pub line_entities: HashMap<Line3, Entity>,
