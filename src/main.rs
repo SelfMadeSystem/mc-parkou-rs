@@ -14,6 +14,7 @@ use valence::prelude::*;
 use valence::protocol::sound::{Sound, SoundCategory};
 use valence::spawn::IsFlat;
 
+mod alt_block;
 mod block_types;
 mod game_state;
 mod generation;
@@ -21,7 +22,6 @@ mod line;
 mod prediction;
 mod utils;
 mod weighted_vec;
-mod alt_block;
 
 const START_POS: BlockPos = BlockPos::new(0, 100, 0);
 const DIFF: i32 = 10;
@@ -223,7 +223,31 @@ fn init_clients(
                             uniform: false,
                         })),
                         1.0
-                    )
+                    ),
+                    (
+                        GenerationType::Snake(BlockCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockState::WHITE_CONCRETE,
+                                BlockState::ORANGE_CONCRETE,
+                                BlockState::MAGENTA_CONCRETE,
+                                BlockState::LIGHT_BLUE_CONCRETE,
+                                BlockState::YELLOW_CONCRETE,
+                                BlockState::LIME_CONCRETE,
+                                BlockState::PINK_CONCRETE,
+                                BlockState::GRAY_CONCRETE,
+                                BlockState::LIGHT_GRAY_CONCRETE,
+                                BlockState::CYAN_CONCRETE,
+                                BlockState::PURPLE_CONCRETE,
+                                BlockState::BLUE_CONCRETE,
+                                BlockState::BROWN_CONCRETE,
+                                BlockState::GREEN_CONCRETE,
+                                BlockState::RED_CONCRETE,
+                                BlockState::BLACK_CONCRETE,
+                            ],
+                            uniform: true
+                        })),
+                        100.0
+                    ),
                 ],
             ),
             score: 0,
@@ -231,6 +255,8 @@ fn init_clients(
             target_y: 0,
             stopped_running: false,
             tick: 0,
+            alt_block_entities: HashMap::new(),
+            prev_alt_block_states: HashMap::new(),
             prev_pos: DVec3::new(
                 START_POS.x as f64 + 0.5,
                 START_POS.y as f64 + 1.0,
@@ -372,22 +398,38 @@ fn cleanup_clients(
             for entity in state.line_entities.values() {
                 commands.entity(*entity).insert(Despawned);
             }
+
+            for entity in state.alt_block_entities.values() {
+                commands.entity(*entity).insert(Despawned);
+            }
         }
     }
 }
 
 fn update_alt_blocks(
-    mut clients: Query<(&mut GameState, &mut ChunkLayer/* , &Position, &OldPosition */)>,
+    mut commands: Commands,
+    mut clients: Query<(
+        &mut GameState,
+        &EntityLayerId,
+        &mut ChunkLayer, /* , &Position, &OldPosition */
+    )>,
 ) {
-    for (mut state, mut layer/* , pos, old_pos */) in clients.iter_mut() {
+    for (mut state, entity_layer, mut layer /* , pos, old_pos */) in clients.iter_mut() {
         state.tick += 1;
 
-        let params = AltBlockParams {
-            ticks: state.tick,
-        };
+        let params = AltBlockParams { ticks: state.tick };
+
+        let state = &mut *state;
 
         for gen in state.generations.iter_mut() {
-            gen.update_alt_blocks(&params, &mut layer);
+            gen.update_alt_blocks(
+                &params,
+                &mut state.alt_block_entities,
+                &mut state.prev_alt_block_states,
+                &mut commands,
+                &mut layer,
+                entity_layer,
+            );
         }
     }
 }

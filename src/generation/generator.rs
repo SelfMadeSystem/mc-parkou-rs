@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*, alt_block::AltBlock};
+use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*, alt_block::*};
 
 use super::{block_collection::*, generation::*, theme::GenerationTheme};
 use rand::Rng;
@@ -24,6 +24,8 @@ use valence::{
 /// * `Indoor`: The `Indoor` variant represents blocks that are used to create an
 /// indoor area.
 /// * `Cave`: The `Cave` variant represents blocks that are used to create a cave.
+/// * `Snake`: The `Snake` variant represents blocks that are used to create a
+/// snake.
 /// * `Custom`: The `Custom` variant represents a custom parkour generation. It has
 /// preset blocks, a start position, and an end position.
 #[derive(Clone, Debug)]
@@ -35,6 +37,7 @@ pub enum GenerationType {
     // Bridge(BridgeBlockCollection),
     Indoor(IndoorBlockCollection),
     Cave(BlockCollection),
+    Snake(BlockCollection),
     // Custom(CustomGeneration),
 }
 
@@ -129,19 +132,6 @@ impl Generator {
                         .blocks
                         .get_random()
                         .expect("No blocks in block collection"),
-                );
-
-                // TODO: Move this to dedicated generation type as this is just for testing
-                alt_blocks.insert(
-                    BlockPos::new(0, 0, 0),
-                    AltBlock::Tick(
-                        vec![
-                            (BlockState::RED_WOOL, 10),
-                            (BlockState::GREEN_WOOL, 10),
-                            (BlockState::BLUE_WOOL, 10),
-                        ],
-                        0,
-                    ),
                 );
 
                 end_state = PredictionState::running_jump_block(self.start, random_yaw());
@@ -273,6 +263,25 @@ impl Generator {
                 for line in linez {
                     lines.push(line + offset.to_vec3());
                 }
+            }
+            GenerationType::Snake(BlockCollection(collection)) => {
+                blocks.insert(
+                    BlockPos::new(0, 0, 0),
+                    BlockState::BARRIER, // doesn't matter as it will be replaced
+                );
+                let block = collection.blocks.get_random().unwrap().clone();
+                alt_blocks.insert(
+                    BlockPos::new(0, 0, 0),
+                    AltBlock::Tick(
+                        vec![
+                            (AltBlockState::Block(block), 10),
+                            (AltBlockState::SmallBlock(block), 10),
+                        ],
+                        0,
+                    ),
+                );
+
+                end_state = PredictionState::running_jump_block(self.start, random_yaw());
             }
         }
 

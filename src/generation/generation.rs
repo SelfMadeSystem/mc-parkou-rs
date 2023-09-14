@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
-use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*, alt_block::*};
+use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
 /// The `Generation` struct represents a parkour generation.
 ///
@@ -61,6 +61,8 @@ impl Generation {
     }
 
     /// Removes the blocks in the generation.
+    /// 
+    /// TODO: Remove the entities in the alt blocks.
     pub fn remove(&self, world: &mut ChunkLayer) {
         for (pos, _) in &self.blocks {
             world.set_block(*pos + self.offset, BlockState::AIR.into_block());
@@ -72,14 +74,37 @@ impl Generation {
     }
 
     /// Updates the alt blocks in the generation.
-    pub fn update_alt_blocks(&self, params: &AltBlockParams, world: &mut ChunkLayer) {
+    pub fn update_alt_blocks(
+        &self,
+        params: &AltBlockParams,
+        alt_block_entities: &mut HashMap<BlockPos, Entity>,
+        prev_alt_block_states: &mut HashMap<BlockPos, AltBlockState>,
+        commands: &mut Commands,
+        world: &mut ChunkLayer,
+        layer: &EntityLayerId,
+    ) {
         for (pos, block) in &self.alt_blocks {
             let block = block.get_block(params);
-            world.set_block(*pos + self.offset, block.into_block());
+            block.set_block(
+                *pos + self.offset,
+                alt_block_entities,
+                prev_alt_block_states,
+                commands,
+                world,
+                layer,
+            )
         }
 
         for child in &self.children {
-            child.update_alt_blocks(params, world, self.offset);
+            child.update_alt_blocks(
+                params,
+                alt_block_entities,
+                prev_alt_block_states,
+                commands,
+                world,
+                layer,
+                self.offset,
+            );
         }
     }
 
@@ -155,7 +180,10 @@ pub struct ChildGeneration {
 }
 
 impl ChildGeneration {
-    pub fn new(blocks: HashMap<BlockPos, BlockState>, alt_blocks: HashMap<BlockPos, AltBlock>) -> Self {
+    pub fn new(
+        blocks: HashMap<BlockPos, BlockState>,
+        alt_blocks: HashMap<BlockPos, AltBlock>,
+    ) -> Self {
         Self {
             blocks,
             alt_blocks,
@@ -178,10 +206,26 @@ impl ChildGeneration {
     }
 
     /// Updates the alt blocks in the generation.
-    pub fn update_alt_blocks(&self, params: &AltBlockParams, world: &mut ChunkLayer, offset: BlockPos) {
+    pub fn update_alt_blocks(
+        &self,
+        params: &AltBlockParams,
+        alt_block_entities: &mut HashMap<BlockPos, Entity>,
+        prev_alt_block_states: &mut HashMap<BlockPos, AltBlockState>,
+        commands: &mut Commands,
+        world: &mut ChunkLayer,
+        layer: &EntityLayerId,
+        offset: BlockPos,
+    ) {
         for (pos, block) in &self.alt_blocks {
             let block = block.get_block(params);
-            world.set_block(*pos + offset, block.into_block());
+            block.set_block(
+                *pos + offset,
+                alt_block_entities,
+                prev_alt_block_states,
+                commands,
+                world,
+                layer,
+            )
         }
     }
 
