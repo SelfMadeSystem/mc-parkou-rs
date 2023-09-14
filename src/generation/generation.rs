@@ -61,15 +61,39 @@ impl Generation {
     }
 
     /// Removes the blocks in the generation.
-    /// 
+    ///
     /// TODO: Remove the entities in the alt blocks.
-    pub fn remove(&self, world: &mut ChunkLayer) {
+    pub fn remove(
+        &self,
+        world: &mut ChunkLayer,
+        alt_block_entities: &mut HashMap<BlockPos, Entity>,
+        prev_alt_block_states: &mut HashMap<BlockPos, AltBlockState>,
+        commands: &mut Commands,
+    ) {
         for (pos, _) in &self.blocks {
             world.set_block(*pos + self.offset, BlockState::AIR.into_block());
         }
 
+        for (pos, _) in &self.alt_blocks {
+            let pos = *pos + self.offset;
+            if let Some(entity) = alt_block_entities.get_mut(&pos) {
+                if let Some(mut entity) = commands.get_entity(*entity) {
+                    entity.insert(Despawned);
+                }
+
+                alt_block_entities.remove(&pos);
+                prev_alt_block_states.remove(&pos);
+            }
+        }
+
         for child in &self.children {
-            child.remove(world, self.offset);
+            child.remove(
+                world,
+                alt_block_entities,
+                prev_alt_block_states,
+                commands,
+                self.offset,
+            );
         }
     }
 
@@ -199,9 +223,28 @@ impl ChildGeneration {
     }
 
     /// Removes the blocks in the generation.
-    pub fn remove(&self, world: &mut ChunkLayer, offset: BlockPos) {
+    pub fn remove(
+        &self,
+        world: &mut ChunkLayer,
+        alt_block_entities: &mut HashMap<BlockPos, Entity>,
+        prev_alt_block_states: &mut HashMap<BlockPos, AltBlockState>,
+        commands: &mut Commands,
+        offset: BlockPos,
+    ) {
         for (pos, _) in &self.blocks {
             world.set_block(*pos + offset, BlockState::AIR.into_block());
+        }
+
+        for (pos, _) in &self.alt_blocks {
+            let pos = *pos + offset;
+            if let Some(entity) = alt_block_entities.get_mut(&pos) {
+                if let Some(mut entity) = commands.get_entity(*entity) {
+                    entity.insert(Despawned);
+                }
+
+                alt_block_entities.remove(&pos);
+                prev_alt_block_states.remove(&pos);
+            }
         }
     }
 

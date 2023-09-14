@@ -282,6 +282,7 @@ fn init_clients(
 }
 
 fn reset_clients(
+    mut commands: Commands,
     mut clients: Query<(
         &mut Client,
         &mut Position,
@@ -364,17 +365,25 @@ fn reset_clients(
 
             state.score = 0;
             state.combo = 0;
-
-            for block in &state.generations {
-                block.remove(&mut layer)
+            {
+                let state = &mut *state;
+                for block in &state.generations {
+                    block.remove(
+                        &mut layer,
+                        &mut state.alt_block_entities,
+                        &mut state.prev_alt_block_states,
+                        &mut commands,
+                    );
+                }
             }
+
             state.generations.clear();
             let gen = Generator::first_in_generation(START_POS, &state.theme);
             gen.place(&mut layer);
             state.generations.push_back(gen);
 
             for _ in 0..10 {
-                generate_next_block(&mut state, &mut layer, false);
+                generate_next_block(&mut state, &mut layer);
             }
 
             pos.set([
@@ -477,7 +486,10 @@ fn spawn_lines(mut commands: Commands, mut clients: Query<(&mut GameState, &Enti
     }
 }
 
-fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mut ChunkLayer)>) {
+fn manage_blocks(
+    mut commands: Commands,
+    mut clients: Query<(&mut Client, &Position, &mut GameState, &mut ChunkLayer)>,
+) {
     for (client, pos, mut state, mut layer) in clients.iter_mut() {
         if let Some(index) = state
             .generations
@@ -491,11 +503,14 @@ fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mu
                     let s = state.generations[i].get_unreached_child_count();
                     score += s;
                 }
+                {
+                    let state = &mut *state;
 
-                for _ in 0..index {
-                    generate_next_block(&mut state, &mut layer, true)
+                    for _ in 0..index {
+                        remove_block(state, &mut *layer, &mut commands);
+                        generate_next_block(state, &mut layer);
+                    }
                 }
-
                 reached_thing(state, score, client, pos);
             } else {
                 let s = state.generations[0].has_reached_child(*pos);
@@ -557,12 +572,15 @@ fn manage_chunks(mut clients: Query<(&Position, &OldPosition, &mut ChunkLayer), 
     }
 }
 
-fn generate_next_block(state: &mut GameState, layer: &mut ChunkLayer, in_game: bool) {
-    if in_game {
-        let removed_block = state.generations.pop_front().unwrap();
-        removed_block.remove(layer);
-    }
+fn remove_block(state: &mut GameState, world: &mut ChunkLayer, commands: &mut Commands) {
+    let alt_block_entities = &mut state.alt_block_entities;
+    let prev_alt_block_states = &mut state.prev_alt_block_states;
 
+    let removed_block = state.generations.pop_front().unwrap();
+    removed_block.remove(world, alt_block_entities, prev_alt_block_states, commands);
+}
+
+fn generate_next_block(state: &mut GameState, layer: &mut ChunkLayer) {
     let prev_gen = state.generations.back().unwrap();
 
     if prev_gen.end_state.get_block_pos().y < MIN_Y {
