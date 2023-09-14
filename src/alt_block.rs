@@ -11,7 +11,7 @@ pub enum AltBlock {
     /// The first parameter is a vector of tuples. The first element of the tuple is the `AltBlockState`
     /// to change to. The second element of the tuple is the amount of ticks to wait before changing
     /// to the next `AltBlockState`. The second parameter is the offset of the ticks.
-    Tick(Vec<(AltBlockState, u32)>, u32),
+    Tick(Vec<(AltBlockState, usize)>, usize),
     // /// A block that changes between alternating `AltBlockState`s every time the player jumps.
     // Jump(Vec<AltBlockState>), // TODO: Implement this.
     // /// A block that changes between alternating `AltBlockState`s every time it is stepped on.
@@ -60,7 +60,7 @@ impl AltBlock {
 /// passed.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AltBlockParams {
-    pub ticks: u32,
+    pub ticks: usize,
     // TODO: Add more parameters. (e.g. player position, player velocity, block position, etc.)
 }
 

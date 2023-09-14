@@ -1,9 +1,14 @@
 use std::collections::HashMap;
 
 use rand::Rng;
-use valence::{prelude::*, math::IVec3};
+use valence::{math::IVec3, prelude::*};
 
-use crate::{line::Line3, generation::{generation::ChildGeneration, block_collection::*, generator::GenerateResult}, utils::*, prediction::prediction_state::PredictionState};
+use crate::{
+    generation::{block_collection::*, generation::ChildGeneration, generator::GenerateResult},
+    line::Line3,
+    prediction::prediction_state::PredictionState,
+    utils::*,
+};
 
 pub struct IndoorGenerator {
     collection: IndoorBlockCollection,
@@ -86,7 +91,14 @@ impl IndoorGenerator {
         self.generate_floor(&mut blocks, &size);
         self.generate_walls(&mut blocks, &size);
 
-        (start, blocks, end, lines, children)
+        GenerateResult {
+            start,
+            end,
+            blocks,
+            alt_blocks: HashMap::new(),
+            lines,
+            children,
+        }
     }
 
     fn get_platform_level(&self) -> i32 {

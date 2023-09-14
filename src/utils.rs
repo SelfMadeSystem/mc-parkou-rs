@@ -327,6 +327,14 @@ pub fn get_min_max_yaw(prev: BlockPos, size: &IVec3) -> (f32, f32) {
     (min_yaw, max_yaw)
 }
 
+pub fn rotate_cw(pos: BlockPos) -> BlockPos {
+    BlockPos::new(pos.z, pos.y, -pos.x)
+}
+
+pub fn rotate_ccw(pos: BlockPos) -> BlockPos {
+    BlockPos::new(-pos.z, pos.y, pos.x)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum JumpDirection {
     Up,

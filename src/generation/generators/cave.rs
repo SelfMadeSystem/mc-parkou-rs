@@ -79,7 +79,14 @@ impl CaveGenerator {
 
         blocks.insert(start, self.get_block());
 
-        (start, blocks, end, lines, children)
+        GenerateResult {
+            start,
+            end,
+            blocks,
+            alt_blocks: HashMap::new(),
+            lines,
+            children,
+        }
     }
 
     fn fill(&self, blocks: &mut HashMap<BlockPos, BlockState>, size: &IVec3) {

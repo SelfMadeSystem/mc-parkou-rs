@@ -2,17 +2,18 @@ use std::collections::HashMap;
 
 use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
-use super::{block_collection::*, generation::*, theme::GenerationTheme, generators::*};
+use super::{block_collection::*, generation::*, generators::*, theme::GenerationTheme};
 use rand::Rng;
 use valence::prelude::*;
 
-pub type GenerateResult = (
-    BlockPos,
-    HashMap<BlockPos, BlockState>,
-    BlockPos,
-    Vec<Line3>,
-    Vec<ChildGeneration>,
-);
+pub struct GenerateResult {
+    pub start: BlockPos,
+    pub end: BlockPos,
+    pub blocks: HashMap<BlockPos, BlockState>,
+    pub alt_blocks: HashMap<BlockPos, AltBlock>,
+    pub lines: Vec<Line3>,
+    pub children: Vec<ChildGeneration>,
+}
 
 /// The `GenerationType` enum represents the different types of parkour generations
 /// that can be used.
@@ -244,155 +245,64 @@ impl Generator {
             GenerationType::Indoor(collection) => {
                 let indoor = IndoorGenerator::new(collection.clone());
 
-                let (start, bloccs, end, linez, childrenz) = indoor.generate();
+                let gen = indoor.generate();
 
-                offset = offset - start;
-                blocks = bloccs;
-                children = childrenz;
-                end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.)); // walls can be in the way
+                offset = offset - gen.start;
+                blocks = gen.blocks;
+                children = gen.children;
+                end_state =
+                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.)); // walls can be in the way
 
-                for line in linez {
+                for line in gen.lines {
                     lines.push(line + offset.to_vec3());
                 }
             }
             GenerationType::Cave(BlockCollection(collection)) => {
                 let cave = CaveGenerator::new(collection.clone());
 
-                let (start, bloccs, end, linez, childrenz) = cave.generate();
+                let gen = cave.generate();
 
-                offset = offset - start;
-                blocks = bloccs;
-                children = childrenz;
-                end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.));
+                offset = offset - gen.start;
+                blocks = gen.blocks;
+                children = gen.children;
+                end_state =
+                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
 
-                for line in linez {
+                for line in gen.lines {
                     lines.push(line + offset.to_vec3());
                 }
             }
             GenerationType::Snake(BlockCollection(collection)) => {
-                // TODO: Make this better
-                // For now, it's just large square
                 let mut rng = rand::thread_rng();
+                let mut snake = SnakeGenerator::new(collection.clone(), 1, 1, 5, rng.gen());
 
-                let size = rng.gen_range(4..=14);
-                let snake_count = 2;
-                let total_blocks = (size as u32 * 4 - 4) / snake_count;
-                let snake_length = size as u32 * 4 / 5;
-                let delay = rng.gen_range(4..10);
-                let block = collection.blocks.get_random().unwrap().clone();
-
-                for i in 0..size {
-                    {
-                        let x = i - size / 2;
-                        let z = 0;
-
-                        blocks.insert(
-                            BlockPos::new(x, 0, z),
-                            BlockState::BARRIER, // doesn't matter as it will be replaced
-                        );
-
-                        alt_blocks.insert(
-                            BlockPos::new(x, 0, z),
-                            AltBlock::Tick(
-                                vec![
-                                    (AltBlockState::Block(block), snake_length * delay),
-                                    (
-                                        AltBlockState::SmallBlock(block),
-                                        (total_blocks - snake_length) * delay,
-                                    ),
-                                ],
-                                i as u32 * delay,
-                            ),
-                        );
-                    }
-
-                    if i > 0 && i < size - 1 {
-                        let mut x = size / 2;
-                        if size % 2 == 0 {
-                            x -= 1;
-                        }
-                        let z = i;
-
-                        blocks.insert(
-                            BlockPos::new(x, 0, z),
-                            BlockState::BARRIER, // doesn't matter as it will be replaced
-                        );
-
-                        alt_blocks.insert(
-                            BlockPos::new(x, 0, z),
-                            AltBlock::Tick(
-                                vec![
-                                    (AltBlockState::Block(block), snake_length * delay),
-                                    (
-                                        AltBlockState::SmallBlock(block),
-                                        (total_blocks - snake_length) * delay,
-                                    ),
-                                ],
-                                (i + size - 1) as u32 * delay,
-                            ),
-                        );
-                    }
-
-                    {
-                        let mut x = size / 2 - i;
-                        if size % 2 == 0 {
-                            x -= 1;
-                        }
-                        let z = size - 1;
-
-                        blocks.insert(
-                            BlockPos::new(x, 0, z),
-                            BlockState::BARRIER, // doesn't matter as it will be replaced
-                        );
-
-                        alt_blocks.insert(
-                            BlockPos::new(x, 0, z),
-                            AltBlock::Tick(
-                                vec![
-                                    (AltBlockState::Block(block), snake_length * delay),
-                                    (
-                                        AltBlockState::SmallBlock(block),
-                                        (total_blocks - snake_length) * delay,
-                                    ),
-                                ],
-                                (i + size * 2 - 2) as u32 * delay,
-                            ),
-                        );
-                    }
-
-                    if i > 0 && i < size - 1 {
-                        let x = -size / 2;
-                        let z = size - 1 - i;
-
-                        blocks.insert(
-                            BlockPos::new(x, 0, z),
-                            BlockState::BARRIER, // doesn't matter as it will be replaced
-                        );
-
-                        alt_blocks.insert(
-                            BlockPos::new(x, 0, z),
-                            AltBlock::Tick(
-                                vec![
-                                    (AltBlockState::Block(block), snake_length * delay),
-                                    (
-                                        AltBlockState::SmallBlock(block),
-                                        (total_blocks - snake_length) * delay,
-                                    ),
-                                ],
-                                (i + size * 3 - 3) as u32 * delay,
-                            ),
-                        );
-                    }
+                while snake.poses.len() < 15 {
+                    snake.create_looping_snake(BlockPos::new(-10, 0, 0), BlockPos::new(10, 0, 21));
+                    println!("Snake length: {}", snake.poses.len());
                 }
 
-                end_state = PredictionState::running_jump_block(
-                    BlockPos {
-                        x: self.start.x,
-                        y: self.start.y,
-                        z: self.start.z + size - 1,
-                    },
-                    random_yaw(),
-                );
+                let len = snake.poses.len();
+
+                snake.snake_count = rng.gen_range(1..=4.min(len / 7));
+
+                while len % snake.snake_count != 0 {
+                    snake.snake_count = rng.gen_range(1..=4.min(len / 7));
+                }
+
+                snake.snake_length = rng.gen_range(len / snake.snake_count / 2..=len / snake.snake_count * 3 / 4);
+
+                let gen = snake.generate();
+
+                offset = offset - gen.start;
+                blocks = gen.blocks;
+                alt_blocks = gen.alt_blocks;
+                children = gen.children;
+                end_state =
+                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+
+                for line in gen.lines {
+                    lines.push(line + offset.to_vec3());
+                }
             }
         }
 

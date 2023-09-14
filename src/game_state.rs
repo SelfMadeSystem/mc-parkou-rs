@@ -19,7 +19,7 @@ pub struct GameState {
     pub score: u32,
     pub combo: u32,
     pub stopped_running: bool,
-    pub tick: u32,
+    pub tick: usize,
     pub alt_block_entities: HashMap<BlockPos, Entity>,
     pub prev_alt_block_states: HashMap<BlockPos, AltBlockState>,
     pub prev_pos: DVec3,
