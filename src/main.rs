@@ -428,15 +428,23 @@ fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mu
                 }
 
                 reached_thing(state, index as u32, client, pos);
-            } else if state.generations[0].has_reached_child(*pos) {
-                state.score += 1;
-                reached_thing(state, 1, client, pos);
+            } else {
+                let s = state.generations[0].has_reached_child(*pos);
+                if s > 0 {
+                    state.score += s;
+                    reached_thing(state, s, client, pos);
+                }
             }
         }
     }
 }
 
-fn reached_thing(mut state: Mut<'_, GameState>, index: u32, mut client: Mut<'_, Client>, pos: &Position) {
+fn reached_thing(
+    mut state: Mut<'_, GameState>,
+    index: u32,
+    mut client: Mut<'_, Client>,
+    pos: &Position,
+) {
     if state.stopped_running {
         state.combo = 0;
     } else {

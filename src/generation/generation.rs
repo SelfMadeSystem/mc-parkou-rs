@@ -8,7 +8,7 @@ use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*
 ///
 /// Properties:
 ///
-/// * `blocks`: The `blocks` property is of type `HashMap<BlockPos, Block>`. It represents
+/// * `blocks`: The `blocks` property is of type `HashMap<BlockPos, BlockState>`. It represents
 /// blocks that are generated.
 /// * `children`: The `children` property is of type `Vec<ChildGeneration>`. It represents
 /// child generations that are generated.
@@ -20,7 +20,7 @@ use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*
 /// player takes through the parkour generation.
 #[derive(Clone, Debug)]
 pub struct Generation {
-    pub blocks: HashMap<BlockPos, Block>,
+    pub blocks: HashMap<BlockPos, BlockState>,
     pub children: Vec<ChildGeneration>,
     pub offset: BlockPos,
     pub end_state: PredictionState,
@@ -29,7 +29,7 @@ pub struct Generation {
 
 impl Generation {
     pub fn new(
-        blocks: HashMap<BlockPos, Block>,
+        blocks: HashMap<BlockPos, BlockState>,
         children: Vec<ChildGeneration>,
         offset: BlockPos,
         end_state: PredictionState,
@@ -47,7 +47,7 @@ impl Generation {
     /// Places the blocks in the generation.
     pub fn place(&self, world: &mut ChunkLayer) {
         for (pos, block) in &self.blocks {
-            world.set_block(*pos + self.offset, block.clone());
+            world.set_block(*pos + self.offset, *block);
         }
 
         for child in &self.children {
@@ -85,16 +85,26 @@ impl Generation {
         false
     }
 
-    /// Returns true if a child generation has been reached (if it hasn't been reached yet).
-    /// If a child generation has been reached, it will be marked as reached.
-    pub fn has_reached_child(&mut self, pos: Position) -> bool {
-        for child in &mut self.children {
+    /// Returns the number to increment the score by from the child generations.
+    pub fn has_reached_child(&mut self, pos: Position) -> u32 {
+        let mut reached_count = 0;
+        for (i, child) in &mut self.children.iter_mut().enumerate() {
+            let i = i as u32;
+            if child.reached {
+                reached_count += 1;
+                continue;
+            }
             if child.has_reached(pos, self.offset) {
-                return true;
+                if reached_count < i {
+                    for i in 0..i as usize {
+                        self.children[i].reached = true;
+                    }
+                }
+                return i - reached_count + 1;
             }
         }
 
-        false
+        0
     }
 }
 
@@ -102,18 +112,18 @@ impl Generation {
 ///
 /// Properties:
 ///
-/// * `blocks`: The `blocks` property is of type `HashMap<BlockPos, Block>`. It represents
+/// * `blocks`: The `blocks` property is of type `HashMap<BlockPos, &BlockState>`. It represents
 /// blocks that are generated.
 /// * `reached`: The `reached` property is of type `bool`. It represents whether or not
 /// the child generation has been reached by the player.
 #[derive(Clone, Debug)]
 pub struct ChildGeneration {
-    pub blocks: HashMap<BlockPos, Block>,
+    pub blocks: HashMap<BlockPos, BlockState>,
     pub reached: bool,
 }
 
 impl ChildGeneration {
-    pub fn new(blocks: HashMap<BlockPos, Block>) -> Self {
+    pub fn new(blocks: HashMap<BlockPos, BlockState>) -> Self {
         Self {
             blocks,
             reached: false,
@@ -123,7 +133,7 @@ impl ChildGeneration {
     /// Places the blocks in the generation.
     pub fn place(&self, world: &mut ChunkLayer, offset: BlockPos) {
         for (pos, block) in &self.blocks {
-            world.set_block(*pos + offset, block.clone());
+            world.set_block(*pos + offset, *block);
         }
     }
 

@@ -5,7 +5,6 @@ use crate::{line::Line3, prediction::prediction_state::PredictionState, utils::*
 use super::{block_collection::*, generation::*, theme::GenerationTheme};
 use rand::Rng;
 use valence::{
-    layer::chunk::IntoBlock,
     math::{IVec2, IVec3},
     prelude::*,
 };
@@ -125,11 +124,10 @@ impl Generator {
             GenerationType::Single(BlockCollection(collection)) => {
                 blocks.insert(
                     BlockPos::new(0, 0, 0),
-                    collection
+                    *collection
                         .blocks
                         .get_random()
-                        .expect("No blocks in block collection")
-                        .into_block(),
+                        .expect("No blocks in block collection"),
                 );
                 end_state = PredictionState::running_jump_block(self.start, random_yaw());
             }
@@ -157,14 +155,11 @@ impl Generator {
                     }
                 };
 
-                let get_block = || get_block_slab().block.into_block();
+                let get_block = || get_block_slab().block;
 
                 let get_slab = || {
                     let slab = get_block_slab().slab;
-                    (
-                        slab.into_block(),
-                        slab.set(PropName::Type, PropValue::Top).into_block(),
-                    )
+                    (slab, slab.set(PropName::Type, PropValue::Top))
                 };
 
                 let mut pos = Vec3::new(0., 0., 0.);
@@ -281,7 +276,7 @@ struct IndoorGenerator {
 
 type GenerateResult = (
     BlockPos,
-    HashMap<BlockPos, Block>,
+    HashMap<BlockPos, BlockState>,
     BlockPos,
     Vec<Line3>,
     Vec<ChildGeneration>,
@@ -301,26 +296,24 @@ impl IndoorGenerator {
         }
     }
 
-    fn get_wall(&self) -> Block {
-        let wall = if self.collection.walls.0.uniform {
+    fn get_wall(&self) -> BlockState {
+        if self.collection.walls.0.uniform {
             self.collection.walls.0.blocks[self.wall_index].clone()
         } else {
             self.collection.walls.0.blocks.get_random().unwrap().clone()
-        };
-        wall.into_block()
+        }
     }
 
-    fn get_floor(&self) -> Block {
+    fn get_floor(&self) -> BlockState {
         match &self.collection.floor {
             Some(floor) => {
-                let floor = if floor.0.uniform {
+                if floor.0.uniform {
                     floor.0.blocks[self.floor_index].clone()
                 } else {
                     floor.0.blocks.get_random().unwrap().clone()
-                };
-                floor.into_block()
+                }
             }
-            None => BlockState::AIR.into_block(),
+            None => BlockState::AIR,
         }
     }
 
@@ -339,9 +332,9 @@ impl IndoorGenerator {
         platform
     }
 
-    fn get_platform(&self) -> (Block, Block) {
+    fn get_platform(&self) -> (BlockState, BlockState) {
         let platform = self.get_platform_block_slab();
-        (platform.block.into_block(), platform.slab.into_block())
+        (platform.block, platform.slab)
     }
 
     fn generate(&self) -> GenerateResult {
@@ -373,7 +366,7 @@ impl IndoorGenerator {
         }
     }
 
-    fn generate_walls(&self, blocks: &mut HashMap<BlockPos, Block>, size: &IVec3) {
+    fn generate_walls(&self, blocks: &mut HashMap<BlockPos, BlockState>, size: &IVec3) {
         let mut pos = BlockPos::new(0, 0, 0);
 
         let mut wall_blocks = Vec::new();
@@ -401,7 +394,7 @@ impl IndoorGenerator {
         blocks.extend(wall_blocks);
     }
 
-    fn generate_floor(&self, blocks: &mut HashMap<BlockPos, Block>, size: &IVec3) {
+    fn generate_floor(&self, blocks: &mut HashMap<BlockPos, BlockState>, size: &IVec3) {
         if let Some(floor) = &self.collection.floor {
             let mut pos = BlockPos::new(0, 0, 0);
 
@@ -433,7 +426,7 @@ impl IndoorGenerator {
 
     fn generate_start(
         &self,
-        blocks: &mut HashMap<BlockPos, Block>,
+        blocks: &mut HashMap<BlockPos, BlockState>,
         size: &IVec3,
         platform_level: i32,
     ) -> BlockPos {
@@ -535,13 +528,12 @@ impl CaveGenerator {
         }
     }
 
-    fn get_block(&self) -> Block {
-        let block = if self.collection.uniform {
+    fn get_block(&self) -> BlockState {
+        if self.collection.uniform {
             self.collection.blocks[self.index].clone()
         } else {
             self.collection.blocks.get_random().unwrap().clone()
-        };
-        block.into_block()
+        }
     }
 
     pub fn generate(&self) -> GenerateResult {
@@ -586,7 +578,7 @@ impl CaveGenerator {
         self.fill(&mut blocks, &size);
 
         for air in air {
-            blocks.insert(air, BlockState::AIR.into_block());
+            blocks.insert(air, BlockState::AIR);
         }
 
         blocks.insert(start, self.get_block());
@@ -594,7 +586,7 @@ impl CaveGenerator {
         (start, blocks, end, lines, children)
     }
 
-    fn fill(&self, blocks: &mut HashMap<BlockPos, Block>, size: &IVec3) {
+    fn fill(&self, blocks: &mut HashMap<BlockPos, BlockState>, size: &IVec3) {
         let pos = BlockPos::new(0, 0, 0);
 
         for x in -1..size.x + 1 {
@@ -703,6 +695,8 @@ impl CaveGenerator {
             .collect();
         all_xz.extend(xz_air.clone());
 
+        let mut no_air = HashSet::new();
+
         if !(all_xz.contains(&IVec2::new(prev.x - 1, prev.z - 1))
             && all_xz.contains(&IVec2::new(prev.x - 1, prev.z))
             && all_xz.contains(&IVec2::new(prev.x - 1, prev.z + 1))
@@ -733,11 +727,11 @@ impl CaveGenerator {
 
             // FIXME: Very much not ideal
             for y in 1..floor_level {
-                blocks.insert(BlockPos::new(prev.x - 1, y, prev.z), self.get_block());
-                blocks.insert(BlockPos::new(prev.x + 1, y, prev.z), self.get_block());
-                blocks.insert(BlockPos::new(prev.x - 1, y, prev.z + 1), self.get_block());
-                blocks.insert(BlockPos::new(prev.x, y, prev.z + 1), self.get_block());
-                blocks.insert(BlockPos::new(prev.x + 1, y, prev.z + 1), self.get_block());
+                no_air.insert(BlockPos::new(prev.x - 1, y, prev.z));
+                no_air.insert(BlockPos::new(prev.x + 1, y, prev.z));
+                no_air.insert(BlockPos::new(prev.x - 1, y, prev.z + 1));
+                no_air.insert(BlockPos::new(prev.x, y, prev.z + 1));
+                no_air.insert(BlockPos::new(prev.x + 1, y, prev.z + 1));
             }
 
             prev_child.blocks = blocks;
@@ -748,13 +742,16 @@ impl CaveGenerator {
             floor_level = floor_level.max(target_y - 3);
         }
 
-        blocks.insert(pos, self.get_block());
-
         for b in intersected_blocks {
+            if no_air.contains(&b) {
+                continue;
+            }
             for y in floor_level..=b.y {
                 air.insert(BlockPos::new(b.x, y, b.z));
             }
         }
+
+        blocks.insert(pos, self.get_block());
 
         for y in 1..pos.y {
             blocks.insert(BlockPos::new(pos.x, y, pos.z), self.get_block());
