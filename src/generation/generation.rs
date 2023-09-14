@@ -106,6 +106,18 @@ impl Generation {
 
         0
     }
+
+    /// Returns the number of child generations that have been not been reached.
+    pub fn get_unreached_child_count(&self) -> u32 {
+        let mut count = 0;
+        for child in &self.children {
+            if !child.reached {
+                count += 1;
+            }
+        }
+
+        count
+    }
 }
 
 /// The `ChildGeneration` struct represents a child generation.

@@ -423,15 +423,21 @@ fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mu
             .position(|block| block.has_reached(*pos))
         {
             if index > 0 {
+                let mut score = index as u32;
+
+                for i in 0..index {
+                    let s = state.generations[i].get_unreached_child_count();
+                    score += s;
+                }
+
                 for _ in 0..index {
                     generate_next_block(&mut state, &mut layer, true)
                 }
 
-                reached_thing(state, index as u32, client, pos);
+                reached_thing(state, score, client, pos);
             } else {
                 let s = state.generations[0].has_reached_child(*pos);
                 if s > 0 {
-                    state.score += s;
                     reached_thing(state, s, client, pos);
                 }
             }
@@ -441,15 +447,17 @@ fn manage_blocks(mut clients: Query<(&mut Client, &Position, &mut GameState, &mu
 
 fn reached_thing(
     mut state: Mut<'_, GameState>,
-    index: u32,
+    score: u32,
     mut client: Mut<'_, Client>,
     pos: &Position,
 ) {
     if state.stopped_running {
         state.combo = 0;
     } else {
-        state.combo += index;
+        state.combo += score;
     }
+
+    state.score += score;
 
     let pitch = 0.9 + ((state.combo as f32) - 1.0) * 0.05;
     client.play_sound(
@@ -491,8 +499,6 @@ fn generate_next_block(state: &mut GameState, layer: &mut ChunkLayer, in_game: b
     if in_game {
         let removed_block = state.generations.pop_front().unwrap();
         removed_block.remove(layer);
-
-        state.score += 1
     }
 
     let prev_gen = state.generations.back().unwrap();
