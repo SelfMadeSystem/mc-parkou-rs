@@ -294,14 +294,13 @@ impl Generator {
                     snake.snake_length as f32 * snake.snake_count as f32 / snake.poses.len() as f32;
                 
                 if snake.snake_length > 100 {
+                    // 1 is just way too fast
                     if ratio > 0.7 {
-                        snake.delay = 1;
-                    } else {
                         snake.delay = 2;
+                    } else {
+                        snake.delay = rng.gen_range(2..=3);
                     }
                 } else if snake.snake_length > 55 {
-                    snake.delay = 2;
-                } else if snake.snake_length > 45 {
                     snake.delay = rng.gen_range(2..=3);
                 } else if snake.snake_length > 35 {
                     snake.delay = rng.gen_range(2..=4);
