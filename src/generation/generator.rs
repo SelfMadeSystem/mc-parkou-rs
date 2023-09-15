@@ -277,19 +277,41 @@ impl Generator {
                 let mut snake = SnakeGenerator::new(collection.clone(), 1, 1, 5, rng.gen());
 
                 while snake.poses.len() < 15 {
-                    snake.create_looping_snake(BlockPos::new(-10, 0, 0), BlockPos::new(10, 0, 21));
-                    println!("Snake length: {}", snake.poses.len());
+                    snake.create_looping_snake(BlockPos::new(-10, 0, 0), BlockPos::new(10, 0, 40));
                 }
 
                 let len = snake.poses.len();
 
-                snake.snake_count = rng.gen_range(1..=4.min(len / 7));
+                snake.snake_count = rng.gen_range(2..=4.min(len / 7));
 
                 while len % snake.snake_count != 0 {
                     snake.snake_count = rng.gen_range(1..=4.min(len / 7));
                 }
 
-                snake.snake_length = rng.gen_range(len / snake.snake_count / 2..=len / snake.snake_count * 3 / 4);
+                snake.snake_length =
+                    rng.gen_range(len / snake.snake_count / 2..=len / snake.snake_count * 3 / 4);
+                let ratio =
+                    snake.snake_length as f32 * snake.snake_count as f32 / snake.poses.len() as f32;
+                
+                if snake.snake_length > 100 {
+                    if ratio > 0.7 {
+                        snake.delay = 1;
+                    } else {
+                        snake.delay = 2;
+                    }
+                } else if snake.snake_length > 55 {
+                    snake.delay = 2;
+                } else if snake.snake_length > 45 {
+                    snake.delay = rng.gen_range(2..=3);
+                } else if snake.snake_length > 35 {
+                    snake.delay = rng.gen_range(2..=4);
+                } else if snake.snake_length > 25 {
+                    snake.delay = rng.gen_range(3..=5);
+                } else if snake.snake_length > 15 {
+                    snake.delay = rng.gen_range(4..=6);
+                } else {
+                    snake.delay = rng.gen_range(5..=7);
+                }
 
                 let gen = snake.generate();
 

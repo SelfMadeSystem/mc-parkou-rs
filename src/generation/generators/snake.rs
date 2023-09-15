@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use rand::seq::SliceRandom;
+use rand::{seq::SliceRandom, Rng};
 use valence::{math::*, prelude::*};
 
 use crate::{
@@ -98,6 +98,7 @@ impl SnakeGenerator {
             BlockPos::new(0, 0, 0),
             BlockPos::new(0, 0, 0),
             &mut HashSet::from([BlockPos::new(0, 0, 0)]),
+            0,
         ) {}
         self.set_end_random();
     }
@@ -109,6 +110,7 @@ impl SnakeGenerator {
         current: BlockPos,
         prev: BlockPos,
         visited: &mut HashSet<BlockPos>,
+        mut down: isize,
     ) -> bool {
         // TODO: Figure out if this is the best way to do this
         // It sometimes decides to go in an infinite loop
@@ -121,17 +123,41 @@ impl SnakeGenerator {
 
         let mut rng = rand::thread_rng();
 
+        let mut i_decided_to_go_down = false;
+
+        if down == 0 {
+            if rng.gen_bool(0.1) {
+                i_decided_to_go_down = true;
+                down = rng.gen_range(3..=5) + 1;
+            }
+        }
+
         directions.shuffle(&mut rng);
 
         for dir in directions {
-            let pos = current + dir;
-            if pos.x < min.x || pos.x > max.x || pos.z < min.z || pos.z > max.z {
+            let mut pos = current + dir;
+            if pos.x < min.x
+                || pos.x > max.x
+                || pos.y < min.y
+                || pos.y > max.y
+                || pos.z < min.z
+                || pos.z > max.z
+            {
                 continue;
             }
 
             if pos + dir == BlockPos::new(0, 0, 0) {
-                self.poses.push(pos + dir);
-                self.poses.push(pos);
+                if down > 0 && !i_decided_to_go_down {
+                    self.poses.push(pos + dir);
+                    pos.y -= 1;
+                    self.poses.push(pos + dir);
+                    pos.y -= 1;
+                    self.poses.push(pos + dir);
+                    self.poses.push(pos);
+                } else {
+                    self.poses.push(pos + dir);
+                    self.poses.push(pos);
+                }
                 return true;
             }
 
@@ -141,15 +167,30 @@ impl SnakeGenerator {
 
             if visited.contains(&pos)
                 || visited.contains(&(pos + dir))
-                || visited.contains(&(pos + rotate_cw(dir)))
-                || visited.contains(&(pos + rotate_ccw(dir)))
+                || get_dirs_next_to(dir)
+                    .iter()
+                    .any(|d| visited.contains(&(pos + *d)))
             {
                 continue;
             }
 
             visited.insert(pos);
 
-            if self.dfs_looping(min, max, pos, current, visited) {
+            if self.dfs_looping(min, max, pos, current, visited, (down - 1).max(0)) {
+                if i_decided_to_go_down {
+                    pos.y -= 2;
+                    self.poses.push(pos);
+                    pos.y += 1;
+                    self.poses.push(pos);
+                    pos.y += 1;
+                } else if down == 1 {
+                    self.poses.push(pos);
+                    pos.y -= 1;
+                    self.poses.push(pos);
+                    pos.y -= 1;
+                } else if down > 1 {
+                    pos.y -= 2;
+                }
                 self.poses.push(pos);
                 return true;
             }

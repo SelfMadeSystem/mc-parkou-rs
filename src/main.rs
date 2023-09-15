@@ -242,7 +242,7 @@ fn init_clients(
                                 BlockState::BROWN_CONCRETE,
                                 BlockState::GREEN_CONCRETE,
                                 BlockState::RED_CONCRETE,
-                                BlockState::BLACK_CONCRETE,
+                                // BlockState::BLACK_CONCRETE, // black has no contrast and is completely invisible at night
                             ],
                             uniform: true
                         })),

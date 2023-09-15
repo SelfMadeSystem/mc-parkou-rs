@@ -327,12 +327,38 @@ pub fn get_min_max_yaw(prev: BlockPos, size: &IVec3) -> (f32, f32) {
     (min_yaw, max_yaw)
 }
 
-pub fn rotate_cw(pos: BlockPos) -> BlockPos {
-    BlockPos::new(pos.z, pos.y, -pos.x)
-}
-
-pub fn rotate_ccw(pos: BlockPos) -> BlockPos {
-    BlockPos::new(-pos.z, pos.y, pos.x)
+/// Gets the four directions next to the given direction.
+/// 
+/// The given direction must be a unit vector.
+/// 
+/// For example, if the direction is (1, 0, 0), then the returned array will contain:
+/// - (0, 1, 0)
+/// - (0, -1, 0)
+/// - (0, 0, 1)
+/// - (0, 0, -1)
+pub fn get_dirs_next_to(dir: BlockPos) -> [BlockPos; 4] {
+    if dir.y != 0 {
+        [
+            BlockPos::new(1, 0, 0),
+            BlockPos::new(-1, 0, 0),
+            BlockPos::new(0, 0, 1),
+            BlockPos::new(0, 0, -1),
+        ]
+    } else if dir.x != 0 {
+        [
+            BlockPos::new(0, 1, 0),
+            BlockPos::new(0, -1, 0),
+            BlockPos::new(0, 0, 1),
+            BlockPos::new(0, 0, -1),
+        ]
+    } else {
+        [
+            BlockPos::new(0, 1, 0),
+            BlockPos::new(0, -1, 0),
+            BlockPos::new(1, 0, 0),
+            BlockPos::new(-1, 0, 0),
+        ]
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
