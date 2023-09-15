@@ -278,7 +278,7 @@ impl Generator {
                 let mut snake = SnakeGenerator::new(collection.clone(), 1, 1, 5, rng.gen());
 
                 while snake.poses.len() < 15 {
-                    snake.create_looping_snake(BlockPos::new(-10, 0, 0), BlockPos::new(10, 0, 40));
+                    snake.create_looping_snake(BlockPos::new(-10, 0, 0), BlockPos::new(10, 0, 120));
                 }
 
                 let len = snake.poses.len();

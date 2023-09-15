@@ -20,6 +20,7 @@ pub struct SnakeGenerator {
     pub index: usize,
 }
 
+#[allow(dead_code)]
 impl SnakeGenerator {
     pub fn new(
         blocks: BlockChoice<BlockState>,

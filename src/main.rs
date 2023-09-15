@@ -246,7 +246,7 @@ fn init_clients(
                             ],
                             uniform: true
                         })),
-                        1.0
+                        15.0
                     ),
                 ],
             ),
@@ -400,10 +400,10 @@ fn reset_clients(
 fn cleanup_clients(
     mut commands: Commands,
     mut disconnected_clients: RemovedComponents<Client>,
-    query: Query<&GameState>,
+    mut query: Query<&mut GameState>,
 ) {
     for entity in disconnected_clients.iter() {
-        if let Ok(state) = query.get(entity) {
+        if let Ok(mut state) = query.get_mut(entity) {
             for entity in state.line_entities.values() {
                 commands.entity(*entity).insert(Despawned);
             }
@@ -411,6 +411,8 @@ fn cleanup_clients(
             for entity in state.alt_block_entities.values() {
                 commands.entity(*entity).insert(Despawned);
             }
+
+            state.generations.clear();
         }
     }
 }
