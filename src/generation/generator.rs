@@ -128,6 +128,7 @@ impl Generator {
         let mut alt_blocks = HashMap::new();
         let mut offset: BlockPos = self.start;
         let mut children = Vec::new();
+        let mut ordered = true;
         let end_state: PredictionState;
 
         match &self.generation_type {
@@ -292,7 +293,7 @@ impl Generator {
                     rng.gen_range(len / snake.snake_count / 2..=len / snake.snake_count * 3 / 4);
                 let ratio =
                     snake.snake_length as f32 * snake.snake_count as f32 / snake.poses.len() as f32;
-                
+
                 if snake.snake_length > 100 {
                     // 1 is just way too fast
                     if ratio > 0.7 {
@@ -320,6 +321,7 @@ impl Generator {
                 children = gen.children;
                 end_state =
                     PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+                ordered = false;
 
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());
@@ -327,6 +329,14 @@ impl Generator {
             }
         }
 
-        Generation::new(blocks, children, alt_blocks, offset, end_state, lines)
+        Generation {
+            blocks,
+            children,
+            alt_blocks,
+            ordered,
+            offset,
+            end_state,
+            lines,
+        }
     }
 }

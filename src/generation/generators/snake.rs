@@ -5,7 +5,7 @@ use valence::{math::*, prelude::*};
 
 use crate::{
     alt_block::{AltBlock, AltBlockState},
-    generation::{block_collection::*, generator::GenerateResult},
+    generation::{block_collection::*, generator::GenerateResult, generation::ChildGeneration},
     utils::*,
 };
 
@@ -217,6 +217,46 @@ impl SnakeGenerator {
         self.end_pos = *max_poses.choose(&mut rng).unwrap();
     }
 
+    /// Gets children by finding the positions that are at the top of the snake
+    /// and grouping together the positions that are next to each other.
+    pub fn acquire_children(&self) -> Vec<ChildGeneration> {
+        let mut children = Vec::new();
+        let mut start_vec = Vec::new();
+        let mut current_vec = Vec::new();
+
+        let mut at_start = true;
+
+        for pos in &self.poses {
+            if pos.y == 0 {
+                if at_start {
+                    start_vec.push(*pos);
+                } else {
+                    current_vec.push(*pos);
+                }
+            } else {
+                if at_start {
+                    at_start = false;
+                } else {
+                    children.push(current_vec);
+                    current_vec = Vec::new();
+                }
+            }
+        }
+
+        if !current_vec.is_empty() {
+            start_vec.append(&mut current_vec);
+        }
+
+        if !start_vec.is_empty() {
+            children.push(start_vec);
+        }
+
+        children.into_iter().map(|c| ChildGeneration::new(
+            c.into_iter().map(|p| (p, self.get_block())).collect(),
+            HashMap::new(),
+        )).collect()
+    }
+
     pub fn generate(&self) -> GenerateResult {
         let mut blocks = HashMap::new();
         let mut alt_blocks = HashMap::new();
@@ -251,7 +291,7 @@ impl SnakeGenerator {
             blocks,
             alt_blocks,
             lines: Vec::new(),
-            children: Vec::new(),
+            children: self.acquire_children(),
         }
     }
 }

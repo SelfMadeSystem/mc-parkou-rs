@@ -246,7 +246,7 @@ fn init_clients(
                             ],
                             uniform: true
                         })),
-                        100.0
+                        1.0
                     ),
                 ],
             ),
@@ -498,6 +498,10 @@ fn manage_blocks(
         {
             if index > 0 {
                 let mut score = index as u32;
+
+                if !state.generations[index].ordered {
+                    score -= 1;
+                }
 
                 for i in 0..index {
                     let s = state.generations[i].get_unreached_child_count();

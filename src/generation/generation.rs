@@ -14,6 +14,11 @@ use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionS
 /// child generations that are generated.
 /// * `alt_blocks`: The `alt_blocks` property is of type `HashMap<BlockPos, AltBlock>`. It
 /// represents blocks that change under certain conditions.
+/// * `ordered`: The `ordered` property is of type `bool`. It represents whether or not
+/// the child generations are ordered. If they are, the player will get missed points
+/// for skipping a child generation. If not, the player will not get missed points for
+/// skipping a child generation. Instead, they will get 1 point for each child generation
+/// reached.
 /// * `offset`: The `offset` property is of type `BlockPos`. It represents the offset
 /// of the parkour generation.
 /// * `end_state`: The `end_state` property is of type `PredictionState`. It represents
@@ -25,30 +30,13 @@ pub struct Generation {
     pub blocks: HashMap<BlockPos, BlockState>,
     pub children: Vec<ChildGeneration>,
     pub alt_blocks: HashMap<BlockPos, AltBlock>,
+    pub ordered: bool,
     pub offset: BlockPos,
     pub end_state: PredictionState,
     pub lines: Vec<Line3>,
 }
 
 impl Generation {
-    pub fn new(
-        blocks: HashMap<BlockPos, BlockState>,
-        children: Vec<ChildGeneration>,
-        alt_blocks: HashMap<BlockPos, AltBlock>,
-        offset: BlockPos,
-        end_state: PredictionState,
-        lines: Vec<Line3>,
-    ) -> Self {
-        Self {
-            blocks,
-            children,
-            alt_blocks,
-            offset,
-            end_state,
-            lines,
-        }
-    }
-
     /// Places the blocks in the generation.
     pub fn place(&self, world: &mut ChunkLayer) {
         for (pos, block) in &self.blocks {
@@ -153,36 +141,52 @@ impl Generation {
 
     /// Returns the number to increment the score by from the child generations.
     pub fn has_reached_child(&mut self, pos: Position) -> u32 {
-        let mut reached_count = 0;
-        for (i, child) in &mut self.children.iter_mut().enumerate() {
-            let i = i as u32;
-            if child.reached {
-                reached_count += 1;
-                continue;
-            }
-            if child.has_reached(pos, self.offset) {
-                if reached_count < i {
-                    for i in 0..i as usize {
-                        self.children[i].reached = true;
-                    }
+        if self.ordered {
+            let mut reached_count = 0;
+            for (i, child) in &mut self.children.iter_mut().enumerate() {
+                let i = i as u32;
+                if child.reached {
+                    reached_count += 1;
+                    continue;
                 }
-                return i - reached_count + 1;
+                if child.has_reached(pos, self.offset) {
+                    if reached_count < i {
+                        for i in 0..i as usize {
+                            self.children[i].reached = true;
+                        }
+                    }
+                    return i - reached_count + 1;
+                }
             }
-        }
 
-        0
+            0
+        } else {
+            let mut reached_count = 0;
+
+            for child in &mut self.children {
+                if child.has_reached(pos, self.offset) {
+                    reached_count += 1;
+                }
+            }
+
+            reached_count
+        }
     }
 
     /// Returns the number of child generations that have been not been reached.
     pub fn get_unreached_child_count(&self) -> u32 {
-        let mut count = 0;
-        for child in &self.children {
-            if !child.reached {
-                count += 1;
+        if self.ordered {
+            let mut count = 0;
+            for child in &self.children {
+                if !child.reached {
+                    count += 1;
+                }
             }
-        }
 
-        count
+            count
+        } else {
+            0
+        }
     }
 }
 
