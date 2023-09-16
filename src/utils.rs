@@ -262,7 +262,7 @@ pub fn prediction_can_reach(from: DVec3, to: BlockPos) -> bool {
     let mut state = PredictionState::running_jump_vec(from, yaw);
 
     loop {
-        let pos = state.pos.as_block_pos();
+        let pos = state.pos.to_block_pos();
 
         if pos.y >= to.y && pos.x >= to.x && pos.z >= to.z && pos.x <= to.x + 1 && pos.z <= to.z + 1
         {
@@ -398,18 +398,18 @@ impl JumpDirection {
     }
 }
 
-pub trait AsBlockPos {
-    fn as_block_pos(&self) -> BlockPos;
+pub trait ToBlockPos {
+    fn to_block_pos(&self) -> BlockPos;
 }
 
-impl AsBlockPos for DVec3 {
-    fn as_block_pos(&self) -> BlockPos {
+impl ToBlockPos for DVec3 {
+    fn to_block_pos(&self) -> BlockPos {
         BlockPos::new(self.x as i32, self.y as i32, self.z as i32)
     }
 }
 
-impl AsBlockPos for Vec3 {
-    fn as_block_pos(&self) -> BlockPos {
+impl ToBlockPos for Vec3 {
+    fn to_block_pos(&self) -> BlockPos {
         BlockPos::new(self.x as i32, self.y as i32, self.z as i32)
     }
 }

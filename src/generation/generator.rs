@@ -225,14 +225,14 @@ impl Generator {
                 for b in get_blocks_between(left, right) {
                     block_map.entry(b).or_insert(get_block());
                 }
-                block_map.entry(pos.as_block_pos()).or_insert(get_block());
+                block_map.entry(pos.to_block_pos()).or_insert(get_block());
 
                 for (pos, block) in block_map {
                     blocks.insert(pos, block);
                 }
 
                 end_state = PredictionState::running_jump_block(
-                    self.start + pos.round().as_block_pos(),
+                    self.start + pos.round().to_block_pos(),
                     new_yaw,
                 );
             }

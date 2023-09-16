@@ -1,6 +1,13 @@
 use std::collections::HashMap;
 
-use valence::{layer::chunk::IntoBlock, prelude::*, entity::{block_display::{BlockDisplayEntityBundle, self}, display}};
+use valence::{
+    entity::{
+        block_display::{self, BlockDisplayEntityBundle},
+        display,
+    },
+    layer::chunk::IntoBlock,
+    prelude::*,
+};
 
 use crate::utils::*;
 
@@ -117,7 +124,7 @@ impl AltBlockState {
                     display_translation: display::Translation(Vec3::new(0.25, 0.25, 0.25)),
                     ..Default::default()
                 };
-                
+
                 let entity = commands.spawn(display).id();
 
                 alt_block_entities.insert(pos, entity);
