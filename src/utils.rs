@@ -279,7 +279,7 @@ pub fn prediction_can_reach(from: DVec3, to: BlockPos) -> bool {
 
 pub fn get_player_floor_blocks(mut pos: DVec3) -> Vec<BlockPos> {
     let mut blocks = Vec::new();
-    
+
     if pos.y % 1. == 0. {
         pos.y -= 1.;
     }
@@ -328,9 +328,9 @@ pub fn get_min_max_yaw(prev: BlockPos, size: &IVec3) -> (f32, f32) {
 }
 
 /// Gets the four directions next to the given direction.
-/// 
+///
 /// The given direction must be a unit vector.
-/// 
+///
 /// For example, if the direction is (1, 0, 0), then the returned array will contain:
 /// - (0, 1, 0)
 /// - (0, -1, 0)
@@ -361,11 +361,41 @@ pub fn get_dirs_next_to(dir: BlockPos) -> [BlockPos; 4] {
     }
 }
 
+pub fn random_sign() -> i32 {
+    if rand::thread_rng().gen() {
+        1
+    } else {
+        -1
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum JumpDirection {
     Up,
     Down,
     DoesntMatter,
+}
+
+impl JumpDirection {
+    pub fn get_y_offset(self) -> i32 {
+        match self {
+            JumpDirection::Up => 1,
+            JumpDirection::Down => -rand::thread_rng().gen_range(1..=2),
+            JumpDirection::DoesntMatter => rand::thread_rng().gen_range(-1..=1),
+        }
+    }
+
+    pub fn go_down(self) -> bool {
+        match self {
+            JumpDirection::Up => false,
+            JumpDirection::Down => true,
+            JumpDirection::DoesntMatter => rand::thread_rng().gen(),
+        }
+    }
+
+    pub fn go_up(self) -> bool {
+        !self.go_down()
+    }
 }
 
 pub trait AsBlockPos {

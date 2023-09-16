@@ -125,7 +125,7 @@ fn init_clients(
                             ],
                             uniform: false,
                         })),
-                        10.0
+                        30.0
                     ),
                     (
                         GenerationType::Ramp(BlockSlabCollection(BlockChoice {
@@ -142,7 +142,7 @@ fn init_clients(
                             ],
                             uniform: false,
                         })),
-                        1.0
+                        10.0
                     ),
                     (
                         GenerationType::Ramp(BlockSlabCollection(BlockChoice {
@@ -154,7 +154,7 @@ fn init_clients(
                             ],
                             uniform: false,
                         })),
-                        1.0
+                        10.0
                     ),
                     (
                         GenerationType::Indoor(IndoorBlockCollection {
@@ -246,7 +246,24 @@ fn init_clients(
                             ],
                             uniform: true
                         })),
-                        15.0
+                        10.0
+                    ),
+                    (
+                        GenerationType::BlinkBlocks(BlinkBlockCollection {
+                            on: BlockCollection(BlockChoice {
+                                blocks: weighted_vec![
+                                    BlockState::BLUE_CONCRETE,
+                                ],
+                                uniform: true
+                            }),
+                            off: BlockCollection(BlockChoice {
+                                blocks: weighted_vec![
+                                    BlockState::RED_CONCRETE,
+                                ],
+                                uniform: true
+                            }),
+                        }),
+                        10.0
                     ),
                 ],
             ),

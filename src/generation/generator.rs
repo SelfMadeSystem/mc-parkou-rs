@@ -4,7 +4,7 @@ use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionS
 
 use super::{block_collection::*, generation::*, generators::*, theme::GenerationTheme};
 use rand::Rng;
-use valence::prelude::*;
+use valence::{math::IVec2, prelude::*};
 
 pub struct GenerateResult {
     pub start: BlockPos,
@@ -32,6 +32,8 @@ pub struct GenerateResult {
 /// * `Cave`: The `Cave` variant represents blocks that are used to create a cave.
 /// * `Snake`: The `Snake` variant represents blocks that are used to create a
 /// snake.
+/// * `BlinkBlocks`: The `BlinkBlocks` variant represents blocks that are used to
+/// create a blinking platform.
 /// * `Custom`: The `Custom` variant represents a custom parkour generation. It has
 /// preset blocks, a start position, and an end position.
 #[derive(Clone, Debug)]
@@ -44,6 +46,7 @@ pub enum GenerationType {
     Indoor(IndoorBlockCollection),
     Cave(BlockCollection),
     Snake(BlockCollection),
+    BlinkBlocks(BlinkBlockCollection),
     // Custom(CustomGeneration),
 }
 
@@ -91,13 +94,8 @@ impl Generator {
         let theme = theme.clone();
         let mut state = generation.end_state.clone();
         let mut lines = Vec::new();
-        let mut rng = rand::thread_rng();
 
-        let target_y = match direction {
-            JumpDirection::Up => state.pos.y as i32 + 1,
-            JumpDirection::Down => state.pos.y as i32 - rng.gen_range(1..=2),
-            JumpDirection::DoesntMatter => state.pos.y as i32 + rng.gen_range(-1..=1),
-        } as f64;
+        let target_y = (state.pos.y as i32 + direction.get_y_offset()) as f64;
 
         let g = loop {
             let mut new_state = state.clone();
@@ -147,15 +145,10 @@ impl Generator {
                 // TODO: Not great. Should be a better way to do this.
                 let index = collection.blocks.get_random_index().unwrap();
                 let uniform = collection.uniform;
-                let mut rng = rand::thread_rng();
                 let new_yaw = random_yaw();
 
                 let height = ((yaw - new_yaw).abs()).round() as i32 + 1;
-                let down = match direction {
-                    JumpDirection::Up => true,
-                    JumpDirection::Down => false,
-                    JumpDirection::DoesntMatter => rng.gen(),
-                };
+                let down = direction.go_down();
 
                 let yaw_change = (new_yaw - yaw) / height as f32;
 
@@ -322,6 +315,22 @@ impl Generator {
                 end_state =
                     PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
                 ordered = false;
+
+                for line in gen.lines {
+                    lines.push(line + offset.to_vec3());
+                }
+            }
+            GenerationType::BlinkBlocks(collection) => {
+                let blink_blocks = BlinkBlocksGenerator::new(collection.clone(), IVec2::new(3, 3));
+
+                let gen = blink_blocks.generate(direction);
+
+                offset = offset - gen.start;
+                blocks = gen.blocks;
+                alt_blocks = gen.alt_blocks;
+                children = gen.children;
+                end_state =
+                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
 
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());

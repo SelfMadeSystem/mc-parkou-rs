@@ -86,20 +86,19 @@ pub struct TerrainBlockCollection {
     pub liquid: Option<BlockCollection>,
 }
 
-/// The `BridgeBlockCollection` struct represents a collection of different types
-/// of blocks used in a bridge, such as blocks, slabs, and walls.
+/// The `BlinkBlockCollection` struct represents a collection of the two types
+/// of blocks used for the blink blocks generation.
 /// 
 /// Properties:
 /// 
-/// * `blocks`: The `blocks` property is of type `BlockSlabCollection`. It represents
-/// a collection of blocks that are used to create the bridge.
-/// * `walls`: The `walls` property is of type `BlockCollection`. It represents a
-/// collection of blocks that are used to create the walls of the bridge. The walls
-/// are placed on the sides of the bridge and are assumed to be fences or walls.
+/// * `on`: The `on` property is of type `BlockCollection`. It represents a
+/// collection of blocks that are used when the blink blocks are on.
+/// * `off`: The `off` property is of type `BlockCollection`. It represents a
+/// collection of blocks that are used when the blink blocks are off.
 #[derive(Clone, Debug)]
-pub struct BridgeBlockCollection {
-    pub blocks: BlockSlabCollection,
-    pub walls: BlockCollection,
+pub struct BlinkBlockCollection {
+    pub on: BlockCollection,
+    pub off: BlockCollection,
 }
 
 /// The `IndoorBlockCollection` struct represents a collection of different types

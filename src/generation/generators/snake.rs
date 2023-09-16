@@ -5,7 +5,7 @@ use valence::{math::*, prelude::*};
 
 use crate::{
     alt_block::{AltBlock, AltBlockState},
-    generation::{block_collection::*, generator::GenerateResult, generation::ChildGeneration},
+    generation::{block_collection::*, generation::ChildGeneration, generator::GenerateResult},
     utils::*,
 };
 
@@ -252,10 +252,15 @@ impl SnakeGenerator {
             children.push(start_vec);
         }
 
-        children.into_iter().map(|c| ChildGeneration::new(
-            c.into_iter().map(|p| (p, self.get_block())).collect(),
-            HashMap::new(),
-        )).collect()
+        children
+            .into_iter()
+            .map(|c| {
+                ChildGeneration::new(
+                    c.into_iter().map(|p| (p, self.get_block())).collect(),
+                    HashMap::new(),
+                )
+            })
+            .collect()
     }
 
     pub fn generate(&self) -> GenerateResult {
