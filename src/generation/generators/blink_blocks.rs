@@ -110,10 +110,7 @@ impl BlinkBlocksGenerator {
         ChildGeneration::new(blocks, alt_blocks)
     }
 
-    fn create_on_off_next_to_each_other_child(
-        &self,
-        pos: BlockPos,
-    ) -> (ChildGeneration, BlockPos) {
+    fn create_on_off_next_to_each_other_child(&self, pos: BlockPos) -> (ChildGeneration, BlockPos) {
         let off = rand::thread_rng().gen();
         let mut blocks = HashMap::new();
         let mut alt_blocks = HashMap::new();
@@ -166,8 +163,7 @@ impl BlinkBlocksGenerator {
         let mut rng = rand::thread_rng();
         let mut children = Vec::new();
 
-        let (mut g, mut pos) =
-            self.create_on_off_next_to_each_other_child(BlockPos::new(0, 0, 0));
+        let (mut g, mut pos) = self.create_on_off_next_to_each_other_child(BlockPos::new(0, 0, 0));
 
         children.push(ChildGeneration {
             reached: true, // First block is always reached

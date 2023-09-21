@@ -251,15 +251,11 @@ fn init_clients(
                     (
                         GenerationType::BlinkBlocks(BlinkBlockCollection {
                             on: BlockCollection(BlockChoice {
-                                blocks: weighted_vec![
-                                    BlockState::BLUE_CONCRETE,
-                                ],
+                                blocks: weighted_vec![BlockState::BLUE_CONCRETE,],
                                 uniform: true
                             }),
                             off: BlockCollection(BlockChoice {
-                                blocks: weighted_vec![
-                                    BlockState::RED_CONCRETE,
-                                ],
+                                blocks: weighted_vec![BlockState::RED_CONCRETE,],
                                 uniform: true
                             }),
                         }),

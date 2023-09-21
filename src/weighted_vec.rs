@@ -8,7 +8,7 @@ pub struct WeightedVec<T> {
 }
 
 #[allow(dead_code)]
-impl <T>WeightedVec<T> {
+impl<T> WeightedVec<T> {
     pub fn new() -> Self {
         Self { vec: Vec::new() }
     }
@@ -33,11 +33,14 @@ impl <T>WeightedVec<T> {
         self.vec.get(index).map(|(_, weight)| *weight)
     }
 
-    pub fn remove_element(&mut self, element: &T) -> Option<T> where T: PartialEq {
+    pub fn remove_element(&mut self, element: &T) -> Option<T>
+    where
+        T: PartialEq,
+    {
         let index = self.vec.iter().position(|(e, _)| e == element)?;
         Some(self.vec.remove(index).0)
     }
-    
+
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.vec.iter().map(|(element, _)| element)
     }
@@ -55,7 +58,7 @@ impl <T>WeightedVec<T> {
     }
 }
 
-impl <T>WeightedVec<T> {
+impl<T> WeightedVec<T> {
     pub fn get_random(&self) -> Option<&T> {
         let mut rng = rand::thread_rng();
 
@@ -91,7 +94,7 @@ impl <T>WeightedVec<T> {
     }
 }
 
-impl <T>From<Vec<T>> for WeightedVec<T> {
+impl<T> From<Vec<T>> for WeightedVec<T> {
     fn from(vec: Vec<T>) -> Self {
         Self {
             vec: vec.into_iter().map(|element| (element, 1.0)).collect(),
@@ -136,7 +139,7 @@ impl<T> std::iter::Extend<(T, f32)> for WeightedVec<T> {
 ///    (2, 2.0),
 ///    (3, 3.0),
 /// ]; // this one has weights
-/// 
+///
 /// let weighted_vec = weighted_vec![
 ///   1,
 ///   2,

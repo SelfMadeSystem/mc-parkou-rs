@@ -7,10 +7,7 @@ use valence::{
     BlockPos,
 };
 
-use crate::{
-    line::Line3,
-    utils::*,
-};
+use crate::{line::Line3, utils::*};
 
 /*
  * Jump: net.minecraft.world.entity.LivingEntity: line ~1950

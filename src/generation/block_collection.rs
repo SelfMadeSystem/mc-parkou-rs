@@ -6,9 +6,9 @@ use valence::prelude::*;
 /// The `BlockChoice` struct represents a choice between blocks of type `T`, with
 /// the option to choose only one block for a specific generation or to choose
 /// multiple blocks with a weighted probability.
-/// 
+///
 /// Properties:
-/// 
+///
 /// * `blocks`: The `blocks` property is a `WeightedVec<T>`, which is a vector of
 /// elements of type `T` with associated weights. Each element in the vector is
 /// assigned a weight, which determines the probability of that element being
@@ -60,9 +60,9 @@ impl BlockSlab {
 
 /// The `TerrainBlockCollection` struct represents a collection of different types
 /// of blocks used in a terrain, such as grass, dirt, stone, and liquid.
-/// 
+///
 /// Properties:
-/// 
+///
 /// * `grass`: The `grass` property is of type `BlockCollection`. It represents a
 /// collection of blocks that are placed at the top of the terrain.
 /// * `dirt`: The `dirt` property is an optional `BlockCollection`. It can either be
@@ -88,9 +88,9 @@ pub struct TerrainBlockCollection {
 
 /// The `BlinkBlockCollection` struct represents a collection of the two types
 /// of blocks used for the blink blocks generation.
-/// 
+///
 /// Properties:
-/// 
+///
 /// * `on`: The `on` property is of type `BlockCollection`. It represents a
 /// collection of blocks that are used when the blink blocks are on.
 /// * `off`: The `off` property is of type `BlockCollection`. It represents a
@@ -106,7 +106,7 @@ pub struct BlinkBlockCollection {
 /// the floor, and the blocks used to create the platforms in the area.
 ///
 /// Properties:
-/// 
+///
 /// * `walls`: The `walls` property is of type `BlockCollection`. It represents a
 /// collection of blocks that are used to create the walls and ceiling of the area.
 /// * `floor`: The `floor` property is and optional `BlockCollection`. It can either
@@ -130,9 +130,9 @@ pub struct IndoorBlockCollection {
 /// The `CustomBlockCollection` struct represents a pre-defined collection of
 /// blocks used in a custom parkour generation as well as a start position and
 /// end position.
-/// 
+///
 /// Properties:
-/// 
+///
 /// * `blocks`: The `blocks` property is of type `HashMap<BlockPos, BlockState>`.
 /// It represents the blocks that are used in the custom parkour generation.
 /// * `start_pos`: The `start_pos` property is of type `BlockPos`. It represents

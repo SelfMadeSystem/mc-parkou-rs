@@ -13,7 +13,6 @@ lazy_static! {
         (BlockState::OAK_PLANKS, BlockState::OAK_SLAB),
         (BlockState::SPRUCE_PLANKS, BlockState::SPRUCE_SLAB),
     ];
-
     pub static ref GENERIC_BLOCK_TYPES: Vec<BlockState> = vec![
         BlockState::GRASS_BLOCK,
         BlockState::OAK_LOG,
@@ -23,7 +22,6 @@ lazy_static! {
         BlockState::DIRT,
         BlockState::MOSS_BLOCK,
     ];
-
     pub static ref UNDERGROUND_BLOCK_TYPES: Vec<BlockState> = vec![
         BlockState::STONE,
         BlockState::COBBLESTONE,
