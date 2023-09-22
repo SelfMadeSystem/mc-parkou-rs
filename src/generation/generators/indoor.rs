@@ -4,7 +4,11 @@ use rand::Rng;
 use valence::{math::IVec3, prelude::*};
 
 use crate::{
-    generation::{block_collection::*, generation::ChildGeneration, generator::GenerateResult},
+    generation::{
+        block_collection::*,
+        generation::ChildGeneration,
+        generator::{BlockGenerator, GenerateResult},
+    },
     line::Line3,
     prediction::prediction_state::PredictionState,
     utils::*,
@@ -70,35 +74,6 @@ impl IndoorGenerator {
     fn get_platform(&self) -> (BlockState, BlockState) {
         let platform = self.get_platform_block_slab();
         (platform.block, platform.slab)
-    }
-
-    pub fn generate(&self) -> GenerateResult {
-        let mut blocks = HashMap::new();
-        let mut rng = rand::thread_rng();
-
-        let mut size: IVec3 = IVec3::new(rng.gen_range(5..=10), 7, rng.gen_range(15..=30));
-
-        let mut lines = Vec::new();
-
-        let mut children = Vec::new();
-
-        let platform_level = self.get_platform_level();
-        let start = self.generate_start(&mut blocks, &size, platform_level);
-        let end = self.generate_platforms(&size, platform_level, start, &mut lines, &mut children);
-
-        size.z = end.z + 1;
-
-        self.generate_floor(&mut blocks, &size);
-        self.generate_walls(&mut blocks, &size);
-
-        GenerateResult {
-            start,
-            end,
-            blocks,
-            alt_blocks: HashMap::new(),
-            lines,
-            children,
-        }
     }
 
     fn get_platform_level(&self) -> i32 {
@@ -253,5 +228,36 @@ impl IndoorGenerator {
         lines.append(&mut new_lines);
 
         self.generate_platforms(size, floor_level, pos, lines, children)
+    }
+}
+
+impl BlockGenerator for IndoorGenerator {
+    fn generate(&self) -> GenerateResult {
+        let mut blocks = HashMap::new();
+        let mut rng = rand::thread_rng();
+
+        let mut size: IVec3 = IVec3::new(rng.gen_range(5..=10), 7, rng.gen_range(15..=30));
+
+        let mut lines = Vec::new();
+
+        let mut children = Vec::new();
+
+        let platform_level = self.get_platform_level();
+        let start = self.generate_start(&mut blocks, &size, platform_level);
+        let end = self.generate_platforms(&size, platform_level, start, &mut lines, &mut children);
+
+        size.z = end.z + 1;
+
+        self.generate_floor(&mut blocks, &size);
+        self.generate_walls(&mut blocks, &size);
+
+        GenerateResult {
+            start,
+            end,
+            blocks,
+            alt_blocks: HashMap::new(),
+            lines,
+            children,
+        }
     }
 }

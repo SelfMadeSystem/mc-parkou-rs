@@ -5,7 +5,11 @@ use valence::{math::*, prelude::*};
 
 use crate::{
     alt_block::{AltBlock, AltBlockState},
-    generation::{block_collection::*, generation::ChildGeneration, generator::GenerateResult},
+    generation::{
+        block_collection::*,
+        generation::ChildGeneration,
+        generator::{BlockGenerator, GenerateResult},
+    },
     utils::*,
 };
 
@@ -262,8 +266,10 @@ impl SnakeGenerator {
             })
             .collect()
     }
+}
 
-    pub fn generate(&self) -> GenerateResult {
+impl BlockGenerator for SnakeGenerator {
+    fn generate(&self) -> GenerateResult {
         let mut blocks = HashMap::new();
         let mut alt_blocks = HashMap::new();
 

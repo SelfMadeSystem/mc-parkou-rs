@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use alt_block::AltBlockParams;
 use game_state::GameState;
 use generation::block_collection::*;
+use generation::custom_generation::SingleCustomPreset;
 use generation::generator::{GenerationType, Generator};
 use generation::theme::GenerationTheme;
 use prediction::prediction_state::PredictionState;
@@ -261,6 +262,33 @@ fn init_clients(
                         }),
                         10.0
                     ),
+                    (
+                        GenerationType::SingleCustom(SingleCustomPreset {
+                            block_map: BlockCollectionMap::from(vec![(
+                                "platform".to_string(),
+                                BlockCollection(BlockChoice {
+                                    blocks: weighted_vec![
+                                        BlockState::STONE,
+                                        BlockState::COBBLESTONE,
+                                        BlockState::MOSSY_COBBLESTONE,
+                                    ],
+                                    uniform: false,
+                                }),
+                            )]),
+                            blocks: HashMap::from([
+                                (BlockPos::new(0, 0, 0), "platform".to_string()),
+                                (BlockPos::new(0, 0, 1), "platform".to_string()),
+                                (BlockPos::new(0, 0, 2), "platform".to_string()),
+                                (BlockPos::new(0, 1, 2), "platform".to_string()),
+                                (BlockPos::new(0, 2, 2), "platform".to_string()),
+                                (BlockPos::new(0, 0, 3), "platform".to_string()),
+                                (BlockPos::new(0, 0, 4), "platform".to_string()),
+                            ]),
+                            start_pos: BlockPos::new(0, 0, 0),
+                            end_pos: BlockPos::new(0, 0, 4)
+                        }),
+                        10.0
+                    )
                 ],
             ),
             score: 0,

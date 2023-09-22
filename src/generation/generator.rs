@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
-use super::{block_collection::*, generation::*, generators::*, theme::GenerationTheme};
+use super::{block_collection::*, generation::*, generators::*, theme::GenerationTheme, custom_generation::SingleCustomPreset};
 use rand::Rng;
 use valence::{math::IVec2, prelude::*};
 
@@ -15,18 +15,29 @@ pub struct GenerateResult {
     pub children: Vec<ChildGeneration>,
 }
 
+impl GenerateResult {
+    pub fn just_blocks(blocks: HashMap<BlockPos, BlockState>, start: BlockPos, end: BlockPos) -> Self {
+        Self {
+            start,
+            end,
+            blocks,
+            alt_blocks: HashMap::new(),
+            lines: Vec::new(),
+            children: Vec::new(),
+        }
+    }
+}
+
 /// The `GenerationType` enum represents the different types of parkour generations
 /// that can be used.
 ///
 /// Variants:
 /// * `Single`: The `Single` variant represents a single block.
-/// * `Slime`: The `Slime` variant represents a slime block.
+/// * `Slime`: The `Slime` variant represents a slime block. // TODO
 /// * `Ramp`: The `Ramp` variant represents blocks and slabs that are used to create
 /// a ramp.
 /// * `Island`: The `Island` variant represents blocks that are used to create an
-/// island.
-/// * `Bridge`: The `Bridge` variant represents blocks and slabs that are used to
-/// create a bridge as well as wall blocks.
+/// island. // TODO
 /// * `Indoor`: The `Indoor` variant represents blocks that are used to create an
 /// indoor area.
 /// * `Cave`: The `Cave` variant represents blocks that are used to create a cave.
@@ -34,20 +45,24 @@ pub struct GenerateResult {
 /// snake.
 /// * `BlinkBlocks`: The `BlinkBlocks` variant represents blocks that are used to
 /// create a blinking platform.
-/// * `Custom`: The `Custom` variant represents a custom parkour generation. It has
-/// preset blocks, a start position, and an end position.
+/// * `SingleCustom`: The `SingleCustom` variant represents a custom parkour
+/// generation. It has preset blocks, a start position, and an end position.
+/// // TODO
+/// * `MultiCustom`: The `MultiCustom` variant represents a custom parkour
+/// generation. It has a start custom generation, a number of middle custom
+/// generations, and an end custom generation. // TODO
 #[derive(Clone, Debug)]
 pub enum GenerationType {
     Single(BlockCollection),
     // Slime,
     Ramp(BlockSlabCollection),
     // Island(TerrainBlockCollection),
-    // Bridge(BridgeBlockCollection),
     Indoor(IndoorBlockCollection),
     Cave(BlockCollection),
     Snake(BlockCollection),
     BlinkBlocks(BlinkBlockCollection),
-    // Custom(CustomGeneration),
+    SingleCustom(SingleCustomPreset),
+    // MultiCustom(MultiCustomGeneration),
 }
 
 /// The `Generator` struct represents a parkour generator.
@@ -239,7 +254,7 @@ impl Generator {
             GenerationType::Indoor(collection) => {
                 let indoor = IndoorGenerator::new(collection.clone());
 
-                let gen = indoor.generate();
+                let gen = indoor.generate(); // TODO: Streamline this.
 
                 offset = offset - gen.start;
                 blocks = gen.blocks;
@@ -336,6 +351,19 @@ impl Generator {
                     lines.push(line + offset.to_vec3());
                 }
             }
+            GenerationType::SingleCustom(preset) => {
+                let gen = preset.generate();
+
+                offset = offset - gen.start;
+                blocks = gen.blocks;
+                children = gen.children;
+                end_state =
+                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+
+                for line in gen.lines {
+                    lines.push(line + offset.to_vec3());
+                }
+            },
         }
 
         Generation {
@@ -348,4 +376,11 @@ impl Generator {
             lines,
         }
     }
+}
+
+/// The `BlockGenerator` trait represents a block generator.
+pub trait BlockGenerator {
+    /// The `generate` method generates blocks.
+    /// TODO: Add parameters, such as jump direction, ig that's it for now but I might add more.
+    fn generate(&self) -> GenerateResult;
 }

@@ -76,6 +76,7 @@ impl BlinkBlocksGenerator {
         )
     }
 
+    #[allow(dead_code)] // TODO: Remove
     fn create_on_child(&self, pos: BlockPos) -> ChildGeneration {
         let mut blocks = HashMap::new();
         let mut alt_blocks = HashMap::new();
@@ -93,6 +94,7 @@ impl BlinkBlocksGenerator {
         ChildGeneration::new(blocks, alt_blocks)
     }
 
+    #[allow(dead_code)] // TODO: Remove
     fn create_off_child(&self, pos: BlockPos) -> ChildGeneration {
         let mut blocks = HashMap::new();
         let mut alt_blocks = HashMap::new();

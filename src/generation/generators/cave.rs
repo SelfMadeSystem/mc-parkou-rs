@@ -4,7 +4,11 @@ use rand::Rng;
 use valence::{math::*, prelude::*};
 
 use crate::{
-    generation::{block_collection::*, generation::ChildGeneration, generator::GenerateResult},
+    generation::{
+        block_collection::*,
+        generation::ChildGeneration,
+        generator::{BlockGenerator, GenerateResult},
+    },
     line::Line3,
     prediction::prediction_state::PredictionState,
     utils::*,
@@ -29,63 +33,6 @@ impl CaveGenerator {
             self.collection.blocks[self.index].clone()
         } else {
             self.collection.blocks.get_random().unwrap().clone()
-        }
-    }
-
-    pub fn generate(&self) -> GenerateResult {
-        let mut rng = rand::thread_rng();
-
-        let mut size: IVec3 = IVec3::new(
-            rng.gen_range(10..=20),
-            rng.gen_range(12..=18),
-            rng.gen_range(15..=60),
-        );
-
-        let start = BlockPos::new(size.x / 2, 1, 0);
-
-        let mut lines = Vec::new();
-
-        let mut blocks = HashMap::new();
-        let mut children = Vec::new();
-        let mut air = HashSet::new();
-
-        let end = self.generate_platforms(
-            &mut air,
-            &mut children,
-            &size,
-            start,
-            HashSet::from([
-                IVec2::new(start.x - 1, start.z - 1),
-                IVec2::new(start.x, start.z - 1),
-                IVec2::new(start.x + 1, start.z - 1),
-                IVec2::new(start.x - 1, start.z),
-                IVec2::new(start.x, start.z),
-                IVec2::new(start.x + 1, start.z),
-                IVec2::new(start.x - 1, start.z + 1),
-                IVec2::new(start.x, start.z + 1),
-                IVec2::new(start.x + 1, start.z + 1),
-            ]),
-            1,
-            &mut lines,
-        );
-
-        size.z = end.z + 1;
-
-        self.fill(&mut blocks, &size);
-
-        for air in air {
-            blocks.insert(air, BlockState::AIR);
-        }
-
-        blocks.insert(start, self.get_block());
-
-        GenerateResult {
-            start,
-            end,
-            blocks,
-            alt_blocks: HashMap::new(),
-            lines,
-            children,
         }
     }
 
@@ -264,5 +211,64 @@ impl CaveGenerator {
         children.push(ChildGeneration::new(blocks, HashMap::new()));
 
         self.generate_platforms(air, children, size, pos, xz_air, floor_level, lines)
+    }
+}
+
+impl BlockGenerator for CaveGenerator {
+    fn generate(&self) -> GenerateResult {
+        let mut rng = rand::thread_rng();
+
+        let mut size: IVec3 = IVec3::new(
+            rng.gen_range(10..=20),
+            rng.gen_range(12..=18),
+            rng.gen_range(15..=60),
+        );
+
+        let start = BlockPos::new(size.x / 2, 1, 0);
+
+        let mut lines = Vec::new();
+
+        let mut blocks = HashMap::new();
+        let mut children = Vec::new();
+        let mut air = HashSet::new();
+
+        let end = self.generate_platforms(
+            &mut air,
+            &mut children,
+            &size,
+            start,
+            HashSet::from([
+                IVec2::new(start.x - 1, start.z - 1),
+                IVec2::new(start.x, start.z - 1),
+                IVec2::new(start.x + 1, start.z - 1),
+                IVec2::new(start.x - 1, start.z),
+                IVec2::new(start.x, start.z),
+                IVec2::new(start.x + 1, start.z),
+                IVec2::new(start.x - 1, start.z + 1),
+                IVec2::new(start.x, start.z + 1),
+                IVec2::new(start.x + 1, start.z + 1),
+            ]),
+            1,
+            &mut lines,
+        );
+
+        size.z = end.z + 1;
+
+        self.fill(&mut blocks, &size);
+
+        for air in air {
+            blocks.insert(air, BlockState::AIR);
+        }
+
+        blocks.insert(start, self.get_block());
+
+        GenerateResult {
+            start,
+            end,
+            blocks,
+            alt_blocks: HashMap::new(),
+            lines,
+            children,
+        }
     }
 }
