@@ -80,7 +80,7 @@ impl BlockSlab {
 #[derive(Clone, Debug)]
 pub struct BlockCollectionMap {
     pub collections: HashMap<String, BlockCollection>,
-}
+} // TODO: Replace every struct below this one (except built thing) with this one to allow for more flexibility
 
 impl BlockCollectionMap {
     pub fn new() -> Self {

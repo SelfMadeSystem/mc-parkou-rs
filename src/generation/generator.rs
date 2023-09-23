@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
-use super::{block_collection::*, generation::*, generators::*, theme::GenerationTheme, custom_generation::SingleCustomPreset};
+use super::{block_collection::*, generation::*, generators::*, theme::GenerationTheme, custom_generation::{SingleCustomPreset, MultiCustomPreset}};
 use rand::Rng;
 use valence::{math::IVec2, prelude::*};
 
@@ -62,7 +62,7 @@ pub enum GenerationType {
     Snake(BlockCollection),
     BlinkBlocks(BlinkBlockCollection),
     SingleCustom(SingleCustomPreset),
-    // MultiCustom(MultiCustomGeneration),
+    MultiCustom(MultiCustomPreset),
 }
 
 /// The `Generator` struct represents a parkour generator.
@@ -364,6 +364,19 @@ impl Generator {
                     lines.push(line + offset.to_vec3());
                 }
             },
+            GenerationType::MultiCustom(preset) => {
+                let gen = preset.generate();
+
+                offset = offset - gen.start;
+                blocks = gen.blocks;
+                children = gen.children;
+                end_state =
+                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+
+                for line in gen.lines {
+                    lines.push(line + offset.to_vec3());
+                }
+            },
         }
 
         Generation {
@@ -381,6 +394,7 @@ impl Generator {
 /// The `BlockGenerator` trait represents a block generator.
 pub trait BlockGenerator {
     /// The `generate` method generates blocks.
-    /// TODO: Add parameters, such as jump direction, ig that's it for now but I might add more.
+    /// TODO: Add parameters, such as jump direction, also want a block map to
+    /// be passed
     fn generate(&self) -> GenerateResult;
 }
