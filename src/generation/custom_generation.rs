@@ -80,12 +80,14 @@ pub struct MultiCustomPreset {
     pub presets: HashMap<String, SingularMultiCustomPreset>,
     pub start: WeightedVec<String>,
     pub end: WeightedVec<String>,
+    pub min_length: i32,
+    pub max_length: i32,
 }
 
 impl BlockGenerator for MultiCustomPreset {
     fn generate(&self, params: &BlockGenParams) -> GenerateResult {
         let mut rng = rand::thread_rng();
-        let mut length = rng.gen_range(5..10); // TODO: Make this configurable
+        let mut length = rng.gen_range(self.min_length..=self.max_length);
         let mut children = Vec::new();
         let mut lines = Vec::new();
         let mut current_pos = BlockPos::new(0, 0, 0);

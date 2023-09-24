@@ -312,7 +312,7 @@ fn init_clients(
                             floor: Some("indoor_floor".to_string()),
                             platforms: "indoor_platforms".to_string(),
                         },
-                        1.0
+                        5.0
                     ),
                     (
                         GenerationType::Indoor {
@@ -320,7 +320,7 @@ fn init_clients(
                             floor: Some("water".to_string()),
                             platforms: "indoor_platforms".to_string(),
                         },
-                        1.0
+                        5.0
                     ),
                     (
                         GenerationType::Indoor {
@@ -330,7 +330,7 @@ fn init_clients(
                         },
                         1.0
                     ),
-                    (GenerationType::Cave("cave".to_string()), 1.0),
+                    (GenerationType::Cave("cave".to_string()), 10.0),
                     (GenerationType::Snake("concrete".to_string()), 10.0),
                     (
                         GenerationType::BlinkBlocks {
@@ -477,56 +477,88 @@ fn init_clients(
                                                     BlockPos::new(-2, 1, 0),
                                                     (
                                                         "bridge_wall".to_string(),
-                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                        vec![
+                                                            (PropName::North, PropValue::Low),
+                                                            (PropName::South, PropValue::Low),
+                                                            (PropName::Up, PropValue::False)
+                                                        ],
                                                     ),
                                                 ),
                                                 (
                                                     BlockPos::new(-2, 1, 1),
                                                     (
                                                         "bridge_wall".to_string(),
-                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                        vec![
+                                                            (PropName::North, PropValue::Low),
+                                                            (PropName::South, PropValue::Low),
+                                                            (PropName::Up, PropValue::False)
+                                                        ],
                                                     ),
                                                 ),
                                                 (
                                                     BlockPos::new(-2, 1, 2),
                                                     (
                                                         "bridge_wall".to_string(),
-                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                        vec![
+                                                            (PropName::North, PropValue::Low),
+                                                            (PropName::South, PropValue::Low),
+                                                            (PropName::Up, PropValue::False)
+                                                        ],
                                                     ),
                                                 ),
                                                 (
                                                     BlockPos::new(-2, 1, 3),
                                                     (
                                                         "bridge_wall".to_string(),
-                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                        vec![
+                                                            (PropName::North, PropValue::Low),
+                                                            (PropName::South, PropValue::Low),
+                                                            (PropName::Up, PropValue::False)
+                                                        ],
                                                     ),
                                                 ),
                                                 (
                                                     BlockPos::new(2, 1, 0),
                                                     (
                                                         "bridge_wall".to_string(),
-                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                        vec![
+                                                            (PropName::North, PropValue::Low),
+                                                            (PropName::South, PropValue::Low),
+                                                            (PropName::Up, PropValue::False)
+                                                        ],
                                                     ),
                                                 ),
                                                 (
                                                     BlockPos::new(2, 1, 1),
                                                     (
                                                         "bridge_wall".to_string(),
-                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                        vec![
+                                                            (PropName::North, PropValue::Low),
+                                                            (PropName::South, PropValue::Low),
+                                                            (PropName::Up, PropValue::False)
+                                                        ],
                                                     ),
                                                 ),
                                                 (
                                                     BlockPos::new(2, 1, 2),
                                                     (
                                                         "bridge_wall".to_string(),
-                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                        vec![
+                                                            (PropName::North, PropValue::Low),
+                                                            (PropName::South, PropValue::Low),
+                                                            (PropName::Up, PropValue::False)
+                                                        ],
                                                     ),
                                                 ),
                                                 (
                                                     BlockPos::new(2, 1, 3),
                                                     (
                                                         "bridge_wall".to_string(),
-                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                        vec![
+                                                            (PropName::North, PropValue::Low),
+                                                            (PropName::South, PropValue::Low),
+                                                            (PropName::Up, PropValue::False)
+                                                        ],
                                                     ),
                                                 ),
                                             ]),
@@ -601,8 +633,10 @@ fn init_clients(
                             ]),
                             start: weighted_vec!["start".to_string()],
                             end: weighted_vec!["end".to_string()],
+                            min_length: 2,
+                            max_length: 4,
                         }),
-                        100.0
+                        10.0
                     )
                 ],
             ),
