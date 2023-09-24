@@ -80,6 +80,8 @@ pub enum GenerationType {
     BlinkBlocks {
         on: String,
         off: String,
+        delay: usize,
+        overlap: usize,
     },
     SingleCustom(SingleCustomPreset),
     MultiCustom(MultiCustomPreset),
@@ -283,7 +285,9 @@ impl Generator {
                 }
             }
             GenerationType::Cave(block_name) => {
-                let cave = CaveGenerator { block_name: block_name.to_owned() };
+                let cave = CaveGenerator {
+                    block_name: block_name.to_owned(),
+                };
 
                 let gen = cave.generate(&params);
 
@@ -360,13 +364,19 @@ impl Generator {
                     lines.push(line + offset.to_vec3());
                 }
             }
-            GenerationType::BlinkBlocks { on, off } => {
+            GenerationType::BlinkBlocks {
+                on,
+                off,
+                delay,
+                overlap,
+            } => {
                 // TODO: Add more options
                 let blink_blocks = BlinkBlocksGenerator {
                     on: on.to_owned(),
                     off: off.to_owned(),
                     size: IVec2::new(3, 3),
-                    delay: 25,
+                    delay: *delay,
+                    overlap: *overlap,
                 };
 
                 let gen = blink_blocks.generate(&params);

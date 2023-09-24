@@ -312,7 +312,7 @@ fn init_clients(
                             floor: Some("indoor_floor".to_string()),
                             platforms: "indoor_platforms".to_string(),
                         },
-                        5.0
+                        2.0
                     ),
                     (
                         GenerationType::Indoor {
@@ -320,7 +320,7 @@ fn init_clients(
                             floor: Some("water".to_string()),
                             platforms: "indoor_platforms".to_string(),
                         },
-                        5.0
+                        2.0
                     ),
                     (
                         GenerationType::Indoor {
@@ -330,12 +330,14 @@ fn init_clients(
                         },
                         1.0
                     ),
-                    (GenerationType::Cave("cave".to_string()), 10.0),
+                    (GenerationType::Cave("cave".to_string()), 5.0),
                     (GenerationType::Snake("concrete".to_string()), 10.0),
                     (
                         GenerationType::BlinkBlocks {
                             on: "blink_on".to_string(),
                             off: "blink_off".to_string(),
+                            delay: 20,
+                            overlap: 5,
                         },
                         10.0
                     ),

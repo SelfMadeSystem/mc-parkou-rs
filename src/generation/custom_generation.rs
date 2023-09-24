@@ -20,8 +20,6 @@ type BlockProperties = HashMap<BlockPos, (String, Vec<(PropName, PropValue)>)>;
 ///
 /// Properties:
 ///
-/// * `block_map`: The `block_map` property is a `BlockCollectionMap`. It maps a
-/// name to a `BlockCollection`.
 /// * `blocks`: The `blocks` property is a `BlockProperties`. It maps a position
 /// to a block name and a list of properties.
 /// * `start_pos`: The `start_pos` property is a `BlockPos`. It represents the
@@ -140,7 +138,11 @@ impl BlockGenerator for MultiCustomPreset {
 
             current_pos = offset.expect("This should never happen!") + current_pos;
 
-            let child = preset.preset.generate_child(current_pos, &params.block_map);
+            let mut child = preset.preset.generate_child(current_pos, &params.block_map);
+
+            if start {
+                child.reached = true; // TODO: I feel like there is a better way to do this
+            }
 
             children.push(child);
 

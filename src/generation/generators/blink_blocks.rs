@@ -20,19 +20,23 @@ pub struct BlinkBlocksGenerator {
     pub off: String,
     pub size: IVec2,
     pub delay: usize,
+    pub overlap: usize,
 }
 
 impl BlinkBlocksGenerator {
     fn create_on_alt_block(&self, map: &BuiltBlockCollectionMap) -> AltBlock {
         AltBlock::Tick(
             vec![
-                (AltBlockState::Block(map.get_block(&self.on)), self.delay),
+                (
+                    AltBlockState::Block(map.get_block(&self.on)),
+                    self.delay + self.overlap * 2,
+                ),
                 (
                     AltBlockState::SmallBlock(map.get_block(&self.on)),
                     self.delay,
                 ),
             ],
-            0,
+            self.overlap,
         )
     }
 
@@ -43,7 +47,10 @@ impl BlinkBlocksGenerator {
                     AltBlockState::SmallBlock(map.get_block(&self.off)),
                     self.delay,
                 ),
-                (AltBlockState::Block(map.get_block(&self.off)), self.delay),
+                (
+                    AltBlockState::Block(map.get_block(&self.off)),
+                    self.delay + self.overlap * 2,
+                ),
             ],
             0,
         )
