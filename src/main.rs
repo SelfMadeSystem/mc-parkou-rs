@@ -266,6 +266,41 @@ fn init_clients(
                             uniform: false,
                         }),
                     ),
+                    (
+                        "bridge_side",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::BRICKS],
+                            uniform: false,
+                        }),
+                    ),
+                    (
+                        "bridge_wall",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::BRICK_WALL],
+                            uniform: false,
+                        }),
+                    ),
+                    (
+                        "bridge_floor",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::OAK_PLANKS],
+                            uniform: false,
+                        }),
+                    ),
+                    (
+                        "bridge_pillar",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::STONE_BRICKS],
+                            uniform: false,
+                        }),
+                    ),
+                    (
+                        "bridge_pillar_stair",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::STONE_BRICK_STAIRS],
+                            uniform: false,
+                        }),
+                    ),
                 ]),
                 weighted_vec![
                     (GenerationType::Single("jump_block".to_string()), 30.0),
@@ -320,6 +355,255 @@ fn init_clients(
                         }),
                         10.0
                     ),
+                    (
+                        GenerationType::MultiCustom(MultiCustomPreset {
+                            presets: HashMap::from([
+                                // TODO: Finish bridge. Also, put everything here in a separate file.
+                                (
+                                    "start".to_string(),
+                                    SingularMultiCustomPreset {
+                                        preset: SingleCustomPreset {
+                                            blocks: HashMap::from([
+                                                (
+                                                    BlockPos::new(0, 0, 0),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 0),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 0),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(0, 0, 1),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 1),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 1),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(0, 0, 2),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 2),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 2),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(0, 0, 3),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 3),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 3),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                            ]),
+                                            start_pos: BlockPos::new(0, 0, 0),
+                                            end_pos: BlockPos::new(0, 0, 3)
+                                        },
+                                        nexts: vec!["middle".to_string()],
+                                        fixed_offset: Some(BlockPos::new(0, 0, 3)),
+                                    }
+                                ),
+                                (
+                                    "middle".to_string(),
+                                    SingularMultiCustomPreset {
+                                        preset: SingleCustomPreset {
+                                            blocks: HashMap::from([
+                                                (
+                                                    BlockPos::new(0, 0, 0),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 0),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 0),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(0, 0, 1),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 1),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 1),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(0, 0, 2),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 2),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 2),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(0, 0, 3),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 3),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 3),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-2, 1, 0),
+                                                    (
+                                                        "bridge_wall".to_string(),
+                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                    ),
+                                                ),
+                                                (
+                                                    BlockPos::new(-2, 1, 1),
+                                                    (
+                                                        "bridge_wall".to_string(),
+                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                    ),
+                                                ),
+                                                (
+                                                    BlockPos::new(-2, 1, 2),
+                                                    (
+                                                        "bridge_wall".to_string(),
+                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                    ),
+                                                ),
+                                                (
+                                                    BlockPos::new(-2, 1, 3),
+                                                    (
+                                                        "bridge_wall".to_string(),
+                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                    ),
+                                                ),
+                                                (
+                                                    BlockPos::new(2, 1, 0),
+                                                    (
+                                                        "bridge_wall".to_string(),
+                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                    ),
+                                                ),
+                                                (
+                                                    BlockPos::new(2, 1, 1),
+                                                    (
+                                                        "bridge_wall".to_string(),
+                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                    ),
+                                                ),
+                                                (
+                                                    BlockPos::new(2, 1, 2),
+                                                    (
+                                                        "bridge_wall".to_string(),
+                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                    ),
+                                                ),
+                                                (
+                                                    BlockPos::new(2, 1, 3),
+                                                    (
+                                                        "bridge_wall".to_string(),
+                                                        vec![(PropName::North, PropValue::Low), (PropName::South, PropValue::Low), (PropName::Up, PropValue::False)],
+                                                    ),
+                                                ),
+                                            ]),
+                                            start_pos: BlockPos::new(0, 0, 0),
+                                            end_pos: BlockPos::new(0, 0, 3)
+                                        },
+                                        nexts: vec!["middle".to_string()],
+                                        fixed_offset: Some(BlockPos::new(0, 0, 3)),
+                                    },
+                                ),
+                                (
+                                    "end".to_string(),
+                                    SingularMultiCustomPreset {
+                                        preset: SingleCustomPreset {
+                                            blocks: HashMap::from([
+                                                (
+                                                    BlockPos::new(0, 0, 0),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 0),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 0),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(0, 0, 1),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 1),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 1),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(0, 0, 2),
+                                                    ("bridge_pillar".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 2),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 2),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(0, 0, 3),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(-1, 0, 3),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                                (
+                                                    BlockPos::new(1, 0, 3),
+                                                    ("bridge_floor".to_string(), vec![]),
+                                                ),
+                                            ]),
+                                            start_pos: BlockPos::new(0, 0, 0),
+                                            end_pos: BlockPos::new(0, 0, 3)
+                                        },
+                                        nexts: vec!["middle".to_string()],
+                                        fixed_offset: Some(BlockPos::new(0, 0, 3)),
+                                    },
+                                )
+                            ]),
+                            start: weighted_vec!["start".to_string()],
+                            end: weighted_vec!["end".to_string()],
+                        }),
+                        100.0
+                    )
                 ],
             ),
             score: 0,
