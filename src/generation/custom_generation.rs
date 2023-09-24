@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rand::{Rng, seq::SliceRandom};
+use rand::{seq::SliceRandom, Rng};
 use valence::prelude::*;
 
 use crate::{
@@ -8,9 +8,9 @@ use crate::{
 };
 
 use super::{
-    block_collection::BlockCollectionMap,
+    block_collection::BuiltBlockCollectionMap,
     generation::ChildGeneration,
-    generator::{BlockGenerator, GenerateResult},
+    generator::{BlockGenParams, BlockGenerator, GenerateResult},
 };
 
 type BlockProperties = HashMap<BlockPos, (String, Vec<(PropName, PropValue)>)>;
@@ -30,18 +30,20 @@ type BlockProperties = HashMap<BlockPos, (String, Vec<(PropName, PropValue)>)>;
 /// position of the custom generation preset.
 #[derive(Clone, Debug)]
 pub struct SingleCustomPreset {
-    pub block_map: BlockCollectionMap, // TODO: Make this a shared reference to pass to the generator
     pub blocks: BlockProperties,
     pub start_pos: BlockPos,
     pub end_pos: BlockPos,
 }
 
 impl SingleCustomPreset {
-    fn get_blocks(&self, offset: BlockPos) -> HashMap<BlockPos, BlockState> {
-        let built = self.block_map.clone().build();
+    fn get_blocks(
+        &self,
+        offset: BlockPos,
+        map: &BuiltBlockCollectionMap,
+    ) -> HashMap<BlockPos, BlockState> {
         let mut blocks = HashMap::new();
         for (pos, (block_name, props)) in self.blocks.iter() {
-            let mut block = built.get_block(block_name).expect("Block not found");
+            let mut block = map.get_block(block_name);
             for (name, value) in props {
                 block = block.set(*name, *value);
             }
@@ -51,15 +53,15 @@ impl SingleCustomPreset {
         blocks
     }
 
-    fn generate_child(&self, offset: BlockPos) -> ChildGeneration {
-        ChildGeneration::new(self.get_blocks(offset), Default::default())
+    fn generate_child(&self, offset: BlockPos, map: &BuiltBlockCollectionMap) -> ChildGeneration {
+        ChildGeneration::new(self.get_blocks(offset, map), Default::default())
     }
 }
 
 impl BlockGenerator for SingleCustomPreset {
-    fn generate(&self) -> GenerateResult {
+    fn generate(&self, params: &BlockGenParams) -> GenerateResult {
         GenerateResult::just_blocks(
-            self.get_blocks(BlockPos::new(0, 0, 0)),
+            self.get_blocks(BlockPos::new(0, 0, 0), &params.block_map),
             self.start_pos,
             self.end_pos,
         )
@@ -81,7 +83,7 @@ pub struct MultiCustomPreset {
 }
 
 impl BlockGenerator for MultiCustomPreset {
-    fn generate(&self) -> GenerateResult {
+    fn generate(&self, params: &BlockGenParams) -> GenerateResult {
         let mut rng = rand::thread_rng();
         let mut length = rng.gen_range(5..10); // TODO: Make this configurable
         let mut children = Vec::new();
@@ -136,7 +138,7 @@ impl BlockGenerator for MultiCustomPreset {
 
             current_pos = offset.expect("This should never happen!") + current_pos;
 
-            let child = preset.preset.generate_child(current_pos);
+            let child = preset.preset.generate_child(current_pos, &params.block_map);
 
             children.push(child);
 

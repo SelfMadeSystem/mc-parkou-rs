@@ -111,10 +111,11 @@ fn init_clients(
             generations: VecDeque::new(),
             direction: JumpDirection::DoesntMatter,
             theme: GenerationTheme::new(
-                "name",
-                weighted_vec![
+                "name".to_owned(),
+                BlockCollectionMap::from([
                     (
-                        GenerationType::Single(BlockCollection(BlockChoice {
+                        "jump_block",
+                        BlockCollection(BlockChoice {
                             blocks: weighted_vec![
                                 BlockState::GRASS_BLOCK,
                                 BlockState::OAK_LOG,
@@ -125,108 +126,96 @@ fn init_clients(
                                 BlockState::MOSS_BLOCK,
                             ],
                             uniform: false,
-                        })),
-                        30.0
-                    ),
-                    (
-                        GenerationType::Ramp(BlockSlabCollection(BlockChoice {
-                            blocks: weighted_vec![
-                                BlockSlab::new(BlockState::STONE, BlockState::STONE_SLAB),
-                                BlockSlab::new(
-                                    BlockState::COBBLESTONE,
-                                    BlockState::COBBLESTONE_SLAB
-                                ),
-                                BlockSlab::new(
-                                    BlockState::MOSSY_COBBLESTONE,
-                                    BlockState::MOSSY_COBBLESTONE_SLAB
-                                ),
-                            ],
-                            uniform: false,
-                        })),
-                        10.0
-                    ),
-                    (
-                        GenerationType::Ramp(BlockSlabCollection(BlockChoice {
-                            blocks: weighted_vec![
-                                BlockSlab::new(BlockState::OAK_PLANKS, BlockState::OAK_SLAB),
-                                BlockSlab::new(BlockState::SPRUCE_PLANKS, BlockState::SPRUCE_SLAB),
-                                BlockSlab::new(BlockState::BIRCH_PLANKS, BlockState::BIRCH_SLAB),
-                                BlockSlab::new(BlockState::JUNGLE_PLANKS, BlockState::JUNGLE_SLAB),
-                            ],
-                            uniform: false,
-                        })),
-                        10.0
-                    ),
-                    (
-                        GenerationType::Indoor(IndoorBlockCollection {
-                            walls: BlockCollection(BlockChoice {
-                                blocks: weighted_vec![BlockState::BRICKS,],
-                                uniform: true
-                            }),
-                            floor: Some(BlockCollection(BlockChoice {
-                                blocks: weighted_vec![BlockState::WATER,],
-                                uniform: true
-                            })),
-                            platforms: BlockSlabCollection(BlockChoice {
-                                blocks: weighted_vec![BlockSlab::new(
-                                    BlockState::STONE,
-                                    BlockState::STONE_SLAB
-                                ),],
-                                uniform: true
-                            })
                         }),
-                        1.0
                     ),
                     (
-                        GenerationType::Indoor(IndoorBlockCollection {
-                            walls: BlockCollection(BlockChoice {
-                                blocks: weighted_vec![BlockState::BRICKS,],
-                                uniform: true
-                            }),
-                            floor: Some(BlockCollection(BlockChoice {
-                                blocks: weighted_vec![BlockState::COBBLED_DEEPSLATE,],
-                                uniform: true
-                            })),
-                            platforms: BlockSlabCollection(BlockChoice {
-                                blocks: weighted_vec![BlockSlab::new(
-                                    BlockState::STONE,
-                                    BlockState::STONE_SLAB
-                                ),],
-                                uniform: true
-                            })
-                        }),
-                        1.0
-                    ),
-                    (
-                        GenerationType::Indoor(IndoorBlockCollection {
-                            walls: BlockCollection(BlockChoice {
-                                blocks: weighted_vec![BlockState::BRICKS,],
-                                uniform: true
-                            }),
-                            floor: None,
-                            platforms: BlockSlabCollection(BlockChoice {
-                                blocks: weighted_vec![BlockSlab::new(
-                                    BlockState::STONE,
-                                    BlockState::STONE_SLAB
-                                ),],
-                                uniform: true
-                            })
-                        }),
-                        1.0
-                    ),
-                    (
-                        GenerationType::Cave(BlockCollection(BlockChoice {
+                        "ramp_stone",
+                        BlockCollection(BlockChoice {
                             blocks: weighted_vec![
                                 BlockState::STONE,
                                 BlockState::COBBLESTONE,
                                 BlockState::MOSSY_COBBLESTONE,
                             ],
                             uniform: false,
-                        })),
-                        1.0
+                        }),
                     ),
                     (
-                        GenerationType::Snake(BlockCollection(BlockChoice {
+                        "ramp_stone_slab",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockState::STONE_SLAB,
+                                BlockState::COBBLESTONE_SLAB,
+                                BlockState::MOSSY_COBBLESTONE_SLAB,
+                            ],
+                            uniform: false,
+                        }),
+                    ),
+                    (
+                        "ramp_wood",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockState::OAK_PLANKS,
+                                BlockState::SPRUCE_PLANKS,
+                                BlockState::BIRCH_PLANKS,
+                                BlockState::JUNGLE_PLANKS,
+                            ],
+                            uniform: false,
+                        }),
+                    ),
+                    (
+                        "ramp_wood_slab",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockState::OAK_SLAB,
+                                BlockState::SPRUCE_SLAB,
+                                BlockState::BIRCH_SLAB,
+                                BlockState::JUNGLE_SLAB,
+                            ],
+                            uniform: false,
+                        }),
+                    ),
+                    (
+                        "indoor_walls",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::BRICKS,],
+                            uniform: true,
+                        }),
+                    ),
+                    (
+                        "indoor_floor",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::COBBLED_DEEPSLATE,],
+                            uniform: true,
+                        }),
+                    ),
+                    (
+                        "indoor_platforms",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::STONE,],
+                            uniform: true,
+                        }),
+                    ),
+                    (
+                        "water",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::WATER,],
+                            uniform: true,
+                        }),
+                    ),
+                    (
+                        "cave",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockState::STONE,
+                                BlockState::COBBLESTONE,
+                                BlockState::MOSSY_COBBLESTONE,
+                            ],
+                            uniform: false,
+                        }),
+                    ),
+                    (
+                        "concrete",
+                        BlockCollection(BlockChoice {
                             blocks: weighted_vec![
                                 BlockState::WHITE_CONCRETE,
                                 BlockState::ORANGE_CONCRETE,
@@ -245,36 +234,78 @@ fn init_clients(
                                 BlockState::RED_CONCRETE,
                                 // BlockState::BLACK_CONCRETE, // black has no contrast and is completely invisible at night
                             ],
-                            uniform: true
-                        })),
-                        10.0
+                            uniform: true,
+                        }),
                     ),
                     (
-                        GenerationType::BlinkBlocks(BlinkBlockCollection {
-                            on: BlockCollection(BlockChoice {
-                                blocks: weighted_vec![BlockState::BLUE_CONCRETE,],
-                                uniform: true
-                            }),
-                            off: BlockCollection(BlockChoice {
-                                blocks: weighted_vec![BlockState::RED_CONCRETE,],
-                                uniform: true
-                            }),
+                        "blink_on",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::BLUE_CONCRETE,],
+                            uniform: true,
                         }),
+                    ),
+                    (
+                        "blink_off",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::RED_CONCRETE,],
+                            uniform: true,
+                        }),
+                    ),
+                    (
+                        "platform",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockState::STONE,
+                                BlockState::COBBLESTONE,
+                                BlockState::MOSSY_COBBLESTONE,
+                                BlockState::OAK_PLANKS,
+                                BlockState::SPRUCE_PLANKS,
+                                BlockState::BIRCH_PLANKS,
+                                BlockState::JUNGLE_PLANKS,
+                            ],
+                            uniform: false,
+                        }),
+                    ),
+                ]),
+                weighted_vec![
+                    (GenerationType::Single("jump_block".to_string()), 30.0),
+                    (GenerationType::Ramp("ramp_stone".to_string()), 10.0),
+                    (GenerationType::Ramp("ramp_wood".to_string()), 10.0),
+                    (
+                        GenerationType::Indoor {
+                            walls: "indoor_walls".to_string(),
+                            floor: Some("indoor_floor".to_string()),
+                            platforms: "indoor_platforms".to_string(),
+                        },
+                        1.0
+                    ),
+                    (
+                        GenerationType::Indoor {
+                            walls: "indoor_walls".to_string(),
+                            floor: Some("water".to_string()),
+                            platforms: "indoor_platforms".to_string(),
+                        },
+                        1.0
+                    ),
+                    (
+                        GenerationType::Indoor {
+                            walls: "indoor_walls".to_string(),
+                            floor: None,
+                            platforms: "indoor_platforms".to_string(),
+                        },
+                        1.0
+                    ),
+                    (GenerationType::Cave("cave".to_string()), 1.0),
+                    (GenerationType::Snake("concrete".to_string()), 10.0),
+                    (
+                        GenerationType::BlinkBlocks {
+                            on: "blink_on".to_string(),
+                            off: "blink_off".to_string(),
+                        },
                         10.0
                     ),
                     (
                         GenerationType::SingleCustom(SingleCustomPreset {
-                            block_map: BlockCollectionMap::from(vec![(
-                                "platform".to_string(),
-                                BlockCollection(BlockChoice {
-                                    blocks: weighted_vec![
-                                        BlockState::STONE,
-                                        BlockState::COBBLESTONE,
-                                        BlockState::MOSSY_COBBLESTONE,
-                                    ],
-                                    uniform: false,
-                                }),
-                            )]),
                             blocks: HashMap::from([
                                 (BlockPos::new(0, 0, 0), ("platform".to_string(), vec![])),
                                 (BlockPos::new(0, 0, 1), ("platform".to_string(), vec![])),

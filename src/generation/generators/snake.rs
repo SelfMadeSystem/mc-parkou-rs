@@ -8,52 +8,23 @@ use crate::{
     generation::{
         block_collection::*,
         generation::ChildGeneration,
-        generator::{BlockGenerator, GenerateResult},
+        generator::{BlockGenParams, BlockGenerator, GenerateResult},
     },
     utils::*,
 };
 
 pub struct SnakeGenerator {
-    pub blocks: BlockChoice<BlockState>,
+    pub block_name: String,
     pub snake_count: usize,
     pub snake_length: usize,
     pub delay: usize,
     pub reverse: bool,
     pub poses: Vec<BlockPos>,
     pub end_pos: BlockPos,
-    pub index: usize,
 }
 
 #[allow(dead_code)]
 impl SnakeGenerator {
-    pub fn new(
-        blocks: BlockChoice<BlockState>,
-        snake_count: usize,
-        snake_length: usize,
-        delay: usize,
-        reverse: bool,
-    ) -> Self {
-        let i = blocks.blocks.get_random_index().unwrap();
-        Self {
-            blocks,
-            snake_count,
-            snake_length,
-            delay,
-            reverse,
-            poses: Vec::new(),
-            end_pos: BlockPos::new(0, 0, 0),
-            index: i,
-        }
-    }
-
-    fn get_block(&self) -> BlockState {
-        if self.blocks.uniform {
-            self.blocks.blocks[self.index].clone()
-        } else {
-            self.blocks.blocks.get_random().unwrap().clone()
-        }
-    }
-
     pub fn add_block(&mut self, pos: BlockPos) {
         self.poses.push(pos);
     }
@@ -119,6 +90,8 @@ impl SnakeGenerator {
     ) -> bool {
         // TODO: Figure out if this is the best way to do this
         // It sometimes decides to go in an infinite loop
+
+        // I actually thing it's fine now. Will keep an eye on it.
         let mut directions = vec![
             BlockPos::new(1, 0, 0),
             BlockPos::new(-1, 0, 0),
@@ -224,7 +197,7 @@ impl SnakeGenerator {
 
     /// Gets children by finding the positions that are at the top of the snake
     /// and grouping together the positions that are next to each other.
-    pub fn acquire_children(&self) -> Vec<ChildGeneration> {
+    pub fn acquire_children(&self, built: &BuiltBlockCollectionMap) -> Vec<ChildGeneration> {
         let mut children = Vec::new();
         let mut start_vec = Vec::new();
         let mut current_vec = Vec::new();
@@ -260,7 +233,9 @@ impl SnakeGenerator {
             .into_iter()
             .map(|c| {
                 ChildGeneration::new(
-                    c.into_iter().map(|p| (p, self.get_block())).collect(),
+                    c.into_iter()
+                        .map(|p| (p, built.get_block(&self.block_name)))
+                        .collect(),
                     HashMap::new(),
                 )
             })
@@ -269,17 +244,19 @@ impl SnakeGenerator {
 }
 
 impl BlockGenerator for SnakeGenerator {
-    fn generate(&self) -> GenerateResult {
+    fn generate(&self, params: &BlockGenParams) -> GenerateResult {
         let mut blocks = HashMap::new();
         let mut alt_blocks = HashMap::new();
 
         let total_blocks = self.poses.len() / self.snake_count;
 
+        let built = &params.block_map;
+
         for (mut i, pos) in self.poses.iter().enumerate() {
             if self.reverse {
                 i = self.poses.len() - i - 1;
             }
-            let block = self.get_block();
+            let block = built.get_block(&self.block_name);
             blocks.insert(*pos, block);
 
             alt_blocks.insert(
@@ -303,7 +280,7 @@ impl BlockGenerator for SnakeGenerator {
             blocks,
             alt_blocks,
             lines: Vec::new(),
-            children: self.acquire_children(),
+            children: self.acquire_children(built),
         }
     }
 }

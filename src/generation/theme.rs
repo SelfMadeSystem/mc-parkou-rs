@@ -1,6 +1,6 @@
 use crate::weighted_vec::WeightedVec;
 
-use super::generator::GenerationType;
+use super::{block_collection::BlockCollectionMap, generator::GenerationType};
 
 /// The `GenerationTheme` struct represents a theme for a parkour generation.
 ///
@@ -14,14 +14,20 @@ use super::generator::GenerationType;
 /// of that element being chosen.
 #[derive(Clone, Debug)]
 pub struct GenerationTheme {
-    pub name: &'static str,
+    pub name: String,
+    pub block_map: BlockCollectionMap,
     pub generation_types: WeightedVec<GenerationType>,
 }
 
 impl GenerationTheme {
-    pub fn new(name: &'static str, generation_types: WeightedVec<GenerationType>) -> Self {
+    pub fn new(
+        name: String,
+        block_map: BlockCollectionMap,
+        generation_types: WeightedVec<GenerationType>,
+    ) -> Self {
         Self {
             name,
+            block_map,
             generation_types,
         }
     }

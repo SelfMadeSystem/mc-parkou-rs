@@ -7,7 +7,7 @@ use crate::{
     generation::{
         block_collection::*,
         generation::ChildGeneration,
-        generator::{BlockGenerator, GenerateResult},
+        generator::{BlockGenParams, BlockGenerator, GenerateResult},
     },
     line::Line3,
     prediction::prediction_state::PredictionState,
@@ -15,75 +15,29 @@ use crate::{
 };
 
 pub struct IndoorGenerator {
-    collection: IndoorBlockCollection,
-    wall_index: usize,
-    floor_index: usize,
-    platform_index: usize,
+    /// Used for walls and ceiling
+    pub walls: String,
+    /// Used for floor. If `None`, there is no floor. If liquid, then `walls`
+    /// is placed below `floor`.
+    pub floor: Option<String>,
+    /// Used for platforms
+    pub platforms: String,
 }
 
 impl IndoorGenerator {
-    pub fn new(collection: IndoorBlockCollection) -> Self {
-        let mut rng = rand::thread_rng();
-        Self {
-            wall_index: rng.gen_range(0..collection.walls.0.blocks.len()),
-            floor_index: match &collection.floor {
-                Some(floor) => rng.gen_range(0..floor.0.blocks.len()),
-                None => 0,
-            },
-            platform_index: rng.gen_range(0..collection.platforms.0.blocks.len()),
-            collection,
-        }
-    }
-
-    fn get_wall(&self) -> BlockState {
-        if self.collection.walls.0.uniform {
-            self.collection.walls.0.blocks[self.wall_index].clone()
-        } else {
-            self.collection.walls.0.blocks.get_random().unwrap().clone()
-        }
-    }
-
-    fn get_floor(&self) -> BlockState {
-        match &self.collection.floor {
-            Some(floor) => {
-                if floor.0.uniform {
-                    floor.0.blocks[self.floor_index].clone()
-                } else {
-                    floor.0.blocks.get_random().unwrap().clone()
-                }
-            }
-            None => BlockState::AIR,
-        }
-    }
-
-    fn get_platform_block_slab(&self) -> BlockSlab {
-        let platform = if self.collection.platforms.0.uniform {
-            self.collection.platforms.0.blocks[self.platform_index].clone()
-        } else {
-            self.collection
-                .platforms
-                .0
-                .blocks
-                .get_random()
-                .unwrap()
-                .clone()
-        };
-        platform
-    }
-
-    fn get_platform(&self) -> (BlockState, BlockState) {
-        let platform = self.get_platform_block_slab();
-        (platform.block, platform.slab)
-    }
-
     fn get_platform_level(&self) -> i32 {
-        match &self.collection.floor {
+        match &self.floor {
             Some(_) => 2,
             _ => 0,
         }
     }
 
-    fn generate_walls(&self, blocks: &mut HashMap<BlockPos, BlockState>, size: &IVec3) {
+    fn generate_walls(
+        &self,
+        blocks: &mut HashMap<BlockPos, BlockState>,
+        size: &IVec3,
+        map: &BuiltBlockCollectionMap,
+    ) {
         let mut pos = BlockPos::new(0, 0, 0);
 
         let mut wall_blocks = Vec::new();
@@ -91,11 +45,11 @@ impl IndoorGenerator {
         for y in 0..size.y {
             for z in 0..size.z {
                 let pos = BlockPos::new(pos.x, pos.y + y, pos.z + z);
-                wall_blocks.push((pos, self.get_wall()));
+                wall_blocks.push((pos, map.get_block(&self.walls)));
 
                 let pos = BlockPos::new(pos.x + size.x - 1, pos.y, pos.z);
 
-                wall_blocks.push((pos, self.get_wall()));
+                wall_blocks.push((pos, map.get_block(&self.walls)));
             }
         }
 
@@ -104,26 +58,31 @@ impl IndoorGenerator {
         for x in 0..size.x {
             for z in 0..size.z {
                 let pos = BlockPos::new(pos.x + x, pos.y, pos.z + z);
-                wall_blocks.push((pos, self.get_wall()));
+                wall_blocks.push((pos, map.get_block(&self.walls)));
             }
         }
 
         blocks.extend(wall_blocks);
     }
 
-    fn generate_floor(&self, blocks: &mut HashMap<BlockPos, BlockState>, size: &IVec3) {
-        if let Some(floor) = &self.collection.floor {
+    fn generate_floor(
+        &self,
+        blocks: &mut HashMap<BlockPos, BlockState>,
+        size: &IVec3,
+        map: &BuiltBlockCollectionMap,
+    ) {
+        if let Some(floor) = &self.floor {
             let mut pos = BlockPos::new(0, 0, 0);
 
             let mut floor_blocks = HashMap::new();
 
-            let liquid = floor.0.blocks.len() == 1 && floor.0.blocks[0].is_liquid();
+            let liquid = map.is_liquid(&floor);
 
             if liquid {
                 for x in 1..size.x - 1 {
                     for z in 0..size.z {
                         let pos = BlockPos::new(pos.x + x, pos.y, pos.z + z);
-                        floor_blocks.insert(pos, self.get_wall());
+                        floor_blocks.insert(pos, map.get_block(&self.walls));
                     }
                 }
 
@@ -133,7 +92,7 @@ impl IndoorGenerator {
             for x in 1..size.x - 1 {
                 for z in if liquid { 1 } else { 0 }..size.z {
                     let pos = BlockPos::new(pos.x + x, pos.y, pos.z + z);
-                    floor_blocks.insert(pos, self.get_floor());
+                    floor_blocks.insert(pos, map.get_block(floor));
                 }
             }
 
@@ -146,6 +105,7 @@ impl IndoorGenerator {
         blocks: &mut HashMap<BlockPos, BlockState>,
         size: &IVec3,
         platform_level: i32,
+        map: &BuiltBlockCollectionMap,
     ) -> BlockPos {
         let mut rng = rand::thread_rng();
         // TODO: Improve
@@ -154,11 +114,11 @@ impl IndoorGenerator {
 
         if platform_level > 0 {
             for x in 1..size.x - 1 {
-                blocks.insert(BlockPos::new(x, 1, 0), self.get_wall());
+                blocks.insert(BlockPos::new(x, 1, 0), map.get_block(&self.walls));
             }
         }
 
-        blocks.insert(start, self.get_platform().0);
+        blocks.insert(start, map.get_block(&self.platforms));
 
         start
     }
@@ -170,6 +130,7 @@ impl IndoorGenerator {
         prev: BlockPos,
         lines: &mut Vec<Line3>,
         children: &mut Vec<ChildGeneration>,
+        map: &BuiltBlockCollectionMap,
     ) -> BlockPos {
         if prev.z >= size.z - 1 {
             return prev;
@@ -203,7 +164,7 @@ impl IndoorGenerator {
                 eprintln!("{}", new_prediction.vel.x);
                 // try again. TODO: Improve
 
-                return self.generate_platforms(size, floor_level, prev, lines, children);
+                return self.generate_platforms(size, floor_level, prev, lines, children, map);
             }
 
             if new_prediction.vel.y > 0. || new_prediction.pos.y > floor_level as f64 + 1. {
@@ -221,18 +182,19 @@ impl IndoorGenerator {
         let pos = prediction.get_block_pos();
 
         children.push(ChildGeneration::new(
-            HashMap::from([(pos, self.get_platform().0)]),
+            HashMap::from([(pos, map.get_block(&self.platforms))]),
             HashMap::new(),
         ));
 
         lines.append(&mut new_lines);
 
-        self.generate_platforms(size, floor_level, pos, lines, children)
+        self.generate_platforms(size, floor_level, pos, lines, children, map)
     }
 }
 
 impl BlockGenerator for IndoorGenerator {
-    fn generate(&self) -> GenerateResult {
+    fn generate(&self, params: &BlockGenParams) -> GenerateResult {
+        let map = &params.block_map;
         let mut blocks = HashMap::new();
         let mut rng = rand::thread_rng();
 
@@ -243,13 +205,20 @@ impl BlockGenerator for IndoorGenerator {
         let mut children = Vec::new();
 
         let platform_level = self.get_platform_level();
-        let start = self.generate_start(&mut blocks, &size, platform_level);
-        let end = self.generate_platforms(&size, platform_level, start, &mut lines, &mut children);
+        let start = self.generate_start(&mut blocks, &size, platform_level, &map);
+        let end = self.generate_platforms(
+            &size,
+            platform_level,
+            start,
+            &mut lines,
+            &mut children,
+            &map,
+        );
 
         size.z = end.z + 1;
 
-        self.generate_floor(&mut blocks, &size);
-        self.generate_walls(&mut blocks, &size);
+        self.generate_floor(&mut blocks, &size, &map);
+        self.generate_walls(&mut blocks, &size, &map);
 
         GenerateResult {
             start,

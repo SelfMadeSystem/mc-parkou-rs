@@ -7,7 +7,7 @@ use crate::{
     generation::{
         block_collection::*,
         generation::ChildGeneration,
-        generator::{BlockGenerator, GenerateResult},
+        generator::{BlockGenParams, BlockGenerator, GenerateResult},
     },
     line::Line3,
     prediction::prediction_state::PredictionState,
@@ -15,35 +15,23 @@ use crate::{
 };
 
 pub struct CaveGenerator {
-    collection: BlockChoice<BlockState>,
-    index: usize,
+    pub block_name: String,
 }
 
 impl CaveGenerator {
-    pub fn new(collection: BlockChoice<BlockState>) -> Self {
-        let i = collection.blocks.get_random_index().unwrap();
-        Self {
-            collection,
-            index: i,
-        }
-    }
-
-    fn get_block(&self) -> BlockState {
-        if self.collection.uniform {
-            self.collection.blocks[self.index].clone()
-        } else {
-            self.collection.blocks.get_random().unwrap().clone()
-        }
-    }
-
-    fn fill(&self, blocks: &mut HashMap<BlockPos, BlockState>, size: &IVec3) {
+    fn fill(
+        &self,
+        blocks: &mut HashMap<BlockPos, BlockState>,
+        size: &IVec3,
+        map: &BuiltBlockCollectionMap,
+    ) {
         let pos = BlockPos::new(0, 0, 0);
 
         for x in -1..size.x + 1 {
             for y in -1..size.y + 1 {
                 for z in 0..size.z {
                     let pos = BlockPos::new(pos.x + x, pos.y + y, pos.z + z);
-                    blocks.insert(pos, self.get_block());
+                    blocks.insert(pos, map.get_block(&self.block_name));
                 }
             }
         }
@@ -58,6 +46,7 @@ impl CaveGenerator {
         prev_xz_air: HashSet<IVec2>,
         floor_level: i32,
         lines: &mut Vec<Line3>,
+        map: &BuiltBlockCollectionMap,
     ) -> BlockPos {
         // FIXME: Sometimes, next to the platform, there is an unescapable hole.
         if prev.z >= size.z - 1 {
@@ -113,6 +102,7 @@ impl CaveGenerator {
                     prev_xz_air,
                     floor_level,
                     lines,
+                    map,
                 );
             }
 
@@ -162,19 +152,23 @@ impl CaveGenerator {
 
             for z in 1..=prev.y - floor_level {
                 for y in floor_level..=prev.y - z {
-                    blocks.insert(BlockPos::new(prev.x, y, prev.z + z), self.get_block());
+                    blocks.insert(
+                        BlockPos::new(prev.x, y, prev.z + z),
+                        map.get_block(&self.block_name),
+                    );
                     blocks.insert(
                         BlockPos::new(prev.x + z - 1, y, prev.z + 1),
-                        self.get_block(),
+                        map.get_block(&self.block_name),
                     );
                     blocks.insert(
                         BlockPos::new(prev.x - z + 1, y, prev.z + 1),
-                        self.get_block(),
+                        map.get_block(&self.block_name),
                     );
                 }
             }
 
-            // FIXME: Very much not ideal
+            // FIXME: Very much not ideal. I'd want to check surrounding blocks
+            // and only place blocks where it is necessary.
             for y in 1..floor_level {
                 no_air.insert(BlockPos::new(prev.x - 1, y, prev.z));
                 no_air.insert(BlockPos::new(prev.x + 1, y, prev.z));
@@ -200,22 +194,27 @@ impl CaveGenerator {
             }
         }
 
-        blocks.insert(pos, self.get_block());
+        blocks.insert(pos, map.get_block(&self.block_name));
 
         for y in 1..pos.y {
-            blocks.insert(BlockPos::new(pos.x, y, pos.z), self.get_block());
+            blocks.insert(
+                BlockPos::new(pos.x, y, pos.z),
+                map.get_block(&self.block_name),
+            );
         }
 
         lines.extend(new_lines);
 
         children.push(ChildGeneration::new(blocks, HashMap::new()));
 
-        self.generate_platforms(air, children, size, pos, xz_air, floor_level, lines)
+        self.generate_platforms(air, children, size, pos, xz_air, floor_level, lines, map)
     }
 }
 
 impl BlockGenerator for CaveGenerator {
-    fn generate(&self) -> GenerateResult {
+    fn generate(&self, params: &BlockGenParams) -> GenerateResult {
+        let map = &params.block_map;
+
         let mut rng = rand::thread_rng();
 
         let mut size: IVec3 = IVec3::new(
@@ -250,17 +249,18 @@ impl BlockGenerator for CaveGenerator {
             ]),
             1,
             &mut lines,
+            &map,
         );
 
         size.z = end.z + 1;
 
-        self.fill(&mut blocks, &size);
+        self.fill(&mut blocks, &size, &map);
 
         for air in air {
             blocks.insert(air, BlockState::AIR);
         }
 
-        blocks.insert(start, self.get_block());
+        blocks.insert(start, map.get_block(&self.block_name));
 
         GenerateResult {
             start,

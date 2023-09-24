@@ -2,7 +2,13 @@ use std::collections::HashMap;
 
 use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
-use super::{block_collection::*, generation::*, generators::*, theme::GenerationTheme, custom_generation::{SingleCustomPreset, MultiCustomPreset}};
+use super::{
+    block_collection::*,
+    custom_generation::{MultiCustomPreset, SingleCustomPreset},
+    generation::*,
+    generators::*,
+    theme::GenerationTheme,
+};
 use rand::Rng;
 use valence::{math::IVec2, prelude::*};
 
@@ -16,7 +22,11 @@ pub struct GenerateResult {
 }
 
 impl GenerateResult {
-    pub fn just_blocks(blocks: HashMap<BlockPos, BlockState>, start: BlockPos, end: BlockPos) -> Self {
+    pub fn just_blocks(
+        blocks: HashMap<BlockPos, BlockState>,
+        start: BlockPos,
+        end: BlockPos,
+    ) -> Self {
         Self {
             start,
             end,
@@ -47,20 +57,30 @@ impl GenerateResult {
 /// create a blinking platform.
 /// * `SingleCustom`: The `SingleCustom` variant represents a custom parkour
 /// generation. It has preset blocks, a start position, and an end position.
-/// // TODO
 /// * `MultiCustom`: The `MultiCustom` variant represents a custom parkour
 /// generation. It has a start custom generation, a number of middle custom
-/// generations, and an end custom generation. // TODO
+/// generations, and an end custom generation. // TODO: Add examples
 #[derive(Clone, Debug)]
 pub enum GenerationType {
-    Single(BlockCollection),
+    Single(String),
     // Slime,
-    Ramp(BlockSlabCollection),
+    Ramp(String),
     // Island(TerrainBlockCollection),
-    Indoor(IndoorBlockCollection),
-    Cave(BlockCollection),
-    Snake(BlockCollection),
-    BlinkBlocks(BlinkBlockCollection),
+    Indoor {
+        /// Used for walls and ceiling
+        walls: String,
+        /// Used for floor. If `None`, there is no floor. If liquid, then `walls`
+        /// is placed below `floor`.
+        floor: Option<String>,
+        /// Used for platforms
+        platforms: String,
+    },
+    Cave(String),
+    Snake(String),
+    BlinkBlocks {
+        on: String,
+        off: String,
+    },
     SingleCustom(SingleCustomPreset),
     MultiCustom(MultiCustomPreset),
 }
@@ -144,22 +164,18 @@ impl Generator {
         let mut ordered = true;
         let end_state: PredictionState;
 
+        let params = BlockGenParams {
+            direction,
+            block_map: self.theme.block_map.clone().build(),
+        };
+
         match &self.generation_type {
-            GenerationType::Single(BlockCollection(collection)) => {
-                blocks.insert(
-                    BlockPos::new(0, 0, 0),
-                    *collection
-                        .blocks
-                        .get_random()
-                        .expect("No blocks in block collection"),
-                );
+            GenerationType::Single(key) => {
+                blocks.insert(BlockPos::new(0, 0, 0), params.block_map.get_block(key));
 
                 end_state = PredictionState::running_jump_block(self.start, random_yaw());
             }
-            GenerationType::Ramp(BlockSlabCollection(collection)) => {
-                // TODO: Not great. Should be a better way to do this.
-                let index = collection.blocks.get_random_index().unwrap();
-                let uniform = collection.uniform;
+            GenerationType::Ramp(key) => {
                 let new_yaw = random_yaw();
 
                 let height = ((yaw - new_yaw).abs()).round() as i32 + 1;
@@ -167,18 +183,10 @@ impl Generator {
 
                 let yaw_change = (new_yaw - yaw) / height as f32;
 
-                let get_block_slab = || {
-                    if uniform {
-                        collection.blocks[index].clone()
-                    } else {
-                        collection.blocks.get_random().unwrap().clone()
-                    }
-                };
-
-                let get_block = || get_block_slab().block;
+                let get_block = || params.block_map.get_block(key);
 
                 let get_slab = || {
-                    let slab = get_block_slab().slab;
+                    let slab = params.block_map.get_slab(key);
                     (slab, slab.set(PropName::Type, PropValue::Top))
                 };
 
@@ -251,10 +259,18 @@ impl Generator {
                     new_yaw,
                 );
             }
-            GenerationType::Indoor(collection) => {
-                let indoor = IndoorGenerator::new(collection.clone());
+            GenerationType::Indoor {
+                walls,
+                floor,
+                platforms,
+            } => {
+                let indoor = IndoorGenerator {
+                    walls: walls.to_owned(),
+                    floor: floor.clone(),
+                    platforms: platforms.to_owned(),
+                };
 
-                let gen = indoor.generate(); // TODO: Streamline this.
+                let gen = indoor.generate(&params); // TODO: Streamline this.
 
                 offset = offset - gen.start;
                 blocks = gen.blocks;
@@ -266,10 +282,10 @@ impl Generator {
                     lines.push(line + offset.to_vec3());
                 }
             }
-            GenerationType::Cave(BlockCollection(collection)) => {
-                let cave = CaveGenerator::new(collection.clone());
+            GenerationType::Cave(block_name) => {
+                let cave = CaveGenerator { block_name: block_name.to_owned() };
 
-                let gen = cave.generate();
+                let gen = cave.generate(&params);
 
                 offset = offset - gen.start;
                 blocks = gen.blocks;
@@ -281,9 +297,18 @@ impl Generator {
                     lines.push(line + offset.to_vec3());
                 }
             }
-            GenerationType::Snake(BlockCollection(collection)) => {
+            GenerationType::Snake(block_name) => {
+                // TODO: Add more options
                 let mut rng = rand::thread_rng();
-                let mut snake = SnakeGenerator::new(collection.clone(), 1, 1, 5, rng.gen());
+                let mut snake = SnakeGenerator {
+                    block_name: block_name.to_owned(),
+                    snake_count: 1,
+                    snake_length: 1,
+                    delay: 5,
+                    reverse: rng.gen(),
+                    poses: Vec::new(),
+                    end_pos: BlockPos::new(0, 0, 0),
+                };
 
                 while snake.poses.len() < 15 {
                     snake.create_looping_snake(BlockPos::new(-10, 0, 0), BlockPos::new(10, 0, 120));
@@ -321,7 +346,7 @@ impl Generator {
                     snake.delay = rng.gen_range(5..=7);
                 }
 
-                let gen = snake.generate();
+                let gen = snake.generate(&params);
 
                 offset = offset - gen.start;
                 blocks = gen.blocks;
@@ -335,10 +360,16 @@ impl Generator {
                     lines.push(line + offset.to_vec3());
                 }
             }
-            GenerationType::BlinkBlocks(collection) => {
-                let blink_blocks = BlinkBlocksGenerator::new(collection.clone(), IVec2::new(3, 3));
+            GenerationType::BlinkBlocks { on, off } => {
+                // TODO: Add more options
+                let blink_blocks = BlinkBlocksGenerator {
+                    on: on.to_owned(),
+                    off: off.to_owned(),
+                    size: IVec2::new(3, 3),
+                    delay: 25,
+                };
 
-                let gen = blink_blocks.generate(direction);
+                let gen = blink_blocks.generate(&params);
 
                 offset = offset - gen.start;
                 blocks = gen.blocks;
@@ -352,7 +383,7 @@ impl Generator {
                 }
             }
             GenerationType::SingleCustom(preset) => {
-                let gen = preset.generate();
+                let gen = preset.generate(&params);
 
                 offset = offset - gen.start;
                 blocks = gen.blocks;
@@ -363,9 +394,9 @@ impl Generator {
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());
                 }
-            },
+            }
             GenerationType::MultiCustom(preset) => {
-                let gen = preset.generate();
+                let gen = preset.generate(&params);
 
                 offset = offset - gen.start;
                 blocks = gen.blocks;
@@ -376,7 +407,7 @@ impl Generator {
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());
                 }
-            },
+            }
         }
 
         Generation {
@@ -394,7 +425,12 @@ impl Generator {
 /// The `BlockGenerator` trait represents a block generator.
 pub trait BlockGenerator {
     /// The `generate` method generates blocks.
-    /// TODO: Add parameters, such as jump direction, also want a block map to
-    /// be passed
-    fn generate(&self) -> GenerateResult;
+    fn generate(&self, params: &BlockGenParams) -> GenerateResult;
+}
+
+/// The `BlockGenParams` struct represents parameters for a block generator.
+#[derive(Clone, Debug)]
+pub struct BlockGenParams {
+    pub direction: JumpDirection,
+    pub block_map: BuiltBlockCollectionMap,
 }

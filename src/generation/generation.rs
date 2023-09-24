@@ -49,8 +49,6 @@ impl Generation {
     }
 
     /// Removes the blocks in the generation.
-    ///
-    /// TODO: Remove the entities in the alt blocks.
     pub fn remove(
         &self,
         world: &mut ChunkLayer,
