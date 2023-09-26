@@ -48,7 +48,6 @@ impl CaveGenerator {
         lines: &mut Vec<Line3>,
         map: &BuiltBlockCollectionMap,
     ) -> BlockPos {
-        // FIXME: Sometimes, next to the platform, there is an unescapable hole.
         if prev.z >= size.z - 1 {
             return prev;
         }

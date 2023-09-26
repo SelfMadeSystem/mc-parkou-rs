@@ -214,6 +214,36 @@ fn init_clients(
                         }),
                     ),
                     (
+                        "island_grass",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::GRASS_BLOCK,],
+                            uniform: true,
+                        }),
+                    ),
+                    (
+                        "island_dirt",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![BlockState::DIRT, BlockState::COARSE_DIRT,],
+                            uniform: false,
+                        }),
+                    ),
+                    (
+                        "island_stone",
+                        BlockCollection(BlockChoice {
+                            blocks: weighted_vec![
+                                BlockState::STONE,
+                                BlockState::COBBLESTONE,
+                                BlockState::MOSSY_COBBLESTONE,
+                                BlockState::DEEPSLATE,
+                                BlockState::COBBLED_DEEPSLATE,
+                                BlockState::ANDESITE,
+                                BlockState::DIORITE,
+                                BlockState::GRANITE,
+                            ],
+                            uniform: false,
+                        }),
+                    ),
+                    (
                         "concrete",
                         BlockCollection(BlockChoice {
                             blocks: weighted_vec![
@@ -638,6 +668,19 @@ fn init_clients(
                             min_length: 2,
                             max_length: 4,
                         }),
+                        10.0
+                    ),
+                    (
+                        GenerationType::Island {
+                            grass: "island_grass".to_string(),
+                            dirt: "island_dirt".to_string(),
+                            stone: "island_stone".to_string(),
+                            water: "water".to_string(),
+                            min_radius: 4,
+                            max_radius: 12,
+                            min_point_power: 1.0,
+                            max_point_power: 1.75,
+                        },
                         10.0
                     )
                 ],

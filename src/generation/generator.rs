@@ -65,7 +65,16 @@ pub enum GenerationType {
     Single(String),
     // Slime,
     Ramp(String),
-    // Island(TerrainBlockCollection),
+    Island {
+        grass: String,
+        dirt: String,
+        stone: String,
+        water: String,
+        min_radius: i32,
+        max_radius: i32,
+        min_point_power: f32,
+        max_point_power: f32,
+    },
     Indoor {
         /// Used for walls and ceiling
         walls: String,
@@ -260,6 +269,40 @@ impl Generator {
                     self.start + pos.round().to_block_pos(),
                     new_yaw,
                 );
+            }
+            GenerationType::Island {
+                grass,
+                dirt,
+                stone,
+                water,
+                min_radius,
+                max_radius,
+                min_point_power,
+                max_point_power,
+            } => {
+                let island = IslandGenerator {
+                    grass: grass.to_owned(),
+                    dirt: dirt.to_owned(),
+                    stone: stone.to_owned(),
+                    water: water.to_owned(),
+                    min_radius: *min_radius,
+                    max_radius: *max_radius,
+                    min_point_power: *min_point_power,
+                    max_point_power: *max_point_power,
+                };
+
+                let gen = island.generate(&params);
+
+                offset = offset - gen.start;
+                blocks = gen.blocks;
+                alt_blocks = gen.alt_blocks;
+                children = gen.children;
+                end_state =
+                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+
+                for line in gen.lines {
+                    lines.push(line + offset.to_vec3());
+                }
             }
             GenerationType::Indoor {
                 walls,
