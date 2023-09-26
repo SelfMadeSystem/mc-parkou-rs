@@ -8,7 +8,7 @@ pub struct WeightedVec<T> {
 }
 
 #[allow(dead_code)]
-impl <T>WeightedVec<T> {
+impl<T> WeightedVec<T> {
     pub fn new() -> Self {
         Self { vec: Vec::new() }
     }
@@ -33,11 +33,14 @@ impl <T>WeightedVec<T> {
         self.vec.get(index).map(|(_, weight)| *weight)
     }
 
-    pub fn remove_element(&mut self, element: &T) -> Option<T> where T: PartialEq {
+    pub fn remove_element(&mut self, element: &T) -> Option<T>
+    where
+        T: PartialEq,
+    {
         let index = self.vec.iter().position(|(e, _)| e == element)?;
         Some(self.vec.remove(index).0)
     }
-    
+
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.vec.iter().map(|(element, _)| element)
     }
@@ -55,7 +58,7 @@ impl <T>WeightedVec<T> {
     }
 }
 
-impl <T>WeightedVec<T> {
+impl<T> WeightedVec<T> {
     pub fn get_random(&self) -> Option<&T> {
         let mut rng = rand::thread_rng();
 
@@ -71,6 +74,31 @@ impl <T>WeightedVec<T> {
         }
 
         None
+    }
+
+    pub fn get_random_index(&self) -> Option<usize> {
+        let mut rng = rand::thread_rng();
+
+        let total_weight = self.vec.iter().map(|(_, weight)| weight).sum();
+
+        let mut random = rng.gen_range(0.0..total_weight);
+
+        for (index, (_, weight)) in self.vec.iter().enumerate() {
+            random -= weight;
+            if random <= 0.0 {
+                return Some(index);
+            }
+        }
+
+        None
+    }
+}
+
+impl<T> From<Vec<T>> for WeightedVec<T> {
+    fn from(vec: Vec<T>) -> Self {
+        Self {
+            vec: vec.into_iter().map(|element| (element, 1.0)).collect(),
+        }
     }
 }
 
@@ -110,7 +138,13 @@ impl<T> std::iter::Extend<(T, f32)> for WeightedVec<T> {
 ///    (1, 1.0),
 ///    (2, 2.0),
 ///    (3, 3.0),
-/// ];
+/// ]; // this one has weights
+///
+/// let weighted_vec = weighted_vec![
+///   1,
+///   2,
+///   3,
+/// ]; // this one doesn't have weights
 /// ```
 #[macro_export]
 macro_rules! weighted_vec {
@@ -118,6 +152,14 @@ macro_rules! weighted_vec {
         $crate::weighted_vec::WeightedVec::from_iter(vec![
             $(
                 ($element, $weight),
+            )*
+        ])
+    };
+
+    ($($element:expr),* $(,)?) => {
+        $crate::weighted_vec::WeightedVec::from_iter(vec![
+            $(
+                ($element, 1.0),
             )*
         ])
     };

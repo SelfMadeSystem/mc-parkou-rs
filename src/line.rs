@@ -1,7 +1,8 @@
 use valence::{
     entity::{
         block_display::BlockDisplayEntityBundle,
-        display::{LeftRotation, Scale}, entity::Flags,
+        display::{LeftRotation, Scale},
+        entity::Flags,
     },
     math::Quat,
     prelude::*,
@@ -13,8 +14,7 @@ pub struct Line3 {
     pub end: Vec3,
 }
 
-impl Eq for Line3 {
-}
+impl Eq for Line3 {}
 
 // Needed because Vec3 doesn't implement Hash
 impl std::hash::Hash for Line3 {
@@ -38,10 +38,7 @@ impl Line3 {
     }
 
     pub fn rotation(&self) -> Quat {
-        Quat::from_rotation_arc(
-            Vec3::new(0., 0., 1.),
-            (self.end - self.start).normalize(),
-        )
+        Quat::from_rotation_arc(Vec3::new(0., 0., 1.), (self.end - self.start).normalize())
     }
 
     pub fn to_block_display(&self) -> BlockDisplayEntityBundle {
@@ -58,5 +55,16 @@ impl Line3 {
         };
 
         bundle
+    }
+}
+
+impl std::ops::Add<Vec3> for Line3 {
+    type Output = Self;
+
+    fn add(self, rhs: Vec3) -> Self::Output {
+        Self {
+            start: self.start + rhs,
+            end: self.end + rhs,
+        }
     }
 }

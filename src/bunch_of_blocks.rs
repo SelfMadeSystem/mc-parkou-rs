@@ -5,7 +5,7 @@ use valence::{layer::chunk::IntoBlock, prelude::*};
 use crate::weighted_vec;
 use crate::{
     block_types::*, game_state::GameState, parkour_gen_params::ParkourGenParams,
-    prediction::player_state::PlayerState, weighted_vec::WeightedVec,
+    prediction::prediction_state::PredictionState, weighted_vec::WeightedVec,
 };
 
 /// A bunch of blocks that are spawned at once.
@@ -282,7 +282,7 @@ impl BunchOfBlocks {
     }
 
     /// Creates a slime block jump.
-    pub fn slime_jump(prev_state: &PlayerState, _state: &GameState) -> Self {
+    pub fn slime_jump(prev_state: &PredictionState, _state: &GameState) -> Self {
         let next_params = ParkourGenParams::bounce(*prev_state);
         let pos = next_params.end_pos;
         let mut blocks = vec![];
