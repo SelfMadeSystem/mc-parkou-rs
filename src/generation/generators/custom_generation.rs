@@ -4,13 +4,15 @@ use rand::{seq::SliceRandom, Rng};
 use valence::prelude::*;
 
 use crate::{
-    line::Line3, prediction::prediction_state::PredictionState, utils::*, weighted_vec::WeightedVec,
-};
-
-use super::{
-    block_collection::BuiltBlockCollectionMap,
-    generation::ChildGeneration,
-    generator::{BlockGenParams, BlockGenerator, GenerateResult},
+    generation::{
+        block_collection::BuiltBlockCollectionMap,
+        generation::ChildGeneration,
+        generator::*,
+    },
+    line::Line3,
+    prediction::prediction_state::PredictionState,
+    utils::*,
+    weighted_vec::WeightedVec,
 };
 
 type BlockProperties = HashMap<BlockPos, (String, Vec<(PropName, PropValue)>)>;

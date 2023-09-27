@@ -2,13 +2,7 @@ use std::collections::HashMap;
 
 use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
-use super::{
-    block_collection::*,
-    custom_generation::{MultiCustomPreset, SingleCustomPreset},
-    generation::*,
-    generators::*,
-    theme::GenerationTheme,
-};
+use super::{block_collection::*, generation::*, generators::*, theme::GenerationTheme};
 use rand::Rng;
 use valence::{math::IVec2, prelude::*};
 
