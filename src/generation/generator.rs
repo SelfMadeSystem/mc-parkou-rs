@@ -88,6 +88,7 @@ pub enum GenerationType {
     },
     SingleCustom(SingleCustomPreset),
     MultiCustom(MultiCustomPreset),
+    ComplexCustom(ComplexGenerator), // TODO: Make `ComplexPreset` instead and construct `ComplexGenerator` from it for better consistency
 }
 
 /// The `Generator` struct represents a parkour generator.
@@ -455,6 +456,31 @@ impl Generator {
                     lines.push(line + offset.to_vec3());
                 }
             }
+            GenerationType::ComplexCustom(gen) => {
+                let mut gen = gen.clone();
+
+                let end = loop {
+                    if let Some(t) =
+                        gen.generate_dfs(BlockPos::new(-5, 0, 0), BlockPos::new(5, 0, 20))
+                    {
+                        break t;
+                    }
+                    println!("Failed to generate complex custom generation. Retrying...");
+                };
+
+                let end = BlockPos::new(end.x * 3, end.y * 3, end.z * 3 + 2);
+
+                let gen = gen.generate(&params);
+
+                offset = offset - gen.start;
+                blocks = gen.blocks;
+                children = gen.children;
+                end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.));
+
+                for line in gen.lines {
+                    lines.push(line + offset.to_vec3());
+                }
+            }
         }
 
         Generation {
@@ -472,6 +498,7 @@ impl Generator {
 /// The `BlockGenerator` trait represents a block generator.
 pub trait BlockGenerator {
     /// The `generate` method generates blocks.
+    /// TODO: Make &self mutable
     fn generate(&self, params: &BlockGenParams) -> GenerateResult;
 }
 

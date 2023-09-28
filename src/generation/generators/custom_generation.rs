@@ -15,14 +15,27 @@ use crate::{
     weighted_vec::WeightedVec,
 };
 
-type BlockProperties = HashMap<BlockPos, (String, Vec<(PropName, PropValue)>)>;
+pub type BlockGrid = HashMap<BlockPos, BlockProperties>;
+
+pub type BlockProperties = (String, Vec<(PropName, PropValue)>);
+
+pub fn get_block(
+    properties: &BlockProperties,
+    block_map: &BuiltBlockCollectionMap,
+) -> BlockState {
+    let mut block = block_map.get_block(&properties.0);
+    for (name, value) in &properties.1 {
+        block = block.set(*name, *value);
+    }
+    block
+}
 
 /// The `SingleCustomPreset` struct represents a single custom generation preset.
 /// It is used to store the blocks used in a custom generation preset.
 ///
 /// Properties:
 ///
-/// * `blocks`: The `blocks` property is a `BlockProperties`. It maps a position
+/// * `blocks`: The `blocks` property is a `BlockGrid`. It maps a position
 /// to a block name and a list of properties.
 /// * `start_pos`: The `start_pos` property is a `BlockPos`. It represents the
 /// starting position of the custom generation preset.
@@ -30,7 +43,7 @@ type BlockProperties = HashMap<BlockPos, (String, Vec<(PropName, PropValue)>)>;
 /// position of the custom generation preset.
 #[derive(Clone, Debug)]
 pub struct SingleCustomPreset {
-    pub blocks: BlockProperties,
+    pub blocks: BlockGrid,
     pub start_pos: BlockPos,
     pub end_pos: BlockPos,
 }
@@ -42,12 +55,8 @@ impl SingleCustomPreset {
         map: &BuiltBlockCollectionMap,
     ) -> HashMap<BlockPos, BlockState> {
         let mut blocks = HashMap::new();
-        for (pos, (block_name, props)) in self.blocks.iter() {
-            let mut block = map.get_block(block_name);
-            for (name, value) in props {
-                block = block.set(*name, *value);
-            }
-            blocks.insert(*pos + offset, block);
+        for (pos, props) in self.blocks.iter() {
+            blocks.insert(*pos + offset, get_block(props, map));
         }
 
         blocks
