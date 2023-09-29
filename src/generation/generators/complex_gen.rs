@@ -169,7 +169,7 @@ impl ComplexGenerator {
         for cell in cells {
             new_cells.extend(cell.get_all_rotations());
         }
-        println!("{} cells", new_cells.len());
+
         let cells = new_cells;
         let mut cells_by_top = HashMap::new();
         let mut cells_by_bottom = HashMap::new();
