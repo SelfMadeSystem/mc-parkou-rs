@@ -94,7 +94,7 @@ impl ComplexCell {
             Direction::Right => self.connection_right.clone(),
         }
     }
-    
+
     /// Returns the cell rotated 90 degrees clockwise
     pub fn rotate_cw(&self) -> ComplexCell {
         ComplexCell {
@@ -395,7 +395,7 @@ impl ComplexGenerator {
             {
                 continue;
             }
-            if visited.contains(&pos) {
+            if visited.contains(&pos) && !self.has_cell(pos) {
                 continue;
             }
             visited.insert(pos);
@@ -579,7 +579,7 @@ mod tests {
                 connection_right: Some(("a".to_owned(), Direction::Left)),
             },
         );
-        
+
         generator.cell_grid.insert(
             BlockPos::new(-2, 0, 0),
             ComplexCell {

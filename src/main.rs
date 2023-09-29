@@ -683,7 +683,7 @@ fn init_clients(
                         },
                         10.0
                     ),
-                    /* (
+                    (
                         GenerationType::ComplexCustom(ComplexGenerator::new(vec![
                             // Only "indoor_walls"
                             //
@@ -711,54 +711,6 @@ fn init_clients(
                                 )),
                                 connection_right: None,
                             },
-                            ComplexCell {
-                                connection_top: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Right
-                                )),
-                                connection_bottom: None,
-                                connection_left: None,
-                                connection_right: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Top
-                                )),
-                            },
-                            ComplexCell {
-                                connection_top: None,
-                                connection_bottom: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Left
-                                )),
-                                connection_left: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Bottom
-                                )),
-                                connection_right: None,
-                            },
-                            ComplexCell {
-                                connection_top: None,
-                                connection_bottom: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Right
-                                )),
-                                connection_left: None,
-                                connection_right: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Bottom
-                                )),
-                            },
-                            ComplexCell {
-                                connection_top: None,
-                                connection_bottom: None,
-                                connection_left: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Right
-                                )),
-                                connection_right: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Left
-                                )),
-                            },
                             // Only "bridge_floor"
                             //
                             ComplexCell {
@@ -785,54 +737,6 @@ fn init_clients(
                                 )),
                                 connection_right: None,
                             },
-                            ComplexCell {
-                                connection_top: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Right
-                                )),
-                                connection_bottom: None,
-                                connection_left: None,
-                                connection_right: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Top
-                                )),
-                            },
-                            ComplexCell {
-                                connection_top: None,
-                                connection_bottom: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Left
-                                )),
-                                connection_left: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Bottom
-                                )),
-                                connection_right: None,
-                            },
-                            ComplexCell {
-                                connection_top: None,
-                                connection_bottom: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Right
-                                )),
-                                connection_left: None,
-                                connection_right: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Bottom
-                                )),
-                            },
-                            ComplexCell {
-                                connection_top: None,
-                                connection_bottom: None,
-                                connection_left: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Right
-                                )),
-                                connection_right: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Left
-                                )),
-                            },
                             // "indoor_walls" to "bridge_floor" and vice versa
                             //
                             ComplexCell {
@@ -847,42 +751,6 @@ fn init_clients(
                                     complex_gen::Direction::Left
                                 )),
                             },
-                            ComplexCell {
-                                connection_top: None,
-                                connection_bottom: None,
-                                connection_left: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Right
-                                )),
-                                connection_right: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Left
-                                )),
-                            },
-                            ComplexCell {
-                                connection_top: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Bottom
-                                )),
-                                connection_bottom: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Top
-                                )),
-                                connection_left: None,
-                                connection_right: None,
-                            },
-                            ComplexCell {
-                                connection_top: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Bottom
-                                )),
-                                connection_bottom: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Top
-                                )),
-                                connection_left: None,
-                                connection_right: None,
-                            },
                             // "indoor_walls" and "bridge_floor" junction
                             //
                             ComplexCell {
@@ -896,29 +764,11 @@ fn init_clients(
                                 )),
                                 connection_left: Some((
                                     "bridge_floor".to_string(),
-                                    complex_gen::Direction::Left
+                                    complex_gen::Direction::Right
                                 )),
                                 connection_right: Some((
                                     "bridge_floor".to_string(),
-                                    complex_gen::Direction::Right
-                                )),
-                            },
-                            ComplexCell {
-                                connection_top: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Bottom
-                                )),
-                                connection_bottom: Some((
-                                    "bridge_floor".to_string(),
-                                    complex_gen::Direction::Top
-                                )),
-                                connection_left: Some((
-                                    "indoor_walls".to_string(),
                                     complex_gen::Direction::Left
-                                )),
-                                connection_right: Some((
-                                    "indoor_walls".to_string(),
-                                    complex_gen::Direction::Right
                                 )),
                             },
                             // Only "bridge_floor" and "indoor_walls" junction
@@ -934,11 +784,11 @@ fn init_clients(
                                 )),
                                 connection_left: Some((
                                     "bridge_floor".to_string(),
-                                    complex_gen::Direction::Left
+                                    complex_gen::Direction::Right
                                 )),
                                 connection_right: Some((
                                     "bridge_floor".to_string(),
-                                    complex_gen::Direction::Right
+                                    complex_gen::Direction::Left
                                 )),
                             },
                             ComplexCell {
@@ -952,16 +802,16 @@ fn init_clients(
                                 )),
                                 connection_left: Some((
                                     "indoor_walls".to_string(),
-                                    complex_gen::Direction::Left
+                                    complex_gen::Direction::Right
                                 )),
                                 connection_right: Some((
                                     "indoor_walls".to_string(),
-                                    complex_gen::Direction::Right
+                                    complex_gen::Direction::Left
                                 )),
                             },
                         ])),
-                        1000.0
-                    ) */
+                        10000.0
+                    ),
                     (
                         GenerationType::ComplexCustom(ComplexGenerator::new(vec![
                             ComplexCell {
@@ -1026,7 +876,7 @@ fn init_clients(
                             },
                         ])),
                         10000.0
-                    )
+                    ),
                 ],
             ),
             score: 0,
