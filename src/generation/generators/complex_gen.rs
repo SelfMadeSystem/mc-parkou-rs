@@ -21,6 +21,7 @@ pub enum Direction {
     South,
     West,
     East,
+    // TODO: Up and Down
 }
 
 impl Direction {
@@ -80,6 +81,9 @@ impl ToBlockPos for Direction {
 pub struct Connection {
     pub name: String,
     pub next_direction: Direction,
+    /// If true, this tile can be placed using this connection
+    pub can_next: bool,
+    /// If true, this tile can be the start of the path
     pub can_start: bool,
 }
 
@@ -88,6 +92,7 @@ impl Default for Connection {
         Self {
             name: Default::default(),
             next_direction: Default::default(),
+            can_next: true,
             can_start: true,
         }
     }
@@ -115,7 +120,9 @@ pub struct ComplexTile {
     pub connection_south: Option<Connection>,
     pub connection_west: Option<Connection>,
     pub connection_east: Option<Connection>,
+    // TODO: connection_up and connection_down
     pub grid: BlockGrid, // ignore Hash and PartialEq
+    // TODO: Allow disabling flipping and/or rotating (especially flipping)
 }
 
 impl Eq for ComplexTile {}
@@ -202,6 +209,7 @@ pub struct ComplexGenerator {
     // TODO: Might want to use Rc<ComplexTile> instead of cloning.
     pub size: BlockPos,
     pub tiles: Vec<ComplexTile>,
+    pub starting_tiles: Vec<ComplexTile>,
     pub tiles_by_top: HashMap<String, Vec<ComplexTile>>,
     pub tiles_by_bottom: HashMap<String, Vec<ComplexTile>>,
     pub tiles_by_left: HashMap<String, Vec<ComplexTile>>,
@@ -218,6 +226,7 @@ impl ComplexGenerator {
         }
 
         let tiles = new_tiles;
+        let mut starting_tiles = Vec::new();
         let mut tiles_by_top = HashMap::new();
         let mut tiles_by_bottom = HashMap::new();
         let mut tiles_by_left = HashMap::new();
@@ -225,43 +234,41 @@ impl ComplexGenerator {
         let tile_grid = HashMap::new();
         for tile in &tiles {
             if let Some(Connection {
-                name, can_start, ..
+                name,
+                can_next,
+                can_start,
+                ..
             }) = &tile.connection_north
             {
-                if *can_start {
+                if *can_next {
                     tiles_by_top
                         .entry(name.clone())
                         .or_insert_with(Vec::new)
                         .push(tile.clone());
+
+                    if *can_start {
+                        starting_tiles.push(tile.clone());
+                    }
                 }
             }
-            if let Some(Connection {
-                name, can_start, ..
-            }) = &tile.connection_south
-            {
-                if *can_start {
+            if let Some(Connection { name, can_next, .. }) = &tile.connection_south {
+                if *can_next {
                     tiles_by_bottom
                         .entry(name.clone())
                         .or_insert_with(Vec::new)
                         .push(tile.clone());
                 }
             }
-            if let Some(Connection {
-                name, can_start, ..
-            }) = &tile.connection_west
-            {
-                if *can_start {
+            if let Some(Connection { name, can_next, .. }) = &tile.connection_west {
+                if *can_next {
                     tiles_by_left
                         .entry(name.clone())
                         .or_insert_with(Vec::new)
                         .push(tile.clone());
                 }
             }
-            if let Some(Connection {
-                name, can_start, ..
-            }) = &tile.connection_east
-            {
-                if *can_start {
+            if let Some(Connection { name, can_next, .. }) = &tile.connection_east {
+                if *can_next {
                     tiles_by_right
                         .entry(name.clone())
                         .or_insert_with(Vec::new)
@@ -272,6 +279,7 @@ impl ComplexGenerator {
         Self {
             size,
             tiles,
+            starting_tiles,
             tiles_by_top: tiles_by_top,
             tiles_by_bottom: tiles_by_bottom,
             tiles_by_left: tiles_by_left,
@@ -291,37 +299,17 @@ impl ComplexGenerator {
     pub fn get_tiles_by_dir_name(
         &self,
         direction: Direction,
-        name: Option<&str>,
+        name: &str,
     ) -> Option<Vec<ComplexTile>> {
-        if let Some(name) = name {
-            if let Some(v) = match direction {
-                Direction::North => self.tiles_by_top.get(name),
-                Direction::South => self.tiles_by_bottom.get(name),
-                Direction::West => self.tiles_by_left.get(name),
-                Direction::East => self.tiles_by_right.get(name),
-            } {
-                Some(v.clone())
-            } else {
-                None
-            }
+        if let Some(v) = match direction {
+            Direction::North => self.tiles_by_top.get(name),
+            Direction::South => self.tiles_by_bottom.get(name),
+            Direction::West => self.tiles_by_left.get(name),
+            Direction::East => self.tiles_by_right.get(name),
+        } {
+            Some(v.clone())
         } else {
-            // just return all tiles in that direction
-            let vec: Vec<ComplexTile> = match direction {
-                Direction::North => &self.tiles_by_top,
-                Direction::South => &self.tiles_by_bottom,
-                Direction::West => &self.tiles_by_left,
-                Direction::East => &self.tiles_by_right,
-            }
-            .values()
-            .flatten()
-            .cloned()
-            .collect();
-
-            if vec.is_empty() {
-                None
-            } else {
-                Some(vec)
-            }
+            None
         }
     }
 
@@ -406,7 +394,7 @@ impl ComplexGenerator {
                 .expect("Should have a path");
 
             // Get the possible tiles that can be placed here
-            let mut tiles = self.get_tiles_by_dir_name(direction.get_opposite(), Some(&name))?;
+            let mut tiles = self.get_tiles_by_dir_name(direction.get_opposite(), &name)?;
 
             // Filter out tiles that don't connect to the adjacent tiles
             tiles = tiles
@@ -512,9 +500,7 @@ impl ComplexGenerator {
         let mut visited = HashSet::new();
         let current_pos = BlockPos::new(0, 0, 0);
         let current_direction = Direction::South;
-        let current_tiles = self
-            .get_tiles_by_dir_name(current_direction.get_opposite(), None)
-            .expect("There should be at least one tile");
+        let current_tiles = self.starting_tiles.clone();
 
         return self.dfs(
             min,

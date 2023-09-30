@@ -459,12 +459,20 @@ impl Generator {
             GenerationType::ComplexCustom(gen) => {
                 let mut gen = gen.clone();
 
+                let mut tries = 0;
+
                 let end = loop {
                     if let Some(t) =
-                        gen.generate_dfs(BlockPos::new(-5, 0, 0), BlockPos::new(5, 0, 20))
+                        gen.generate_dfs(BlockPos::new(-5, 0, 0), BlockPos::new(5, 0, 10)) // TODO: Make this configurable
                     {
                         break t;
                     }
+                    tries += 1;
+
+                    if tries > 100 {
+                        panic!("Failed to generate complex custom generation. Tried 100 times.");
+                    }
+
                     println!("Failed to generate complex custom generation. Retrying...");
                 };
 
