@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use rand::{seq::SliceRandom, Rng};
+use rand::seq::SliceRandom;
 use valence::prelude::*;
 
 use crate::{

@@ -5,9 +5,7 @@ use valence::prelude::*;
 
 use crate::{
     generation::{
-        block_collection::BuiltBlockCollectionMap,
-        generation::ChildGeneration,
-        generator::*,
+        block_collection::BuiltBlockCollectionMap, generation::ChildGeneration, generator::*,
     },
     line::Line3,
     prediction::prediction_state::PredictionState,
@@ -19,10 +17,7 @@ pub type BlockGrid = HashMap<BlockPos, BlockProperties>;
 
 pub type BlockProperties = (String, Vec<(PropName, PropValue)>);
 
-pub fn get_block(
-    properties: &BlockProperties,
-    block_map: &BuiltBlockCollectionMap,
-) -> BlockState {
+pub fn get_block(properties: &BlockProperties, block_map: &BuiltBlockCollectionMap) -> BlockState {
     let mut block = block_map.get_block(&properties.0);
     for (name, value) in &properties.1 {
         block = block.set(*name, *value);
