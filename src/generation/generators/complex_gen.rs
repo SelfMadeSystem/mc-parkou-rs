@@ -6,11 +6,9 @@ use rand::seq::SliceRandom;
 use valence::prelude::*;
 
 use crate::{
-    generation::generator::{BlockGenParams, BlockGenerator, GenerateResult},
+    generation::{generator::{BlockGenParams, BlockGenerator, GenerateResult}, block_grid::BlockProperties},
     utils::ToBlockPos,
 };
-
-use super::custom_generation::get_block;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum Direction {
@@ -56,10 +54,6 @@ impl Direction {
             Direction::Left => Direction::Right,
             Direction::Right => Direction::Left,
         }
-    }
-
-    pub fn get_orthogonal(&self) -> [Direction; 2] {
-        [self.get_left(), self.get_right()]
     }
 
     pub fn get_forward_and_orthogonal(&self) -> [Direction; 3] {
@@ -505,28 +499,28 @@ impl BlockGenerator for ComplexGenerator {
             if let Some(Connection { name, .. }) = &tile.connection_bottom {
                 blocks.insert(
                     pos,
-                    get_block(&(name.to_owned(), vec![]), &params.block_map),
+                    BlockProperties::new(name.to_owned(), vec![]).get_block(&params.block_map),
                 );
             }
 
             if let Some(Connection { name, .. }) = &tile.connection_top {
                 blocks.insert(
                     pos + BlockPos::new(0, 0, 2),
-                    get_block(&(name.to_owned(), vec![]), &params.block_map),
+                    BlockProperties::new(name.to_owned(), vec![]).get_block(&params.block_map),
                 );
             }
 
             if let Some(Connection { name, .. }) = &tile.connection_left {
                 blocks.insert(
                     pos + BlockPos::new(-1, 0, 1),
-                    get_block(&(name.to_owned(), vec![]), &params.block_map),
+                    BlockProperties::new(name.to_owned(), vec![]).get_block(&params.block_map),
                 );
             }
 
             if let Some(Connection { name, .. }) = &tile.connection_right {
                 blocks.insert(
                     pos + BlockPos::new(1, 0, 1),
-                    get_block(&(name.to_owned(), vec![]), &params.block_map),
+                    BlockProperties::new(name.to_owned(), vec![]).get_block(&params.block_map),
                 );
             }
 

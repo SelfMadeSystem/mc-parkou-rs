@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use alt_block::AltBlockParams;
 use game_state::GameState;
 use generation::block_collection::*;
+use generation::block_grid::{BlockGrid, BlockProperties};
 use generation::generator::{GenerationType, Generator};
 use generation::generators::*;
 use generation::theme::GenerationTheme;
@@ -373,14 +374,35 @@ fn init_clients(
                     ),
                     (
                         GenerationType::SingleCustom(SingleCustomPreset {
-                            blocks: HashMap::from([
-                                (BlockPos::new(0, 0, 0), ("platform".to_string(), vec![])),
-                                (BlockPos::new(0, 0, 1), ("platform".to_string(), vec![])),
-                                (BlockPos::new(0, 0, 2), ("platform".to_string(), vec![])),
-                                (BlockPos::new(0, 1, 2), ("platform".to_string(), vec![])),
-                                (BlockPos::new(0, 2, 2), ("platform".to_string(), vec![])),
-                                (BlockPos::new(0, 0, 3), ("platform".to_string(), vec![])),
-                                (BlockPos::new(0, 0, 4), ("platform".to_string(), vec![])),
+                            blocks: BlockGrid::from([
+                                (
+                                    BlockPos::new(0, 0, 0),
+                                    BlockProperties::new("platform".to_string(), vec![])
+                                ),
+                                (
+                                    BlockPos::new(0, 0, 1),
+                                    BlockProperties::new("platform".to_string(), vec![])
+                                ),
+                                (
+                                    BlockPos::new(0, 0, 2),
+                                    BlockProperties::new("platform".to_string(), vec![])
+                                ),
+                                (
+                                    BlockPos::new(0, 1, 2),
+                                    BlockProperties::new("platform".to_string(), vec![])
+                                ),
+                                (
+                                    BlockPos::new(0, 2, 2),
+                                    BlockProperties::new("platform".to_string(), vec![])
+                                ),
+                                (
+                                    BlockPos::new(0, 0, 3),
+                                    BlockProperties::new("platform".to_string(), vec![])
+                                ),
+                                (
+                                    BlockPos::new(0, 0, 4),
+                                    BlockProperties::new("platform".to_string(), vec![])
+                                ),
                             ]),
                             start_pos: BlockPos::new(0, 0, 0),
                             end_pos: BlockPos::new(0, 0, 4)
@@ -395,54 +417,90 @@ fn init_clients(
                                     "start".to_string(),
                                     SingularMultiCustomPreset {
                                         preset: SingleCustomPreset {
-                                            blocks: HashMap::from([
+                                            blocks: BlockGrid::from([
                                                 (
                                                     BlockPos::new(0, 0, 0),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 0),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 0),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(0, 0, 1),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 1),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 1),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(0, 0, 2),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 2),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 2),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(0, 0, 3),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 3),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 3),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                             ]),
                                             start_pos: BlockPos::new(0, 0, 0),
@@ -456,58 +514,94 @@ fn init_clients(
                                     "middle".to_string(),
                                     SingularMultiCustomPreset {
                                         preset: SingleCustomPreset {
-                                            blocks: HashMap::from([
+                                            blocks: BlockGrid::from([
                                                 (
                                                     BlockPos::new(0, 0, 0),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 0),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 0),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(0, 0, 1),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 1),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 1),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(0, 0, 2),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 2),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 2),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(0, 0, 3),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 3),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 3),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-2, 1, 0),
-                                                    (
+                                                    BlockProperties::new(
                                                         "bridge_wall".to_string(),
                                                         vec![
                                                             (PropName::North, PropValue::Low),
@@ -518,7 +612,7 @@ fn init_clients(
                                                 ),
                                                 (
                                                     BlockPos::new(-2, 1, 1),
-                                                    (
+                                                    BlockProperties::new(
                                                         "bridge_wall".to_string(),
                                                         vec![
                                                             (PropName::North, PropValue::Low),
@@ -529,7 +623,7 @@ fn init_clients(
                                                 ),
                                                 (
                                                     BlockPos::new(-2, 1, 2),
-                                                    (
+                                                    BlockProperties::new(
                                                         "bridge_wall".to_string(),
                                                         vec![
                                                             (PropName::North, PropValue::Low),
@@ -540,7 +634,7 @@ fn init_clients(
                                                 ),
                                                 (
                                                     BlockPos::new(-2, 1, 3),
-                                                    (
+                                                    BlockProperties::new(
                                                         "bridge_wall".to_string(),
                                                         vec![
                                                             (PropName::North, PropValue::Low),
@@ -551,7 +645,7 @@ fn init_clients(
                                                 ),
                                                 (
                                                     BlockPos::new(2, 1, 0),
-                                                    (
+                                                    BlockProperties::new(
                                                         "bridge_wall".to_string(),
                                                         vec![
                                                             (PropName::North, PropValue::Low),
@@ -562,7 +656,7 @@ fn init_clients(
                                                 ),
                                                 (
                                                     BlockPos::new(2, 1, 1),
-                                                    (
+                                                    BlockProperties::new(
                                                         "bridge_wall".to_string(),
                                                         vec![
                                                             (PropName::North, PropValue::Low),
@@ -573,7 +667,7 @@ fn init_clients(
                                                 ),
                                                 (
                                                     BlockPos::new(2, 1, 2),
-                                                    (
+                                                    BlockProperties::new(
                                                         "bridge_wall".to_string(),
                                                         vec![
                                                             (PropName::North, PropValue::Low),
@@ -584,7 +678,7 @@ fn init_clients(
                                                 ),
                                                 (
                                                     BlockPos::new(2, 1, 3),
-                                                    (
+                                                    BlockProperties::new(
                                                         "bridge_wall".to_string(),
                                                         vec![
                                                             (PropName::North, PropValue::Low),
@@ -605,54 +699,90 @@ fn init_clients(
                                     "end".to_string(),
                                     SingularMultiCustomPreset {
                                         preset: SingleCustomPreset {
-                                            blocks: HashMap::from([
+                                            blocks: BlockGrid::from([
                                                 (
                                                     BlockPos::new(0, 0, 0),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 0),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 0),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(0, 0, 1),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 1),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 1),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(0, 0, 2),
-                                                    ("bridge_pillar".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_pillar".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 2),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 2),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(0, 0, 3),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(-1, 0, 3),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                                 (
                                                     BlockPos::new(1, 0, 3),
-                                                    ("bridge_floor".to_string(), vec![]),
+                                                    BlockProperties::new(
+                                                        "bridge_floor".to_string(),
+                                                        vec![]
+                                                    ),
                                                 ),
                                             ]),
                                             start_pos: BlockPos::new(0, 0, 0),
