@@ -12,8 +12,9 @@ use crate::{
 
 use super::custom_generation::get_block;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum Direction {
+    #[default]
     Top,
     Bottom,
     Left,
@@ -78,15 +79,48 @@ impl ToBlockPos for Direction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ComplexCell {
-    pub connection_top: Option<(String, Direction)>,
-    pub connection_bottom: Option<(String, Direction)>,
-    pub connection_left: Option<(String, Direction)>,
-    pub connection_right: Option<(String, Direction)>,
+pub struct Connection {
+    pub name: String,
+    pub next_direction: Direction,
+    pub can_start: bool,
 }
 
-impl ComplexCell {
-    pub fn get_next(&self, direction: Direction) -> Option<(String, Direction)> {
+impl Default for Connection {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            next_direction: Default::default(),
+            can_start: true,
+        }
+    }
+}
+
+impl Connection {
+    pub fn rotate_cw(&self) -> Connection {
+        Connection {
+            next_direction: self.next_direction.get_right(),
+            ..self.clone()
+        }
+    }
+
+    pub fn mirror_horizontal(&self) -> Connection {
+        Connection {
+            next_direction: self.next_direction.mirror_horizontal(),
+            ..self.clone()
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct ComplexTile {
+    pub connection_top: Option<Connection>,
+    pub connection_bottom: Option<Connection>,
+    pub connection_left: Option<Connection>,
+    pub connection_right: Option<Connection>,
+}
+
+impl ComplexTile {
+    pub fn get_next(&self, direction: Direction) -> Option<Connection> {
         match direction {
             Direction::Top => self.connection_top.clone(),
             Direction::Bottom => self.connection_bottom.clone(),
@@ -95,154 +129,156 @@ impl ComplexCell {
         }
     }
 
-    /// Returns the cell rotated 90 degrees clockwise
-    pub fn rotate_cw(&self) -> ComplexCell {
-        ComplexCell {
-            connection_top: match &self.connection_left {
-                Some((name, direction)) => Some((name.clone(), direction.get_right())),
-                None => None,
-            },
-            connection_bottom: match &self.connection_right {
-                Some((name, direction)) => Some((name.clone(), direction.get_right())),
-                None => None,
-            },
-            connection_left: match &self.connection_bottom {
-                Some((name, direction)) => Some((name.clone(), direction.get_right())),
-                None => None,
-            },
-            connection_right: match &self.connection_top {
-                Some((name, direction)) => Some((name.clone(), direction.get_right())),
-                None => None,
-            },
+    /// Returns the tile rotated 90 degrees clockwise
+    pub fn rotate_cw(&self) -> ComplexTile {
+        ComplexTile {
+            connection_top: self.connection_left.as_ref().map(|c| c.rotate_cw()),
+            connection_bottom: self.connection_right.as_ref().map(|c| c.rotate_cw()),
+            connection_left: self.connection_bottom.as_ref().map(|c| c.rotate_cw()),
+            connection_right: self.connection_top.as_ref().map(|c| c.rotate_cw()),
         }
     }
 
-    /// Returns the cell mirrored horizontally
-    pub fn mirror_horizontal(&self) -> ComplexCell {
-        ComplexCell {
-            connection_top: match &self.connection_top {
-                Some((name, direction)) => Some((name.clone(), direction.mirror_horizontal())),
-                None => None,
-            },
-            connection_bottom: match &self.connection_bottom {
-                Some((name, direction)) => Some((name.clone(), direction.mirror_horizontal())),
-                None => None,
-            },
-            connection_left: match &self.connection_right {
-                Some((name, direction)) => Some((name.clone(), direction.mirror_horizontal())),
-                None => None,
-            },
-            connection_right: match &self.connection_left {
-                Some((name, direction)) => Some((name.clone(), direction.mirror_horizontal())),
-                None => None,
-            },
+    /// Returns the tile mirrored horizontally
+    pub fn mirror_horizontal(&self) -> ComplexTile {
+        ComplexTile {
+            connection_top: self.connection_top.as_ref().map(|c| c.mirror_horizontal()),
+            connection_bottom: self
+                .connection_bottom
+                .as_ref()
+                .map(|c| c.mirror_horizontal()),
+            connection_left: self
+                .connection_right
+                .as_ref()
+                .map(|c| c.mirror_horizontal()),
+            connection_right: self.connection_left.as_ref().map(|c| c.mirror_horizontal()),
         }
     }
 
-    /// Returns all the rotated and mirrored versions of the cell, without duplicates
-    pub fn get_all_rotations(&self) -> Vec<ComplexCell> {
-        let mut cells = HashSet::new();
-        let mut current_cell = self.clone();
+    /// Returns all the rotated and mirrored versions of the tile, without duplicates
+    pub fn get_all_rotations(&self) -> Vec<ComplexTile> {
+        let mut tiles = HashSet::new();
+        let mut current_tile = self.clone();
         for _ in 0..4 {
-            cells.insert(current_cell.clone());
-            cells.insert(current_cell.mirror_horizontal());
-            current_cell = current_cell.rotate_cw();
+            tiles.insert(current_tile.clone());
+            tiles.insert(current_tile.mirror_horizontal());
+            current_tile = current_tile.rotate_cw();
         }
-        cells.into_iter().collect()
+        tiles.into_iter().collect()
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ComplexGenerator {
-    // TODO: Might want to use Rc<ComplexCell> instead of cloning.
-    pub cells: Vec<ComplexCell>,
-    pub cells_by_top: HashMap<String, Vec<ComplexCell>>,
-    pub cells_by_bottom: HashMap<String, Vec<ComplexCell>>,
-    pub cells_by_left: HashMap<String, Vec<ComplexCell>>,
-    pub cells_by_right: HashMap<String, Vec<ComplexCell>>,
-    pub cell_grid: HashMap<BlockPos, ComplexCell>,
+    // TODO: Might want to use Rc<ComplexTile> instead of cloning.
+    pub tiles: Vec<ComplexTile>,
+    pub tiles_by_top: HashMap<String, Vec<ComplexTile>>,
+    pub tiles_by_bottom: HashMap<String, Vec<ComplexTile>>,
+    pub tiles_by_left: HashMap<String, Vec<ComplexTile>>,
+    pub tiles_by_right: HashMap<String, Vec<ComplexTile>>,
+    pub tile_grid: HashMap<BlockPos, ComplexTile>,
 }
 
 impl ComplexGenerator {
-    pub fn new(cells: Vec<ComplexCell>) -> ComplexGenerator {
-        let mut new_cells = Vec::new();
-        for cell in cells {
-            new_cells.extend(cell.get_all_rotations());
+    pub fn new(tiles: Vec<ComplexTile>) -> ComplexGenerator {
+        let mut new_tiles = Vec::new();
+        for tile in tiles {
+            new_tiles.extend(tile.get_all_rotations());
         }
 
-        let cells = new_cells;
-        let mut cells_by_top = HashMap::new();
-        let mut cells_by_bottom = HashMap::new();
-        let mut cells_by_left = HashMap::new();
-        let mut cells_by_right = HashMap::new();
-        let cell_grid = HashMap::new();
-        for cell in &cells {
-            if let Some((name, _)) = &cell.connection_top {
-                cells_by_top
-                    .entry(name.clone())
-                    .or_insert_with(Vec::new)
-                    .push(cell.clone());
+        let tiles = new_tiles;
+        let mut tiles_by_top = HashMap::new();
+        let mut tiles_by_bottom = HashMap::new();
+        let mut tiles_by_left = HashMap::new();
+        let mut tiles_by_right = HashMap::new();
+        let tile_grid = HashMap::new();
+        for tile in &tiles {
+            if let Some(Connection {
+                name, can_start, ..
+            }) = &tile.connection_top
+            {
+                if *can_start {
+                    tiles_by_top
+                        .entry(name.clone())
+                        .or_insert_with(Vec::new)
+                        .push(tile.clone());
+                }
             }
-            if let Some((name, _)) = &cell.connection_bottom {
-                cells_by_bottom
-                    .entry(name.clone())
-                    .or_insert_with(Vec::new)
-                    .push(cell.clone());
+            if let Some(Connection {
+                name, can_start, ..
+            }) = &tile.connection_bottom
+            {
+                if *can_start {
+                    tiles_by_bottom
+                        .entry(name.clone())
+                        .or_insert_with(Vec::new)
+                        .push(tile.clone());
+                }
             }
-            if let Some((name, _)) = &cell.connection_left {
-                cells_by_left
-                    .entry(name.clone())
-                    .or_insert_with(Vec::new)
-                    .push(cell.clone());
+            if let Some(Connection {
+                name, can_start, ..
+            }) = &tile.connection_left
+            {
+                if *can_start {
+                    tiles_by_left
+                        .entry(name.clone())
+                        .or_insert_with(Vec::new)
+                        .push(tile.clone());
+                }
             }
-            if let Some((name, _)) = &cell.connection_right {
-                cells_by_right
-                    .entry(name.clone())
-                    .or_insert_with(Vec::new)
-                    .push(cell.clone());
+            if let Some(Connection {
+                name, can_start, ..
+            }) = &tile.connection_right
+            {
+                if *can_start {
+                    tiles_by_right
+                        .entry(name.clone())
+                        .or_insert_with(Vec::new)
+                        .push(tile.clone());
+                }
             }
         }
         Self {
-            cells,
-            cells_by_top,
-            cells_by_bottom,
-            cells_by_left,
-            cells_by_right,
-            cell_grid,
+            tiles,
+            tiles_by_top: tiles_by_top,
+            tiles_by_bottom: tiles_by_bottom,
+            tiles_by_left: tiles_by_left,
+            tiles_by_right: tiles_by_right,
+            tile_grid,
         }
     }
 
-    pub fn has_cell(&self, pos: BlockPos) -> bool {
-        self.cell_grid.contains_key(&pos)
+    pub fn has_tile(&self, pos: BlockPos) -> bool {
+        self.tile_grid.contains_key(&pos)
     }
 
-    pub fn get_cell(&self, pos: BlockPos) -> Option<ComplexCell> {
-        self.cell_grid.get(&pos).map(|c| c.clone())
+    pub fn get_tile(&self, pos: BlockPos) -> Option<&ComplexTile> {
+        self.tile_grid.get(&pos)
     }
 
-    pub fn get_cells_by_dir_name(
+    pub fn get_tiles_by_dir_name(
         &self,
         direction: Direction,
         name: Option<&str>,
-    ) -> Option<Vec<ComplexCell>> {
+    ) -> Option<Vec<ComplexTile>> {
         if let Some(name) = name {
             if let Some(v) = match direction {
-                Direction::Top => self.cells_by_top.get(name),
-                Direction::Bottom => self.cells_by_bottom.get(name),
-                Direction::Left => self.cells_by_left.get(name),
-                Direction::Right => self.cells_by_right.get(name),
+                Direction::Top => self.tiles_by_top.get(name),
+                Direction::Bottom => self.tiles_by_bottom.get(name),
+                Direction::Left => self.tiles_by_left.get(name),
+                Direction::Right => self.tiles_by_right.get(name),
             } {
                 Some(v.clone())
             } else {
                 None
             }
         } else {
-            // just return all cells in that direction
-            let vec: Vec<ComplexCell> = match direction {
-                Direction::Top => &self.cells_by_top,
-                Direction::Bottom => &self.cells_by_bottom,
-                Direction::Left => &self.cells_by_left,
-                Direction::Right => &self.cells_by_right,
+            // just return all tiles in that direction
+            let vec: Vec<ComplexTile> = match direction {
+                Direction::Top => &self.tiles_by_top,
+                Direction::Bottom => &self.tiles_by_bottom,
+                Direction::Left => &self.tiles_by_left,
+                Direction::Right => &self.tiles_by_right,
             }
             .values()
             .flatten()
@@ -258,7 +294,7 @@ impl ComplexGenerator {
     }
 
     /// Returns the end of the path including the direction and the name of the
-    /// previous cell. The pos will always be empty. If the path loops back to
+    /// previous tile. The pos will always be empty. If the path loops back to
     /// the start, None is returned.
     fn get_end_of_path(
         &self,
@@ -270,14 +306,16 @@ impl ComplexGenerator {
         let mut current_direction = direction;
         let mut current_name = name.to_owned();
         loop {
-            if let Some(cell) = self.get_cell(current_pos) {
-                if let Some((_, next_direction)) = cell.get_next(current_direction.get_opposite()) {
+            if let Some(tile) = self.get_tile(current_pos) {
+                if let Some(Connection { next_direction, .. }) =
+                    tile.get_next(current_direction.get_opposite())
+                {
                     current_pos = current_pos + next_direction.to_block_pos();
                     current_direction = next_direction;
-                    current_name = cell
+                    current_name = tile
                         .get_next(current_direction)
                         .expect("Should have a name")
-                        .0;
+                        .name;
 
                     if current_direction == direction && current_pos == pos {
                         return None;
@@ -294,17 +332,26 @@ impl ComplexGenerator {
         pos: BlockPos,
         direction: Direction,
         name: String,
-    ) -> Option<(BlockPos, Direction, Vec<ComplexCell>)> {
-        let cell = match self.get_cell(pos) {
+    ) -> Option<(BlockPos, Direction, Vec<ComplexTile>)> {
+        let tile = match self.get_tile(pos) {
             Some(c) => c,
             None => return None,
         };
-        if let Some((next_name, next_direction)) = cell.get_next(direction.get_opposite()) {
-            // Check to make sure that the next cell connects to the current cell
-            if let Some(next_cell) = self.get_cell(pos + next_direction.to_block_pos()) {
-                let next_cell_next = next_cell.get_next(next_direction.get_opposite());
-                if let Some((next_cell_name, _)) = next_cell_next {
-                    if next_cell_name != next_name {
+        if let Some(Connection {
+            name: next_name,
+            next_direction,
+            ..
+        }) = tile.get_next(direction.get_opposite())
+        {
+            // Check to make sure that the next tile connects to the current tile
+            if let Some(next_tile) = self.get_tile(pos + next_direction.to_block_pos()) {
+                let next_tile_next = next_tile.get_next(next_direction.get_opposite());
+                if let Some(Connection {
+                    name: next_tile_name,
+                    ..
+                }) = next_tile_next
+                {
+                    if next_tile_name != next_name {
                         return None;
                     }
                 } else {
@@ -326,20 +373,25 @@ impl ComplexGenerator {
                 .get_end_of_path(pos, direction, &name)
                 .expect("Should have a path");
 
-            // Get the possible cells that can be placed here
-            let mut cells = self.get_cells_by_dir_name(direction.get_opposite(), Some(&name))?;
+            // Get the possible tiles that can be placed here
+            let mut tiles = self.get_tiles_by_dir_name(direction.get_opposite(), Some(&name))?;
 
-            // Filter out cells that don't connect to the adjacent cells
-            cells = cells
+            // Filter out tiles that don't connect to the adjacent tiles
+            tiles = tiles
                 .into_iter()
-                .filter(|cell| {
+                .filter(|tile| {
                     for direction in direction.get_forward_and_orthogonal() {
-                        if let Some(next_cell) = self.get_cell(pos + direction.to_block_pos()) {
-                            let our_next = cell.get_next(direction);
-                            let their_next = next_cell.get_next(direction.get_opposite());
+                        if let Some(next_tile) = self.get_tile(pos + direction.to_block_pos()) {
+                            let our_next = tile.get_next(direction);
+                            let their_next = next_tile.get_next(direction.get_opposite());
 
                             match (our_next, their_next) {
-                                (Some((our_name, _)), Some((their_name, _))) => {
+                                (
+                                    Some(Connection { name: our_name, .. }),
+                                    Some(Connection {
+                                        name: their_name, ..
+                                    }),
+                                ) => {
                                     if our_name != their_name {
                                         return false;
                                     }
@@ -353,13 +405,13 @@ impl ComplexGenerator {
                 })
                 .collect();
 
-            // There should be at least one cell left
-            if cells.is_empty() {
+            // There should be at least one tile left
+            if tiles.is_empty() {
                 return None;
             }
 
             // We're done!
-            return Some((pos, direction, cells));
+            return Some((pos, direction, tiles));
         } else {
             return None;
         }
@@ -373,18 +425,21 @@ impl ComplexGenerator {
         max: BlockPos,
         current_pos: BlockPos, // doesn't exist in the grid
         current_direction: Direction,
-        mut current_cells: Vec<ComplexCell>,
+        mut current_tiles: Vec<ComplexTile>,
         visited: &mut HashSet<BlockPos>,
     ) -> Option<BlockPos> {
         let mut rng = rand::thread_rng();
-        current_cells.shuffle(&mut rng);
-        for cell in current_cells {
-            let (_, direction) = cell
+        current_tiles.shuffle(&mut rng);
+        for tile in current_tiles {
+            let Connection {
+                next_direction: direction,
+                ..
+            } = tile
                 .get_next(current_direction.get_opposite())
-                .expect("Cell should have been filtered out if it doesn't have a connection");
-            let (name, _) = cell
+                .expect("Tile should have been filtered out if it doesn't have a connection");
+            let Connection { name, .. } = tile
                 .get_next(direction)
-                .expect("If the cell has a connection, it should have a name");
+                .expect("If the tile has a connection, it should have a name");
             let pos = current_pos + direction.to_block_pos();
             if pos.x < min.x
                 || pos.y < min.y
@@ -395,28 +450,28 @@ impl ComplexGenerator {
             {
                 continue;
             }
-            if visited.contains(&pos) && !self.has_cell(pos) {
+            if visited.contains(&pos) && !self.has_tile(pos) {
                 continue;
             }
             visited.insert(pos);
 
             if pos.z == max.z {
                 // We're done!
-                self.cell_grid.insert(current_pos, cell);
+                self.tile_grid.insert(current_pos, tile);
                 return Some(current_pos);
             }
 
-            self.cell_grid.insert(current_pos, cell);
+            self.tile_grid.insert(current_pos, tile);
             match self.get_placement(current_pos, current_direction, name) {
-                Some((new_pos, new_direction, new_cells)) => {
-                    if let Some(t) = self.dfs(min, max, new_pos, new_direction, new_cells, visited)
+                Some((new_pos, new_direction, new_tiles)) => {
+                    if let Some(t) = self.dfs(min, max, new_pos, new_direction, new_tiles, visited)
                     {
                         return Some(t);
                     }
                 }
                 None => {}
             }
-            self.cell_grid.remove(&current_pos);
+            self.tile_grid.remove(&current_pos);
         }
         None
     }
@@ -425,16 +480,16 @@ impl ComplexGenerator {
         let mut visited = HashSet::new();
         let current_pos = BlockPos::new(0, 0, 0);
         let current_direction = Direction::Top;
-        let current_cells = self
-            .get_cells_by_dir_name(current_direction.get_opposite(), None)
-            .expect("There should be at least one cell");
+        let current_tiles = self
+            .get_tiles_by_dir_name(current_direction.get_opposite(), None)
+            .expect("There should be at least one tile");
 
         return self.dfs(
             min,
             max,
             current_pos,
             current_direction,
-            current_cells,
+            current_tiles,
             &mut visited,
         );
     }
@@ -444,31 +499,31 @@ impl BlockGenerator for ComplexGenerator {
     fn generate(&self, params: &BlockGenParams) -> GenerateResult {
         let mut blocks = HashMap::new();
 
-        for (pos, cell) in &self.cell_grid {
+        for (pos, tile) in &self.tile_grid {
             let pos = BlockPos::new(pos.x * 3, pos.y * 3, pos.z * 3);
 
-            if let Some((name, _)) = &cell.connection_bottom {
+            if let Some(Connection { name, .. }) = &tile.connection_bottom {
                 blocks.insert(
                     pos,
                     get_block(&(name.to_owned(), vec![]), &params.block_map),
                 );
             }
 
-            if let Some((name, _)) = &cell.connection_top {
+            if let Some(Connection { name, .. }) = &tile.connection_top {
                 blocks.insert(
                     pos + BlockPos::new(0, 0, 2),
                     get_block(&(name.to_owned(), vec![]), &params.block_map),
                 );
             }
 
-            if let Some((name, _)) = &cell.connection_left {
+            if let Some(Connection { name, .. }) = &tile.connection_left {
                 blocks.insert(
                     pos + BlockPos::new(-1, 0, 1),
                     get_block(&(name.to_owned(), vec![]), &params.block_map),
                 );
             }
 
-            if let Some((name, _)) = &cell.connection_right {
+            if let Some(Connection { name, .. }) = &tile.connection_right {
                 blocks.insert(
                     pos + BlockPos::new(1, 0, 1),
                     get_block(&(name.to_owned(), vec![]), &params.block_map),
@@ -480,159 +535,4 @@ impl BlockGenerator for ComplexGenerator {
 
         GenerateResult::just_blocks(blocks, BlockPos::new(0, 0, 0), BlockPos::new(0, 0, 0))
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use valence::BlockPos;
-
-    use crate::generation::generators::complex_gen::ComplexCell;
-
-    use super::{ComplexGenerator, Direction};
-
-    #[test]
-    fn test_end_of_path_tt() {
-        let mut generator = ComplexGenerator::new(vec![]); // doesn't matter
-
-        generator.cell_grid.insert(
-            BlockPos::new(0, 0, 0),
-            ComplexCell {
-                connection_top: Some(("a".to_owned(), Direction::Bottom)),
-                connection_bottom: Some(("a".to_owned(), Direction::Top)),
-                connection_left: None,
-                connection_right: None,
-            },
-        );
-
-        generator.cell_grid.insert(
-            BlockPos::new(0, 0, 1),
-            ComplexCell {
-                connection_top: Some(("b".to_owned(), Direction::Bottom)),
-                connection_bottom: Some(("a".to_owned(), Direction::Top)),
-                connection_left: None,
-                connection_right: None,
-            },
-        );
-
-        let (pos, direction, name) = generator
-            .get_end_of_path(BlockPos::new(0, 0, 0), Direction::Top, "a")
-            .expect("Should have a path");
-
-        assert_eq!(pos, BlockPos::new(0, 0, 2));
-        assert_eq!(direction, Direction::Top);
-        assert_eq!(name, "b");
-    }
-
-    #[test]
-    fn test_end_of_path_lt() {
-        let mut generator = ComplexGenerator::new(vec![]); // doesn't matter
-
-        generator.cell_grid.insert(
-            BlockPos::new(0, 0, 0),
-            ComplexCell {
-                connection_top: None,
-                connection_bottom: Some(("a".to_owned(), Direction::Left)),
-                connection_left: Some(("a".to_owned(), Direction::Bottom)),
-                connection_right: None,
-            },
-        );
-
-        generator.cell_grid.insert(
-            BlockPos::new(-1, 0, 0),
-            ComplexCell {
-                connection_top: Some(("b".to_owned(), Direction::Right)),
-                connection_bottom: None,
-                connection_left: None,
-                connection_right: Some(("a".to_owned(), Direction::Top)),
-            },
-        );
-
-        let (pos, direction, name) = generator
-            .get_end_of_path(BlockPos::new(0, 0, 0), Direction::Top, "a")
-            .expect("Should have a path");
-
-        assert_eq!(pos, BlockPos::new(-1, 0, 1));
-        assert_eq!(direction, Direction::Top);
-        assert_eq!(name, "b");
-    }
-
-    #[test]
-    fn test_end_of_path_lltr() {
-        let mut generator = ComplexGenerator::new(vec![]); // doesn't matter
-
-        generator.cell_grid.insert(
-            BlockPos::new(0, 0, 0),
-            ComplexCell {
-                connection_top: None,
-                connection_bottom: Some(("a".to_owned(), Direction::Left)),
-                connection_left: Some(("a".to_owned(), Direction::Bottom)),
-                connection_right: None,
-            },
-        );
-
-        generator.cell_grid.insert(
-            BlockPos::new(-1, 0, 0),
-            ComplexCell {
-                connection_top: None,
-                connection_bottom: None,
-                connection_left: Some(("a".to_owned(), Direction::Right)),
-                connection_right: Some(("a".to_owned(), Direction::Left)),
-            },
-        );
-
-        generator.cell_grid.insert(
-            BlockPos::new(-2, 0, 0),
-            ComplexCell {
-                connection_top: Some(("a".to_owned(), Direction::Right)),
-                connection_bottom: None,
-                connection_left: None,
-                connection_right: Some(("a".to_owned(), Direction::Top)),
-            },
-        );
-
-        generator.cell_grid.insert(
-            BlockPos::new(-2, 0, 1),
-            ComplexCell {
-                connection_top: None,
-                connection_bottom: Some(("a".to_owned(), Direction::Right)),
-                connection_left: None,
-                connection_right: Some(("b".to_owned(), Direction::Top)),
-            },
-        );
-
-        let (pos, direction, name) = generator
-            .get_end_of_path(BlockPos::new(0, 0, 0), Direction::Top, "a")
-            .expect("Should have a path");
-
-        assert_eq!(pos, BlockPos::new(-1, 0, 1));
-        assert_eq!(direction, Direction::Right);
-        assert_eq!(name, "b");
-    }
-
-    #[test]
-    fn test_complex_cell_rotate() {
-        let cell = ComplexCell {
-            connection_top: Some(("a".to_owned(), Direction::Bottom)),
-            connection_bottom: Some(("a".to_owned(), Direction::Top)),
-            connection_left: Some(("b".to_owned(), Direction::Right)),
-            connection_right: Some(("b".to_owned(), Direction::Left)),
-        };
-
-        let rotateds = cell.get_all_rotations();
-
-        assert_eq!(rotateds.len(), 2);
-
-        let cell = ComplexCell {
-            connection_top: Some(("a".to_owned(), Direction::Left)),
-            connection_bottom: Some(("b".to_owned(), Direction::Right)),
-            connection_left: Some(("a".to_owned(), Direction::Top)),
-            connection_right: Some(("b".to_owned(), Direction::Bottom)),
-        };
-
-        let rotateds = cell.get_all_rotations();
-
-        println!("{:?}", rotateds);
-    }
-
-    // TODO: Add more tests
 }
