@@ -223,7 +223,7 @@ impl ComplexGenerator {
     pub fn get_cells_by_dir_name(
         &self,
         direction: Direction,
-        name: &Option<String>,
+        name: Option<&str>,
     ) -> Option<Vec<ComplexCell>> {
         if let Some(name) = name {
             if let Some(v) = match direction {
@@ -327,7 +327,7 @@ impl ComplexGenerator {
                 .expect("Should have a path");
 
             // Get the possible cells that can be placed here
-            let mut cells = self.get_cells_by_dir_name(direction.get_opposite(), &Some(name))?;
+            let mut cells = self.get_cells_by_dir_name(direction.get_opposite(), Some(&name))?;
 
             // Filter out cells that don't connect to the adjacent cells
             cells = cells
@@ -426,7 +426,7 @@ impl ComplexGenerator {
         let current_pos = BlockPos::new(0, 0, 0);
         let current_direction = Direction::Top;
         let current_cells = self
-            .get_cells_by_dir_name(current_direction.get_opposite(), &None)
+            .get_cells_by_dir_name(current_direction.get_opposite(), None)
             .expect("There should be at least one cell");
 
         return self.dfs(
