@@ -6,53 +6,57 @@ use rand::seq::SliceRandom;
 use valence::prelude::*;
 
 use crate::{
-    generation::{generator::{BlockGenParams, BlockGenerator, GenerateResult}, block_grid::BlockProperties},
-    utils::ToBlockPos,
+    generation::{
+        block_collection::BuiltBlockCollectionMap,
+        block_grid::BlockGrid,
+        generator::{BlockGenParams, BlockGenerator, GenerateResult},
+    },
+    utils::*,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum Direction {
     #[default]
-    Top,
-    Bottom,
-    Left,
-    Right,
+    North,
+    South,
+    West,
+    East,
 }
 
 impl Direction {
     pub fn get_opposite(&self) -> Direction {
         match self {
-            Direction::Top => Direction::Bottom,
-            Direction::Bottom => Direction::Top,
-            Direction::Left => Direction::Right,
-            Direction::Right => Direction::Left,
+            Direction::North => Direction::South,
+            Direction::South => Direction::North,
+            Direction::West => Direction::East,
+            Direction::East => Direction::West,
         }
     }
 
     pub fn get_left(&self) -> Direction {
         match self {
-            Direction::Top => Direction::Left,
-            Direction::Bottom => Direction::Right,
-            Direction::Left => Direction::Bottom,
-            Direction::Right => Direction::Top,
+            Direction::North => Direction::West,
+            Direction::South => Direction::East,
+            Direction::West => Direction::South,
+            Direction::East => Direction::North,
         }
     }
 
     pub fn get_right(&self) -> Direction {
         match self {
-            Direction::Top => Direction::Right,
-            Direction::Bottom => Direction::Left,
-            Direction::Left => Direction::Top,
-            Direction::Right => Direction::Bottom,
+            Direction::North => Direction::East,
+            Direction::South => Direction::West,
+            Direction::West => Direction::North,
+            Direction::East => Direction::South,
         }
     }
 
     pub fn mirror_horizontal(&self) -> Direction {
         match self {
-            Direction::Top => Direction::Top,
-            Direction::Bottom => Direction::Bottom,
-            Direction::Left => Direction::Right,
-            Direction::Right => Direction::Left,
+            Direction::North => Direction::North,
+            Direction::South => Direction::South,
+            Direction::West => Direction::East,
+            Direction::East => Direction::West,
         }
     }
 
@@ -64,10 +68,10 @@ impl Direction {
 impl ToBlockPos for Direction {
     fn to_block_pos(&self) -> BlockPos {
         match self {
-            Direction::Top => BlockPos::new(0, 0, 1),
-            Direction::Bottom => BlockPos::new(0, 0, -1),
-            Direction::Left => BlockPos::new(-1, 0, 0),
-            Direction::Right => BlockPos::new(1, 0, 0),
+            Direction::North => BlockPos::new(0, 0, -1),
+            Direction::South => BlockPos::new(0, 0, 1),
+            Direction::West => BlockPos::new(-1, 0, 0),
+            Direction::East => BlockPos::new(1, 0, 0),
         }
     }
 }
@@ -97,7 +101,7 @@ impl Connection {
         }
     }
 
-    pub fn mirror_horizontal(&self) -> Connection {
+    pub fn flip_x(&self) -> Connection {
         Connection {
             next_direction: self.next_direction.mirror_horizontal(),
             ..self.clone()
@@ -105,66 +109,98 @@ impl Connection {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug)]
 pub struct ComplexTile {
-    pub connection_top: Option<Connection>,
-    pub connection_bottom: Option<Connection>,
-    pub connection_left: Option<Connection>,
-    pub connection_right: Option<Connection>,
+    pub connection_north: Option<Connection>,
+    pub connection_south: Option<Connection>,
+    pub connection_west: Option<Connection>,
+    pub connection_east: Option<Connection>,
+    pub grid: BlockGrid, // ignore Hash and PartialEq
+}
+
+impl Eq for ComplexTile {}
+
+impl std::hash::Hash for ComplexTile {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.connection_north.hash(state);
+        self.connection_south.hash(state);
+        self.connection_west.hash(state);
+        self.connection_east.hash(state);
+    }
+}
+
+impl PartialEq for ComplexTile {
+    fn eq(&self, other: &Self) -> bool {
+        self.connection_north == other.connection_north
+            && self.connection_south == other.connection_south
+            && self.connection_west == other.connection_west
+            && self.connection_east == other.connection_east
+    }
 }
 
 impl ComplexTile {
     pub fn get_next(&self, direction: Direction) -> Option<Connection> {
         match direction {
-            Direction::Top => self.connection_top.clone(),
-            Direction::Bottom => self.connection_bottom.clone(),
-            Direction::Left => self.connection_left.clone(),
-            Direction::Right => self.connection_right.clone(),
+            Direction::North => self.connection_north.clone(),
+            Direction::South => self.connection_south.clone(),
+            Direction::West => self.connection_west.clone(),
+            Direction::East => self.connection_east.clone(),
         }
     }
 
     /// Returns the tile rotated 90 degrees clockwise
-    pub fn rotate_cw(&self) -> ComplexTile {
+    pub fn rotate_cw(&self, origin: BlockPos) -> ComplexTile {
         ComplexTile {
-            connection_top: self.connection_left.as_ref().map(|c| c.rotate_cw()),
-            connection_bottom: self.connection_right.as_ref().map(|c| c.rotate_cw()),
-            connection_left: self.connection_bottom.as_ref().map(|c| c.rotate_cw()),
-            connection_right: self.connection_top.as_ref().map(|c| c.rotate_cw()),
+            connection_north: self.connection_west.as_ref().map(|c| c.rotate_cw()),
+            connection_south: self.connection_east.as_ref().map(|c| c.rotate_cw()),
+            connection_west: self.connection_south.as_ref().map(|c| c.rotate_cw()),
+            connection_east: self.connection_north.as_ref().map(|c| c.rotate_cw()),
+            grid: self.grid.rotate_cw(origin),
         }
     }
 
-    /// Returns the tile mirrored horizontally
-    pub fn mirror_horizontal(&self) -> ComplexTile {
+    /// Returns the tile flipped along the X axis
+    pub fn flip_x(&self, origin: BlockPos) -> ComplexTile {
         ComplexTile {
-            connection_top: self.connection_top.as_ref().map(|c| c.mirror_horizontal()),
-            connection_bottom: self
-                .connection_bottom
-                .as_ref()
-                .map(|c| c.mirror_horizontal()),
-            connection_left: self
-                .connection_right
-                .as_ref()
-                .map(|c| c.mirror_horizontal()),
-            connection_right: self.connection_left.as_ref().map(|c| c.mirror_horizontal()),
+            connection_north: self.connection_north.as_ref().map(|c| c.flip_x()),
+            connection_south: self.connection_south.as_ref().map(|c| c.flip_x()),
+            connection_west: self.connection_east.as_ref().map(|c| c.flip_x()),
+            connection_east: self.connection_west.as_ref().map(|c| c.flip_x()),
+            grid: self.grid.flip_x(origin),
         }
     }
 
     /// Returns all the rotated and mirrored versions of the tile, without duplicates
-    pub fn get_all_rotations(&self) -> Vec<ComplexTile> {
+    pub fn get_all_rotations(&self, origin: BlockPos) -> Vec<ComplexTile> {
         let mut tiles = HashSet::new();
         let mut current_tile = self.clone();
         for _ in 0..4 {
             tiles.insert(current_tile.clone());
-            tiles.insert(current_tile.mirror_horizontal());
-            current_tile = current_tile.rotate_cw();
+            tiles.insert(current_tile.flip_x(origin));
+            current_tile = current_tile.rotate_cw(origin);
         }
         tiles.into_iter().collect()
+    }
+
+    /// Places the tile in the grid at the given position
+    fn place(
+        &self,
+        grid: &mut HashMap<BlockPos, BlockState>,
+        block_map: &BuiltBlockCollectionMap,
+        pos: BlockPos,
+    ) {
+        for (block_pos, block) in &self.grid.blocks {
+            let block_pos = pos + *block_pos;
+            let block = block.get_block(&block_map);
+            grid.insert(block_pos, block);
+        }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ComplexGenerator {
     // TODO: Might want to use Rc<ComplexTile> instead of cloning.
+    pub size: BlockPos,
     pub tiles: Vec<ComplexTile>,
     pub tiles_by_top: HashMap<String, Vec<ComplexTile>>,
     pub tiles_by_bottom: HashMap<String, Vec<ComplexTile>>,
@@ -174,10 +210,11 @@ pub struct ComplexGenerator {
 }
 
 impl ComplexGenerator {
-    pub fn new(tiles: Vec<ComplexTile>) -> ComplexGenerator {
+    pub fn new(tiles: Vec<ComplexTile>, size: BlockPos) -> ComplexGenerator {
         let mut new_tiles = Vec::new();
+        let origin = BlockPos::new(0, 0, size.z / 2);
         for tile in tiles {
-            new_tiles.extend(tile.get_all_rotations());
+            new_tiles.extend(tile.get_all_rotations(origin));
         }
 
         let tiles = new_tiles;
@@ -189,7 +226,7 @@ impl ComplexGenerator {
         for tile in &tiles {
             if let Some(Connection {
                 name, can_start, ..
-            }) = &tile.connection_top
+            }) = &tile.connection_north
             {
                 if *can_start {
                     tiles_by_top
@@ -200,7 +237,7 @@ impl ComplexGenerator {
             }
             if let Some(Connection {
                 name, can_start, ..
-            }) = &tile.connection_bottom
+            }) = &tile.connection_south
             {
                 if *can_start {
                     tiles_by_bottom
@@ -211,7 +248,7 @@ impl ComplexGenerator {
             }
             if let Some(Connection {
                 name, can_start, ..
-            }) = &tile.connection_left
+            }) = &tile.connection_west
             {
                 if *can_start {
                     tiles_by_left
@@ -222,7 +259,7 @@ impl ComplexGenerator {
             }
             if let Some(Connection {
                 name, can_start, ..
-            }) = &tile.connection_right
+            }) = &tile.connection_east
             {
                 if *can_start {
                     tiles_by_right
@@ -233,6 +270,7 @@ impl ComplexGenerator {
             }
         }
         Self {
+            size,
             tiles,
             tiles_by_top: tiles_by_top,
             tiles_by_bottom: tiles_by_bottom,
@@ -257,10 +295,10 @@ impl ComplexGenerator {
     ) -> Option<Vec<ComplexTile>> {
         if let Some(name) = name {
             if let Some(v) = match direction {
-                Direction::Top => self.tiles_by_top.get(name),
-                Direction::Bottom => self.tiles_by_bottom.get(name),
-                Direction::Left => self.tiles_by_left.get(name),
-                Direction::Right => self.tiles_by_right.get(name),
+                Direction::North => self.tiles_by_top.get(name),
+                Direction::South => self.tiles_by_bottom.get(name),
+                Direction::West => self.tiles_by_left.get(name),
+                Direction::East => self.tiles_by_right.get(name),
             } {
                 Some(v.clone())
             } else {
@@ -269,10 +307,10 @@ impl ComplexGenerator {
         } else {
             // just return all tiles in that direction
             let vec: Vec<ComplexTile> = match direction {
-                Direction::Top => &self.tiles_by_top,
-                Direction::Bottom => &self.tiles_by_bottom,
-                Direction::Left => &self.tiles_by_left,
-                Direction::Right => &self.tiles_by_right,
+                Direction::North => &self.tiles_by_top,
+                Direction::South => &self.tiles_by_bottom,
+                Direction::West => &self.tiles_by_left,
+                Direction::East => &self.tiles_by_right,
             }
             .values()
             .flatten()
@@ -473,7 +511,7 @@ impl ComplexGenerator {
     pub fn generate_dfs(&mut self, min: BlockPos, max: BlockPos) -> Option<BlockPos> {
         let mut visited = HashSet::new();
         let current_pos = BlockPos::new(0, 0, 0);
-        let current_direction = Direction::Top;
+        let current_direction = Direction::South;
         let current_tiles = self
             .get_tiles_by_dir_name(current_direction.get_opposite(), None)
             .expect("There should be at least one tile");
@@ -494,37 +532,9 @@ impl BlockGenerator for ComplexGenerator {
         let mut blocks = HashMap::new();
 
         for (pos, tile) in &self.tile_grid {
-            let pos = BlockPos::new(pos.x * 3, pos.y * 3, pos.z * 3);
+            let pos = (pos.to_vec3() * self.size.to_vec3()).to_block_pos();
 
-            if let Some(Connection { name, .. }) = &tile.connection_bottom {
-                blocks.insert(
-                    pos,
-                    BlockProperties::new(name.to_owned(), vec![]).get_block(&params.block_map),
-                );
-            }
-
-            if let Some(Connection { name, .. }) = &tile.connection_top {
-                blocks.insert(
-                    pos + BlockPos::new(0, 0, 2),
-                    BlockProperties::new(name.to_owned(), vec![]).get_block(&params.block_map),
-                );
-            }
-
-            if let Some(Connection { name, .. }) = &tile.connection_left {
-                blocks.insert(
-                    pos + BlockPos::new(-1, 0, 1),
-                    BlockProperties::new(name.to_owned(), vec![]).get_block(&params.block_map),
-                );
-            }
-
-            if let Some(Connection { name, .. }) = &tile.connection_right {
-                blocks.insert(
-                    pos + BlockPos::new(1, 0, 1),
-                    BlockProperties::new(name.to_owned(), vec![]).get_block(&params.block_map),
-                );
-            }
-
-            blocks.insert(pos + BlockPos::new(0, 0, 1), BlockState::STONE);
+            tile.place(&mut blocks, &params.block_map, pos);
         }
 
         GenerateResult::just_blocks(blocks, BlockPos::new(0, 0, 0), BlockPos::new(0, 0, 0))

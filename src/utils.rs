@@ -544,3 +544,29 @@ impl DVec3With for DVec3 {
         DVec3::new(self.x, self.y, z)
     }
 }
+
+pub trait BlockPosUtils {
+    fn rotate_cw(&self, origin: BlockPos) -> BlockPos;
+    fn flip_x(&self, origin: BlockPos) -> BlockPos;
+}
+
+impl BlockPosUtils for BlockPos {
+    fn rotate_cw(&self, origin: BlockPos) -> BlockPos {
+        let x = self.x - origin.x;
+        let z = self.z - origin.z;
+
+        let x1 = -z;
+        let z1 = x;
+
+        BlockPos::new(x1 + origin.x, self.y, z1 + origin.z)
+    }
+
+    fn flip_x(&self, origin: BlockPos) -> BlockPos {
+        let x = self.x - origin.x;
+        let z = self.z - origin.z;
+
+        let x = -x;
+
+        BlockPos::new(x + origin.x, self.y, z + origin.z)
+    }
+}

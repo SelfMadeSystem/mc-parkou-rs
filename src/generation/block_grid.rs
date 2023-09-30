@@ -61,6 +61,32 @@ impl BlockGrid {
     pub fn new(blocks: HashMap<BlockPos, BlockProperties>) -> Self {
         Self { blocks }
     }
+
+    /// Rotate the grid clockwise along the Y axis around a given point.
+    pub fn rotate_cw(&self, origin: BlockPos) -> Self {
+        let mut blocks = HashMap::new();
+
+        for (pos, block) in &self.blocks {
+            let pos = pos.rotate_cw(origin);
+            let block = block.rotate_cw();
+            blocks.insert(pos, block);
+        }
+
+        Self { blocks }
+    }
+
+    /// Flip the grid along the X axis around a given point.
+    pub fn flip_x(&self, origin: BlockPos) -> Self {
+        let mut blocks = HashMap::new();
+
+        for (pos, block) in &self.blocks {
+            let pos = pos.flip_x(origin);
+            let block = block.flip_x();
+            blocks.insert(pos, block);
+        }
+
+        Self { blocks }
+    }
 }
 
 impl From<HashMap<BlockPos, BlockProperties>> for BlockGrid {

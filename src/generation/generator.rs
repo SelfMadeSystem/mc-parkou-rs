@@ -468,7 +468,11 @@ impl Generator {
                     println!("Failed to generate complex custom generation. Retrying...");
                 };
 
-                let end = BlockPos::new(end.x * 3, end.y * 3, end.z * 3 + 2);
+                let end = BlockPos::new(
+                    end.x * gen.size.x,
+                    end.y * gen.size.y,
+                    (end.z + 1) * gen.size.z - 1,
+                );
 
                 let gen = gen.generate(&params);
 

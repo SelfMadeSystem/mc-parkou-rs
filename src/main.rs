@@ -814,238 +814,150 @@ fn init_clients(
                         10.0
                     ),
                     (
-                        GenerationType::ComplexCustom(ComplexGenerator::new(vec![
-                            // Only "indoor_walls"
-                            //
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Bottom,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    ..Default::default()
-                                }),
-                                connection_left: None,
-                                connection_right: None,
-                            },
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Left,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: None,
-                                connection_left: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    ..Default::default()
-                                }),
-                                connection_right: None,
-                            },
-                            // Only "bridge_floor"
-                            //
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Bottom,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    ..Default::default()
-                                }),
-                                connection_left: None,
-                                connection_right: None,
-                            },
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Left,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: None,
-                                connection_left: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    ..Default::default()
-                                }),
-                                connection_right: None,
-                            },
-                            // "indoor_walls" to "bridge_floor" and vice versa
-                            //
-                            ComplexTile {
-                                connection_top: None,
-                                connection_bottom: None,
-                                connection_left: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Right,
-                                    ..Default::default()
-                                }),
-                                connection_right: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Left,
-                                    ..Default::default()
-                                }),
-                            },
-                            // "indoor_walls" and "bridge_floor" junction
-                            //
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Bottom,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    ..Default::default()
-                                }),
-                                connection_left: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Right,
-                                    can_start: false,
-                                    ..Default::default()
-                                }),
-                                connection_right: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Left,
-                                    can_start: false,
-                                    ..Default::default()
-                                }),
-                            },
-                            // Only "bridge_floor" and "indoor_walls" junction
-                            //
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Bottom,
-                                    can_start: false,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    can_start: false,
-                                    ..Default::default()
-                                }),
-                                connection_left: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Right,
-                                    ..Default::default()
-                                }),
-                                connection_right: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Left,
-                                    ..Default::default()
-                                }),
-                            },
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Bottom,
-                                    can_start: false,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    can_start: false,
-                                    ..Default::default()
-                                }),
-                                connection_left: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Right,
-                                    ..Default::default()
-                                }),
-                                connection_right: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Left,
-                                    ..Default::default()
-                                }),
-                            },
-                        ])),
+                        GenerationType::ComplexCustom(ComplexGenerator::new(
+                            vec![
+                                ComplexTile {
+                                    connection_north: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::South,
+                                        ..Default::default()
+                                    }),
+                                    connection_south: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::North,
+                                        ..Default::default()
+                                    }),
+                                    connection_east: None,
+                                    connection_west: None,
+                                    grid: BlockGrid::from([
+                                        (
+                                            BlockPos::new(0, 0, 0),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 1),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 3),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 4),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                    ]),
+                                },
+                                ComplexTile {
+                                    connection_north: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::East,
+                                        ..Default::default()
+                                    }),
+                                    connection_south: None,
+                                    connection_east: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::North,
+                                        ..Default::default()
+                                    }),
+                                    connection_west: None,
+                                    grid: BlockGrid::from([
+                                        (
+                                            BlockPos::new(0, 0, 0),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 1),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(1, 0, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(2, 0, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                    ]),
+                                },
+                                ComplexTile {
+                                    connection_north: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::South,
+                                        ..Default::default()
+                                    }),
+                                    connection_south: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::North,
+                                        ..Default::default()
+                                    }),
+                                    connection_east: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::West,
+                                        can_start: false,
+                                        ..Default::default()
+                                    }),
+                                    connection_west: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::East,
+                                        can_start: false,
+                                        ..Default::default()
+                                    }),
+                                    grid: BlockGrid::from([
+                                        (
+                                            BlockPos::new(0, 0, 0),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 1),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 3),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 0, 4),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(2, 1, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(1, 2, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 3, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(-1, 2, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(-2, 1, 2),
+                                            BlockProperties::new("platform".to_string(), vec![])
+                                        ),
+                                    ]),
+                                },
+                            ],
+                            BlockPos::new(5, 0, 5)
+                        )),
                         100000000000000.0
-                    ),
-                    (
-                        GenerationType::ComplexCustom(ComplexGenerator::new(vec![
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Bottom,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    ..Default::default()
-                                }),
-                                connection_left: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Right,
-                                    ..Default::default()
-                                }),
-                                connection_right: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Left,
-                                    ..Default::default()
-                                }),
-                            },
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Left,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Right,
-                                    ..Default::default()
-                                }),
-                                connection_left: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    ..Default::default()
-                                }),
-                                connection_right: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Bottom,
-                                    ..Default::default()
-                                }),
-                            },
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Bottom,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    ..Default::default()
-                                }),
-                                connection_left: None,
-                                connection_right: None,
-                            },
-                            ComplexTile {
-                                connection_top: Some(Connection {
-                                    name: "indoor_walls".to_string(),
-                                    next_direction: complex_gen::Direction::Left,
-                                    ..Default::default()
-                                }),
-                                connection_bottom: None,
-                                connection_left: Some(Connection {
-                                    name: "bridge_floor".to_string(),
-                                    next_direction: complex_gen::Direction::Top,
-                                    ..Default::default()
-                                }),
-                                connection_right: None,
-                            },
-                        ])),
-                        10000.0
                     ),
                 ],
             ),
