@@ -210,10 +210,11 @@ pub struct ComplexGenerator {
     pub size: BlockPos,
     pub tiles: Vec<ComplexTile>,
     pub starting_tiles: Vec<ComplexTile>,
-    pub tiles_by_top: HashMap<String, Vec<ComplexTile>>,
-    pub tiles_by_bottom: HashMap<String, Vec<ComplexTile>>,
-    pub tiles_by_left: HashMap<String, Vec<ComplexTile>>,
-    pub tiles_by_right: HashMap<String, Vec<ComplexTile>>,
+    pub tiles_by_north: HashMap<String, Vec<ComplexTile>>,
+    pub tiles_by_south: HashMap<String, Vec<ComplexTile>>,
+    pub tiles_by_west: HashMap<String, Vec<ComplexTile>>,
+    pub tiles_by_east: HashMap<String, Vec<ComplexTile>>,
+    // TODO: tiles_by_up and tiles_by_down
     pub tile_grid: HashMap<BlockPos, ComplexTile>,
 }
 
@@ -227,10 +228,10 @@ impl ComplexGenerator {
 
         let tiles = new_tiles;
         let mut starting_tiles = Vec::new();
-        let mut tiles_by_top = HashMap::new();
-        let mut tiles_by_bottom = HashMap::new();
-        let mut tiles_by_left = HashMap::new();
-        let mut tiles_by_right = HashMap::new();
+        let mut tiles_by_north = HashMap::new();
+        let mut tiles_by_south = HashMap::new();
+        let mut tiles_by_west = HashMap::new();
+        let mut tiles_by_east = HashMap::new();
         let tile_grid = HashMap::new();
         for tile in &tiles {
             if let Some(Connection {
@@ -241,7 +242,7 @@ impl ComplexGenerator {
             }) = &tile.connection_north
             {
                 if *can_next {
-                    tiles_by_top
+                    tiles_by_north
                         .entry(name.clone())
                         .or_insert_with(Vec::new)
                         .push(tile.clone());
@@ -253,7 +254,7 @@ impl ComplexGenerator {
             }
             if let Some(Connection { name, can_next, .. }) = &tile.connection_south {
                 if *can_next {
-                    tiles_by_bottom
+                    tiles_by_south
                         .entry(name.clone())
                         .or_insert_with(Vec::new)
                         .push(tile.clone());
@@ -261,7 +262,7 @@ impl ComplexGenerator {
             }
             if let Some(Connection { name, can_next, .. }) = &tile.connection_west {
                 if *can_next {
-                    tiles_by_left
+                    tiles_by_west
                         .entry(name.clone())
                         .or_insert_with(Vec::new)
                         .push(tile.clone());
@@ -269,7 +270,7 @@ impl ComplexGenerator {
             }
             if let Some(Connection { name, can_next, .. }) = &tile.connection_east {
                 if *can_next {
-                    tiles_by_right
+                    tiles_by_east
                         .entry(name.clone())
                         .or_insert_with(Vec::new)
                         .push(tile.clone());
@@ -280,10 +281,10 @@ impl ComplexGenerator {
             size,
             tiles,
             starting_tiles,
-            tiles_by_top: tiles_by_top,
-            tiles_by_bottom: tiles_by_bottom,
-            tiles_by_left: tiles_by_left,
-            tiles_by_right: tiles_by_right,
+            tiles_by_north,
+            tiles_by_south,
+            tiles_by_west,
+            tiles_by_east,
             tile_grid,
         }
     }
@@ -298,10 +299,10 @@ impl ComplexGenerator {
         name: &str,
     ) -> Option<Vec<ComplexTile>> {
         if let Some(v) = match direction {
-            Direction::North => self.tiles_by_top.get(name),
-            Direction::South => self.tiles_by_bottom.get(name),
-            Direction::West => self.tiles_by_left.get(name),
-            Direction::East => self.tiles_by_right.get(name),
+            Direction::North => self.tiles_by_north.get(name),
+            Direction::South => self.tiles_by_south.get(name),
+            Direction::West => self.tiles_by_west.get(name),
+            Direction::East => self.tiles_by_east.get(name),
         } {
             Some(v.clone())
         } else {
