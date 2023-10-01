@@ -122,7 +122,7 @@ pub struct ComplexTile {
     pub connection_east: Option<Connection>,
     // TODO: connection_up and connection_down
     pub grid: BlockGrid, // ignore Hash and PartialEq
-    // TODO: Allow disabling flipping and/or rotating (especially flipping)
+                         // TODO: Allow disabling flipping and/or rotating (especially flipping)
 }
 
 impl Eq for ComplexTile {}
@@ -286,10 +286,6 @@ impl ComplexGenerator {
             tiles_by_right: tiles_by_right,
             tile_grid,
         }
-    }
-
-    pub fn has_tile(&self, pos: BlockPos) -> bool {
-        self.tile_grid.contains_key(&pos)
     }
 
     pub fn get_tile(&self, pos: BlockPos) -> Option<&ComplexTile> {
@@ -470,10 +466,10 @@ impl ComplexGenerator {
             {
                 continue;
             }
-            if visited.contains(&pos) && !self.has_tile(pos) {
+
+            if visited.contains(&pos) {
                 continue;
             }
-            visited.insert(pos);
 
             if pos.z == max.z {
                 // We're done!
@@ -491,6 +487,7 @@ impl ComplexGenerator {
                 }
                 None => {}
             }
+            visited.insert(pos);
             self.tile_grid.remove(&current_pos);
         }
         None
