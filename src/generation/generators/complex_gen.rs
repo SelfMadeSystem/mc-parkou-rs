@@ -14,6 +14,8 @@ use crate::{
     utils::*,
 };
 
+/// I require to create my own `Direction` instead of using `valence::Direction`
+/// because `valence::Direction` doesn't implement `Hash`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum Direction {
     #[default]
@@ -21,7 +23,8 @@ pub enum Direction {
     South,
     West,
     East,
-    // TODO: Up and Down
+    Up,
+    Down,
 }
 
 impl Direction {
@@ -31,6 +34,8 @@ impl Direction {
             Direction::South => Direction::North,
             Direction::West => Direction::East,
             Direction::East => Direction::West,
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
         }
     }
 
@@ -40,6 +45,8 @@ impl Direction {
             Direction::South => Direction::East,
             Direction::West => Direction::South,
             Direction::East => Direction::North,
+            Direction::Up => Direction::Up,
+            Direction::Down => Direction::Down,
         }
     }
 
@@ -49,6 +56,8 @@ impl Direction {
             Direction::South => Direction::West,
             Direction::West => Direction::North,
             Direction::East => Direction::South,
+            Direction::Up => Direction::Up,
+            Direction::Down => Direction::Down,
         }
     }
 
@@ -58,6 +67,8 @@ impl Direction {
             Direction::South => Direction::South,
             Direction::West => Direction::East,
             Direction::East => Direction::West,
+            Direction::Up => Direction::Up,
+            Direction::Down => Direction::Down,
         }
     }
 
@@ -73,6 +84,8 @@ impl ToBlockPos for Direction {
             Direction::South => BlockPos::new(0, 0, 1),
             Direction::West => BlockPos::new(-1, 0, 0),
             Direction::East => BlockPos::new(1, 0, 0),
+            Direction::Up => BlockPos::new(0, 1, 0),
+            Direction::Down => BlockPos::new(0, -1, 0),
         }
     }
 }
@@ -114,15 +127,16 @@ impl Connection {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ComplexTile {
     pub connection_north: Option<Connection>,
     pub connection_south: Option<Connection>,
     pub connection_west: Option<Connection>,
     pub connection_east: Option<Connection>,
-    // TODO: connection_up and connection_down
-    pub grid: BlockGrid, // ignore Hash and PartialEq
-                         // TODO: Allow disabling flipping and/or rotating (especially flipping)
+    pub connection_up: Option<Connection>,
+    pub connection_down: Option<Connection>,
+    pub grid: BlockGrid,    // ignore this field in Hash and PartialEq
+    pub disable_flip: bool, // TODO: Figure out if I should add `disable_rotate` too
 }
 
 impl Eq for ComplexTile {}
@@ -133,6 +147,9 @@ impl std::hash::Hash for ComplexTile {
         self.connection_south.hash(state);
         self.connection_west.hash(state);
         self.connection_east.hash(state);
+        self.connection_up.hash(state);
+        self.connection_down.hash(state);
+        self.disable_flip.hash(state);
     }
 }
 
@@ -142,6 +159,9 @@ impl PartialEq for ComplexTile {
             && self.connection_south == other.connection_south
             && self.connection_west == other.connection_west
             && self.connection_east == other.connection_east
+            && self.connection_up == other.connection_up
+            && self.connection_down == other.connection_down
+            && self.disable_flip == other.disable_flip
     }
 }
 
@@ -152,6 +172,8 @@ impl ComplexTile {
             Direction::South => self.connection_south.clone(),
             Direction::West => self.connection_west.clone(),
             Direction::East => self.connection_east.clone(),
+            Direction::Up => self.connection_up.clone(),
+            Direction::Down => self.connection_down.clone(),
         }
     }
 
@@ -162,7 +184,10 @@ impl ComplexTile {
             connection_south: self.connection_east.as_ref().map(|c| c.rotate_cw()),
             connection_west: self.connection_south.as_ref().map(|c| c.rotate_cw()),
             connection_east: self.connection_north.as_ref().map(|c| c.rotate_cw()),
+            connection_up: self.connection_up.as_ref().map(|c| c.rotate_cw()),
+            connection_down: self.connection_down.as_ref().map(|c| c.rotate_cw()),
             grid: self.grid.rotate_cw(origin),
+            ..self.clone()
         }
     }
 
@@ -173,7 +198,10 @@ impl ComplexTile {
             connection_south: self.connection_south.as_ref().map(|c| c.flip_x()),
             connection_west: self.connection_east.as_ref().map(|c| c.flip_x()),
             connection_east: self.connection_west.as_ref().map(|c| c.flip_x()),
+            connection_up: self.connection_up.as_ref().map(|c| c.flip_x()),
+            connection_down: self.connection_down.as_ref().map(|c| c.flip_x()),
             grid: self.grid.flip_x(origin),
+            ..self.clone()
         }
     }
 
@@ -183,7 +211,9 @@ impl ComplexTile {
         let mut current_tile = self.clone();
         for _ in 0..4 {
             tiles.insert(current_tile.clone());
-            tiles.insert(current_tile.flip_x(origin));
+            if !self.disable_flip {
+                tiles.insert(current_tile.flip_x(origin));
+            }
             current_tile = current_tile.rotate_cw(origin);
         }
         tiles.into_iter().collect()
@@ -207,21 +237,29 @@ impl ComplexTile {
 #[derive(Clone, Debug)]
 pub struct ComplexGenerator {
     // TODO: Might want to use Rc<ComplexTile> instead of cloning.
-    pub size: BlockPos,
+    pub tile_size: BlockPos,
+    pub min_pos: BlockPos,
+    pub max_pos: BlockPos,
     pub tiles: Vec<ComplexTile>,
     pub starting_tiles: Vec<ComplexTile>,
     pub tiles_by_north: HashMap<String, Vec<ComplexTile>>,
     pub tiles_by_south: HashMap<String, Vec<ComplexTile>>,
     pub tiles_by_west: HashMap<String, Vec<ComplexTile>>,
     pub tiles_by_east: HashMap<String, Vec<ComplexTile>>,
-    // TODO: tiles_by_up and tiles_by_down
+    pub tiles_by_up: HashMap<String, Vec<ComplexTile>>,
+    pub tiles_by_down: HashMap<String, Vec<ComplexTile>>,
     pub tile_grid: HashMap<BlockPos, ComplexTile>,
 }
 
 impl ComplexGenerator {
-    pub fn new(tiles: Vec<ComplexTile>, size: BlockPos) -> ComplexGenerator {
+    pub fn new(
+        tiles: Vec<ComplexTile>,
+        tile_size: BlockPos,
+        min_pos: BlockPos,
+        max_pos: BlockPos,
+    ) -> ComplexGenerator {
         let mut new_tiles = Vec::new();
-        let origin = BlockPos::new(0, 0, size.z / 2);
+        let origin = BlockPos::new(0, 0, tile_size.z / 2);
         for tile in tiles {
             new_tiles.extend(tile.get_all_rotations(origin));
         }
@@ -232,7 +270,11 @@ impl ComplexGenerator {
         let mut tiles_by_south = HashMap::new();
         let mut tiles_by_west = HashMap::new();
         let mut tiles_by_east = HashMap::new();
+        let mut tiles_by_up = HashMap::new();
+        let mut tiles_by_down = HashMap::new();
+
         let tile_grid = HashMap::new();
+
         for tile in &tiles {
             if let Some(Connection {
                 name,
@@ -276,15 +318,35 @@ impl ComplexGenerator {
                         .push(tile.clone());
                 }
             }
+            if let Some(Connection { name, can_next, .. }) = &tile.connection_up {
+                if *can_next {
+                    tiles_by_up
+                        .entry(name.clone())
+                        .or_insert_with(Vec::new)
+                        .push(tile.clone());
+                }
+            }
+            if let Some(Connection { name, can_next, .. }) = &tile.connection_down {
+                if *can_next {
+                    tiles_by_down
+                        .entry(name.clone())
+                        .or_insert_with(Vec::new)
+                        .push(tile.clone());
+                }
+            }
         }
         Self {
-            size,
+            tile_size,
+            min_pos,
+            max_pos,
             tiles,
             starting_tiles,
             tiles_by_north,
             tiles_by_south,
             tiles_by_west,
             tiles_by_east,
+            tiles_by_up,
+            tiles_by_down,
             tile_grid,
         }
     }
@@ -303,6 +365,8 @@ impl ComplexGenerator {
             Direction::South => self.tiles_by_south.get(name),
             Direction::West => self.tiles_by_west.get(name),
             Direction::East => self.tiles_by_east.get(name),
+            Direction::Up => self.tiles_by_up.get(name),
+            Direction::Down => self.tiles_by_down.get(name),
         } {
             Some(v.clone())
         } else {
@@ -438,8 +502,6 @@ impl ComplexGenerator {
     /// Stops when it reaches the end of the grid (max.z).
     fn dfs(
         &mut self,
-        min: BlockPos,
-        max: BlockPos,
         current_pos: BlockPos, // doesn't exist in the grid
         current_direction: Direction,
         mut current_tiles: Vec<ComplexTile>,
@@ -458,12 +520,12 @@ impl ComplexGenerator {
                 .get_next(direction)
                 .expect("If the tile has a connection, it should have a name");
             let pos = current_pos + direction.to_block_pos();
-            if pos.x < min.x
-                || pos.y < min.y
-                || pos.z < min.z
-                || pos.x > max.x
-                || pos.y > max.y
-                || pos.z > max.z
+            if pos.x <     self.min_pos.x
+                || pos.y < self.min_pos.y
+                || pos.z < self.min_pos.z
+                || pos.x > self.max_pos.x
+                || pos.y > self.max_pos.y
+                || pos.z > self.max_pos.z
             {
                 continue;
             }
@@ -472,7 +534,7 @@ impl ComplexGenerator {
                 continue;
             }
 
-            if pos.z == max.z {
+            if pos.z == self.max_pos.z {
                 // We're done!
                 self.tile_grid.insert(current_pos, tile);
                 return Some(current_pos);
@@ -481,7 +543,7 @@ impl ComplexGenerator {
             self.tile_grid.insert(current_pos, tile);
             match self.get_placement(current_pos, current_direction, name) {
                 Some((new_pos, new_direction, new_tiles)) => {
-                    if let Some(t) = self.dfs(min, max, new_pos, new_direction, new_tiles, visited)
+                    if let Some(t) = self.dfs(new_pos, new_direction, new_tiles, visited)
                     {
                         return Some(t);
                     }
@@ -494,15 +556,13 @@ impl ComplexGenerator {
         None
     }
 
-    pub fn generate_dfs(&mut self, min: BlockPos, max: BlockPos) -> Option<BlockPos> {
+    pub fn generate_dfs(&mut self) -> Option<BlockPos> {
         let mut visited = HashSet::new();
         let current_pos = BlockPos::new(0, 0, 0);
         let current_direction = Direction::South;
         let current_tiles = self.starting_tiles.clone();
 
         return self.dfs(
-            min,
-            max,
             current_pos,
             current_direction,
             current_tiles,
@@ -516,7 +576,7 @@ impl BlockGenerator for ComplexGenerator {
         let mut blocks = HashMap::new();
 
         for (pos, tile) in &self.tile_grid {
-            let pos = (pos.to_vec3() * self.size.to_vec3()).to_block_pos();
+            let pos = (pos.to_vec3() * self.tile_size.to_vec3()).to_block_pos();
 
             tile.place(&mut blocks, &params.block_map, pos);
         }

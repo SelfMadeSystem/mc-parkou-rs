@@ -816,7 +816,6 @@ fn init_clients(
                     (
                         GenerationType::ComplexCustom(ComplexGenerator::new(
                             vec![
-                                // a
                                 ComplexTile {
                                     connection_north: Some(Connection {
                                         name: "a".to_string(),
@@ -828,8 +827,6 @@ fn init_clients(
                                         next_direction: complex_gen::Direction::North,
                                         ..Default::default()
                                     }),
-                                    connection_east: None,
-                                    connection_west: None,
                                     grid: BlockGrid::from([
                                         (
                                             BlockPos::new(0, 0, 0),
@@ -852,6 +849,7 @@ fn init_clients(
                                             BlockProperties::new("platform".to_string(), vec![])
                                         ),
                                     ]),
+                                    ..Default::default()
                                 },
                                 ComplexTile {
                                     connection_north: Some(Connection {
@@ -859,13 +857,11 @@ fn init_clients(
                                         next_direction: complex_gen::Direction::East,
                                         ..Default::default()
                                     }),
-                                    connection_south: None,
                                     connection_east: Some(Connection {
                                         name: "a".to_string(),
                                         next_direction: complex_gen::Direction::North,
                                         ..Default::default()
                                     }),
-                                    connection_west: None,
                                     grid: BlockGrid::from([
                                         (
                                             BlockPos::new(0, 0, 0),
@@ -888,6 +884,7 @@ fn init_clients(
                                             BlockProperties::new("platform".to_string(), vec![])
                                         ),
                                     ]),
+                                    ..Default::default()
                                 },
                                 ComplexTile {
                                     connection_north: Some(Connection {
@@ -954,6 +951,7 @@ fn init_clients(
                                             BlockProperties::new("platform".to_string(), vec![])
                                         ),
                                     ]),
+                                    ..Default::default()
                                 },
                                 // a -> b
                                 ComplexTile {
@@ -969,8 +967,6 @@ fn init_clients(
                                         can_start: false,
                                         ..Default::default()
                                     }),
-                                    connection_east: None,
-                                    connection_west: None,
                                     grid: BlockGrid::from([
                                         (
                                             BlockPos::new(0, 0, 0),
@@ -993,6 +989,7 @@ fn init_clients(
                                             BlockProperties::new("platform".to_string(), vec![])
                                         ),
                                     ]),
+                                    ..Default::default()
                                 },
                                 // b
                                 ComplexTile {
@@ -1008,8 +1005,6 @@ fn init_clients(
                                         can_start: false,
                                         ..Default::default()
                                     }),
-                                    connection_east: None,
-                                    connection_west: None,
                                     grid: BlockGrid::from([
                                         (
                                             BlockPos::new(0, 4, 0),
@@ -1032,6 +1027,7 @@ fn init_clients(
                                             BlockProperties::new("platform".to_string(), vec![])
                                         ),
                                     ]),
+                                    ..Default::default()
                                 },
                                 ComplexTile {
                                     connection_north: Some(Connection {
@@ -1040,14 +1036,12 @@ fn init_clients(
                                         can_start: false,
                                         ..Default::default()
                                     }),
-                                    connection_south: None,
                                     connection_east: Some(Connection {
                                         name: "b".to_string(),
                                         next_direction: complex_gen::Direction::North,
                                         can_start: false,
                                         ..Default::default()
                                     }),
-                                    connection_west: None,
                                     grid: BlockGrid::from([
                                         (
                                             BlockPos::new(0, 4, 0),
@@ -1070,6 +1064,7 @@ fn init_clients(
                                             BlockProperties::new("platform".to_string(), vec![])
                                         ),
                                     ]),
+                                    ..Default::default()
                                 },
                                 // a & b junction
                                 ComplexTile {
@@ -1139,11 +1134,14 @@ fn init_clients(
                                             BlockProperties::new("platform".to_string(), vec![])
                                         ),
                                     ]),
+                                    ..Default::default()
                                 },
                             ],
-                            BlockPos::new(5, 0, 5)
+                            BlockPos::new(5, 0, 5),
+                            BlockPos::new(-5, 0, 0),
+                            BlockPos::new(5, 1, 10),
                         )),
-                        100000000000000.0
+                        10.0
                     ),
                 ],
             ),

@@ -462,8 +462,7 @@ impl Generator {
                 let mut tries = 0;
 
                 let end = loop {
-                    if let Some(t) =
-                        gen.generate_dfs(BlockPos::new(-5, 0, 0), BlockPos::new(5, 0, 10)) // TODO: Make this configurable
+                    if let Some(t) = gen.generate_dfs()
                     {
                         break t;
                     }
@@ -477,9 +476,9 @@ impl Generator {
                 };
 
                 let end = BlockPos::new(
-                    end.x * gen.size.x,
-                    end.y * gen.size.y,
-                    (end.z + 1) * gen.size.z - 1,
+                    end.x * gen.tile_size.x,
+                    end.y * gen.tile_size.y,
+                    (end.z + 1) * gen.tile_size.z - 1,
                 );
 
                 let gen = gen.generate(&params);

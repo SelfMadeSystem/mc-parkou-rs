@@ -52,7 +52,7 @@ impl BlockProperties {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BlockGrid {
     pub blocks: HashMap<BlockPos, BlockProperties>,
 }
