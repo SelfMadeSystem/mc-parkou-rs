@@ -98,6 +98,10 @@ pub struct Connection {
     pub can_next: bool,
     /// If true, this tile can be the start of the path
     pub can_start: bool,
+    // TODO: Add blocks that are part of the connection. If either the blocks
+    // in this connection or in the next connection are empty, it is assumed to
+    // be a straight connection and the one with blocks is used.
+    // TODO: Add ^^^ to the `verify` function
 }
 
 impl Default for Connection {
@@ -232,6 +236,61 @@ impl ComplexTile {
             grid.insert(block_pos, block);
         }
     }
+
+    /// Verifies that the tile is valid.
+    /// A tile is valid if it has at least two connections and every
+    /// connection's `next_direction` points to a connection that exists and
+    /// whose `next_direction` points back to the original connection.
+    /// 
+    /// Returns the first error it finds.
+    pub fn verify(&self) -> Result<(), String> {
+        let mut connections = HashMap::new();
+
+        if let Some(connection) = &self.connection_north {
+            connections.insert(Direction::North, connection);
+        }
+        if let Some(connection) = &self.connection_south {
+            connections.insert(Direction::South, connection);
+        }
+        if let Some(connection) = &self.connection_west {
+            connections.insert(Direction::West, connection);
+        }
+        if let Some(connection) = &self.connection_east {
+            connections.insert(Direction::East, connection);
+        }
+        if let Some(connection) = &self.connection_up {
+            connections.insert(Direction::Up, connection);
+        }
+        if let Some(connection) = &self.connection_down {
+            connections.insert(Direction::Down, connection);
+        }
+
+        if connections.len() < 2 {
+            return Err("A tile must have at least two connections".to_owned());
+        }
+        
+        for (direction, connection) in &connections {
+            if let Some(next_connection) = connections.get(&connection.next_direction) {
+                if next_connection.next_direction != *direction {
+                    return Err(format!(
+                        "The connection {:?} points to {:?}, but the connection {:?} points to {:?}",
+                        direction,
+                        connection.next_direction,
+                        connection.next_direction,
+                        next_connection.next_direction,
+                    ));
+                }
+            } else {
+                return Err(format!(
+                    "The connection {:?} points to {:?}, but that connection doesn't exist",
+                    direction,
+                    connection.next_direction,
+                ));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -261,6 +320,9 @@ impl ComplexGenerator {
         let mut new_tiles = Vec::new();
         let origin = BlockPos::new(0, 0, tile_size.z / 2);
         for tile in tiles {
+            if let Err(e) = tile.verify() {
+                panic!("Invalid tile: {}", e);
+            }
             new_tiles.extend(tile.get_all_rotations(origin));
         }
 
