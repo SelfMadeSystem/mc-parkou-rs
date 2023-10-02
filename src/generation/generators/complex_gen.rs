@@ -489,9 +489,11 @@ impl ComplexGenerator {
         }
     }
 
-    /// Returns the end of the path including the direction and the name of the
-    /// previous tile. The pos will always be empty. If the path loops back to
-    /// the start, None is returned.
+    /// The `get_placement` function is used to select a tile based on the
+    /// provided position, direction, and name. It checks if the next tile
+    /// connects to the current tile and also ensures that it's not creating an
+    /// infinite loop. If all checks pass, it returns the new position,
+    /// direction, and the name of the connection for the next tile.
     fn get_end_of_path(
         &self,
         pos: BlockPos,
@@ -523,6 +525,11 @@ impl ComplexGenerator {
         }
     }
 
+    /// The `get_placement` function is used to select a tile based on the
+    /// provided position, direction, and name. It checks if the next tile
+    /// connects to the current tile and also ensures that it's not creating an
+    /// infinite loop. If all checks pass, it returns the new position,
+    /// direction, and possible tiles that can be placed there.
     pub fn get_placement(
         &self,
         pos: BlockPos,
@@ -613,7 +620,16 @@ impl ComplexGenerator {
         }
     }
 
-    /// The depth-first search algorithm used to generate the path.
+    /// The dfs function is the main driver of the path generation.
+    /// 
+    /// It shuffles the possible tiles and then, for each tile, it checks if the
+    /// position it leads to is within the grid boundaries and not visited yet.
+    /// If the tile leads to the end of the grid, the function ends. If the tile
+    /// doesn't lead to the end, the function calls itself recursively with the
+    /// new position, direction, and possible tiles. If none of the tiles lead
+    /// to a valid path, the function backtracks by removing the current
+    /// position from the grid and adding it to the visited set.
+    /// 
     /// Stops when it reaches the end of the grid (max.z).
     fn dfs(
         &mut self,
@@ -664,8 +680,8 @@ impl ComplexGenerator {
                 }
                 None => {}
             }
-            visited.insert(pos);
             self.tile_grid.remove(&current_pos);
+            visited.insert(pos);
         }
         None
     }
