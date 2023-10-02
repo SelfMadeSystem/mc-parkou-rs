@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::collections::HashSet;
+
 use rand::Rng;
 use valence::{
     math::IVec3,
@@ -470,6 +472,30 @@ pub fn prop_value_flip_x(value: PropValue) -> PropValue {
     }
 }
 
+/// Rotates a `HashSet<BlockPos>` clockwise along the Y axis around a given point.
+pub fn rotate_block_set_cw(set: &HashSet<BlockPos>, origin: BlockPos) -> HashSet<BlockPos> {
+    let mut blocks = HashSet::new();
+
+    for pos in set {
+        let pos = pos.rotate_cw(origin);
+        blocks.insert(pos);
+    }
+
+    blocks
+}
+
+/// Flip a `HashSet<BlockPos>` along the X axis around a given point.
+pub fn flip_block_set_x(set: &HashSet<BlockPos>, origin: BlockPos) -> HashSet<BlockPos> {
+    let mut blocks = HashSet::new();
+
+    for pos in set {
+        let pos = pos.flip_x(origin);
+        blocks.insert(pos);
+    }
+
+    blocks
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum JumpDirection {
     Up,
@@ -568,5 +594,15 @@ impl BlockPosUtils for BlockPos {
         let x = -x;
 
         BlockPos::new(x + origin.x, self.y, z + origin.z)
+    }
+}
+
+pub trait MulBlockPos {
+    fn mul_block_pos(&self, other: BlockPos) -> BlockPos;
+}
+
+impl MulBlockPos for BlockPos {
+    fn mul_block_pos(&self, other: BlockPos) -> BlockPos {
+        BlockPos::new(self.x * other.x, self.y * other.y, self.z * other.z)
     }
 }

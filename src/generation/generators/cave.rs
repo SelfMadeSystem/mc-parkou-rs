@@ -204,7 +204,7 @@ impl CaveGenerator {
 
         lines.extend(new_lines);
 
-        children.push(ChildGeneration::new(blocks, HashMap::new()));
+        children.push(ChildGeneration::blocks_alt_blocks(blocks, HashMap::new()));
 
         self.generate_platforms(air, children, size, pos, xz_air, floor_level, lines, map)
     }

@@ -47,7 +47,7 @@ impl SingleCustomPreset {
     }
 
     fn generate_child(&self, offset: BlockPos, map: &BuiltBlockCollectionMap) -> ChildGeneration {
-        ChildGeneration::new(self.get_blocks(offset, map), Default::default())
+        ChildGeneration::blocks_alt_blocks(self.get_blocks(offset, map), Default::default())
     }
 }
 

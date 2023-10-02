@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
@@ -201,18 +201,31 @@ impl Generation {
 #[derive(Clone, Debug)]
 pub struct ChildGeneration {
     pub blocks: HashMap<BlockPos, BlockState>,
+    pub check_blocks: HashSet<BlockPos>,
     pub alt_blocks: HashMap<BlockPos, AltBlock>,
     pub reached: bool,
 }
 
 impl ChildGeneration {
-    pub fn new(
+    pub fn blocks_alt_blocks(
         blocks: HashMap<BlockPos, BlockState>,
         alt_blocks: HashMap<BlockPos, AltBlock>,
     ) -> Self {
         Self {
             blocks,
             alt_blocks,
+            check_blocks: HashSet::new(),
+            reached: false,
+        }
+    }
+
+    pub fn check_blocks(
+        check_blocks: HashSet<BlockPos>,
+    ) -> Self {
+        Self {
+            blocks: HashMap::new(),
+            alt_blocks: HashMap::new(),
+            check_blocks,
             reached: false,
         }
     }
@@ -284,7 +297,7 @@ impl ChildGeneration {
         let poses = get_player_floor_blocks(pos.0 - offset.to_vec3().as_dvec3());
 
         for pos in poses {
-            if self.blocks.contains_key(&(pos)) {
+            if self.blocks.contains_key(&(pos)) || self.check_blocks.contains(&(pos)) {
                 self.reached = true;
                 return true;
             }

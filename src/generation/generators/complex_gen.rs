@@ -9,6 +9,7 @@ use crate::{
     generation::{
         block_collection::BuiltBlockCollectionMap,
         block_grid::BlockGrid,
+        generation::ChildGeneration,
         generator::{BlockGenParams, BlockGenerator, GenerateResult},
     },
     utils::*,
@@ -90,7 +91,7 @@ impl ToBlockPos for Direction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq)]
 pub struct Connection {
     pub name: String,
     pub next_direction: Direction,
@@ -98,10 +99,30 @@ pub struct Connection {
     pub can_next: bool,
     /// If true, this tile can be the start of the path
     pub can_start: bool,
-    // TODO: Add blocks that are part of the connection. If either the blocks
-    // in this connection or in the next connection are empty, it is assumed to
-    // be a straight connection and the one with blocks is used.
-    // TODO: Add ^^^ to the `verify` function
+    /// The blocks that are part of this connection. If None, then the next
+    /// connection's blocks will be used and it is assumed to be continuous.
+    pub blocks: Option<HashSet<BlockPos>>,
+}
+
+impl PartialEq for Connection {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.next_direction == other.next_direction
+            && self.can_next == other.can_next
+            && self.can_start == other.can_start
+            && self.blocks.as_ref().map_or(0, |a| a.len())
+                == other.blocks.as_ref().map_or(0, |a| a.len()) // TODO: I might not need this
+    }
+}
+
+impl std::hash::Hash for Connection {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.next_direction.hash(state);
+        self.can_next.hash(state);
+        self.can_start.hash(state);
+        self.blocks.as_ref().map_or(0, |a| a.len()).hash(state); // TODO: I might not need this
+    }
 }
 
 impl Default for Connection {
@@ -111,21 +132,30 @@ impl Default for Connection {
             next_direction: Default::default(),
             can_next: true,
             can_start: true,
+            blocks: None,
         }
     }
 }
 
 impl Connection {
-    pub fn rotate_cw(&self) -> Connection {
+    pub fn rotate_cw(&self, origin: BlockPos) -> Connection {
         Connection {
             next_direction: self.next_direction.get_right(),
+            blocks: self
+                .blocks
+                .as_ref()
+                .map(|blocks| rotate_block_set_cw(blocks, origin)),
             ..self.clone()
         }
     }
 
-    pub fn flip_x(&self) -> Connection {
+    pub fn flip_x(&self, origin: BlockPos) -> Connection {
         Connection {
             next_direction: self.next_direction.mirror_horizontal(),
+            blocks: self
+                .blocks
+                .as_ref()
+                .map(|blocks| flip_block_set_x(blocks, origin)),
             ..self.clone()
         }
     }
@@ -184,12 +214,12 @@ impl ComplexTile {
     /// Returns the tile rotated 90 degrees clockwise
     pub fn rotate_cw(&self, origin: BlockPos) -> ComplexTile {
         ComplexTile {
-            connection_north: self.connection_west.as_ref().map(|c| c.rotate_cw()),
-            connection_south: self.connection_east.as_ref().map(|c| c.rotate_cw()),
-            connection_west: self.connection_south.as_ref().map(|c| c.rotate_cw()),
-            connection_east: self.connection_north.as_ref().map(|c| c.rotate_cw()),
-            connection_up: self.connection_up.as_ref().map(|c| c.rotate_cw()),
-            connection_down: self.connection_down.as_ref().map(|c| c.rotate_cw()),
+            connection_north: self.connection_west.as_ref().map(|c| c.rotate_cw(origin)),
+            connection_south: self.connection_east.as_ref().map(|c| c.rotate_cw(origin)),
+            connection_west: self.connection_south.as_ref().map(|c| c.rotate_cw(origin)),
+            connection_east: self.connection_north.as_ref().map(|c| c.rotate_cw(origin)),
+            connection_up: self.connection_up.as_ref().map(|c| c.rotate_cw(origin)),
+            connection_down: self.connection_down.as_ref().map(|c| c.rotate_cw(origin)),
             grid: self.grid.rotate_cw(origin),
             ..self.clone()
         }
@@ -198,12 +228,12 @@ impl ComplexTile {
     /// Returns the tile flipped along the X axis
     pub fn flip_x(&self, origin: BlockPos) -> ComplexTile {
         ComplexTile {
-            connection_north: self.connection_north.as_ref().map(|c| c.flip_x()),
-            connection_south: self.connection_south.as_ref().map(|c| c.flip_x()),
-            connection_west: self.connection_east.as_ref().map(|c| c.flip_x()),
-            connection_east: self.connection_west.as_ref().map(|c| c.flip_x()),
-            connection_up: self.connection_up.as_ref().map(|c| c.flip_x()),
-            connection_down: self.connection_down.as_ref().map(|c| c.flip_x()),
+            connection_north: self.connection_north.as_ref().map(|c| c.flip_x(origin)),
+            connection_south: self.connection_south.as_ref().map(|c| c.flip_x(origin)),
+            connection_west: self.connection_east.as_ref().map(|c| c.flip_x(origin)),
+            connection_east: self.connection_west.as_ref().map(|c| c.flip_x(origin)),
+            connection_up: self.connection_up.as_ref().map(|c| c.flip_x(origin)),
+            connection_down: self.connection_down.as_ref().map(|c| c.flip_x(origin)),
             grid: self.grid.flip_x(origin),
             ..self.clone()
         }
@@ -240,8 +270,10 @@ impl ComplexTile {
     /// Verifies that the tile is valid.
     /// A tile is valid if it has at least two connections and every
     /// connection's `next_direction` points to a connection that exists and
-    /// whose `next_direction` points back to the original connection.
-    /// 
+    /// whose `next_direction` points back to the original connection, as well
+    /// as at least one of the connections having `blocks` defined with a length
+    /// greater than 0.
+    ///
     /// Returns the first error it finds.
     pub fn verify(&self) -> Result<(), String> {
         let mut connections = HashMap::new();
@@ -268,7 +300,7 @@ impl ComplexTile {
         if connections.len() < 2 {
             return Err("A tile must have at least two connections".to_owned());
         }
-        
+
         for (direction, connection) in &connections {
             if let Some(next_connection) = connections.get(&connection.next_direction) {
                 if next_connection.next_direction != *direction {
@@ -280,11 +312,32 @@ impl ComplexTile {
                         next_connection.next_direction,
                     ));
                 }
+
+                if connection.blocks.is_none() && next_connection.blocks.is_none() {
+                    return Err(format!(
+                        "The connection {:?} and the connection {:?} both have no blocks",
+                        direction, connection.next_direction,
+                    ));
+                }
+
+                if let Some(blocks) = &connection.blocks {
+                    if blocks.is_empty() {
+                        return Err(format!("The connection {:?} has no blocks", direction,));
+                    }
+                }
+
+                if let Some(blocks) = &next_connection.blocks {
+                    if blocks.is_empty() {
+                        return Err(format!(
+                            "The connection {:?} has no blocks",
+                            next_connection.next_direction,
+                        ));
+                    }
+                }
             } else {
                 return Err(format!(
                     "The connection {:?} points to {:?}, but that connection doesn't exist",
-                    direction,
-                    connection.next_direction,
+                    direction, connection.next_direction,
                 ));
             }
         }
@@ -582,7 +635,7 @@ impl ComplexGenerator {
                 .get_next(direction)
                 .expect("If the tile has a connection, it should have a name");
             let pos = current_pos + direction.to_block_pos();
-            if pos.x <     self.min_pos.x
+            if pos.x < self.min_pos.x
                 || pos.y < self.min_pos.y
                 || pos.z < self.min_pos.z
                 || pos.x > self.max_pos.x
@@ -605,8 +658,7 @@ impl ComplexGenerator {
             self.tile_grid.insert(current_pos, tile);
             match self.get_placement(current_pos, current_direction, name) {
                 Some((new_pos, new_direction, new_tiles)) => {
-                    if let Some(t) = self.dfs(new_pos, new_direction, new_tiles, visited)
-                    {
+                    if let Some(t) = self.dfs(new_pos, new_direction, new_tiles, visited) {
                         return Some(t);
                     }
                 }
@@ -624,25 +676,89 @@ impl ComplexGenerator {
         let current_direction = Direction::South;
         let current_tiles = self.starting_tiles.clone();
 
-        return self.dfs(
-            current_pos,
-            current_direction,
-            current_tiles,
-            &mut visited,
-        );
+        return self.dfs(current_pos, current_direction, current_tiles, &mut visited);
+    }
+
+    pub fn get_block_segments(&self) -> Vec<Vec<BlockPos>> {
+        let mut segments = Vec::new();
+        let mut current_segment = Vec::new();
+        let mut current_pos = BlockPos::new(0, 0, 0);
+        let mut current_direction = Direction::South;
+
+        loop {
+            if let Some(tile) = self.get_tile(current_pos) {
+                if let Some(Connection {
+                    next_direction,
+                    blocks,
+                    ..
+                }) = tile.get_next(current_direction.get_opposite())
+                {
+                    let has_blocks = if let Some(blocks) = blocks {
+                        current_segment.extend(
+                            blocks
+                                .iter()
+                                .map(|b| current_pos.mul_block_pos(self.tile_size) + *b),
+                        );
+                        true
+                    } else {
+                        false
+                    };
+                    if let Some(Connection { blocks, .. }) = tile.get_next(next_direction) {
+                        if let Some(blocks) = blocks {
+                            if has_blocks {
+                                segments.push(current_segment);
+                                current_segment = Vec::new();
+                            }
+                            current_segment.extend(
+                                blocks
+                                    .iter()
+                                    .map(|b| current_pos.mul_block_pos(self.tile_size) + *b),
+                            );
+                        }
+                    }
+                    current_pos = current_pos + next_direction.to_block_pos();
+                    current_direction = next_direction;
+                    continue;
+                } else {
+                    panic!("Tile should have been filtered out if it doesn't have a connection");
+                }
+            } else {
+                if !current_segment.is_empty() {
+                    segments.push(current_segment);
+                }
+                break;
+            }
+        }
+        segments
     }
 }
 
 impl BlockGenerator for ComplexGenerator {
     fn generate(&self, params: &BlockGenParams) -> GenerateResult {
         let mut blocks = HashMap::new();
+        let mut children = Vec::new();
 
         for (pos, tile) in &self.tile_grid {
             let pos = (pos.to_vec3() * self.tile_size.to_vec3()).to_block_pos();
 
-            tile.place(&mut blocks, &params.block_map, pos);
+            tile.place(&mut blocks, &params.block_map.rebuild(), pos);
         }
 
-        GenerateResult::just_blocks(blocks, BlockPos::new(0, 0, 0), BlockPos::new(0, 0, 0))
+        let segments = self.get_block_segments();
+
+        for segment in segments {
+            children.push(ChildGeneration::check_blocks(segment.into_iter().collect()));
+        }
+
+        children[0].reached = true;
+
+        GenerateResult {
+            start: BlockPos::new(0, 0, 0),
+            end: BlockPos::new(0, 0, 0),
+            blocks,
+            children,
+            alt_blocks: HashMap::new(),
+            lines: Vec::new(),
+        }
     }
 }

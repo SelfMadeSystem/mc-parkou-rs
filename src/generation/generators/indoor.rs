@@ -181,7 +181,7 @@ impl IndoorGenerator {
 
         let pos = prediction.get_block_pos();
 
-        children.push(ChildGeneration::new(
+        children.push(ChildGeneration::blocks_alt_blocks(
             HashMap::from([(pos, map.get_block(&self.platforms))]),
             HashMap::new(),
         ));

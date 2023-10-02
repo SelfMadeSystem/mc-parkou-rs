@@ -106,7 +106,7 @@ impl BlinkBlocksGenerator {
                 self.size.y - 1,
             );
 
-        (ChildGeneration::new(blocks, alt_blocks), pos)
+        (ChildGeneration::blocks_alt_blocks(blocks, alt_blocks), pos)
     }
 }
 

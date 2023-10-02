@@ -820,33 +820,37 @@ fn init_clients(
                                     connection_north: Some(Connection {
                                         name: "a".to_string(),
                                         next_direction: complex_gen::Direction::South,
+                                        blocks: Some(HashSet::from([
+                                            BlockPos::new(0, 0, 0),
+                                            BlockPos::new(0, 0, 1),
+                                        ])),
                                         ..Default::default()
                                     }),
                                     connection_south: Some(Connection {
                                         name: "a".to_string(),
                                         next_direction: complex_gen::Direction::North,
+                                        blocks: Some(HashSet::from([
+                                            BlockPos::new(0, 0, 3),
+                                            BlockPos::new(0, 0, 4),
+                                        ])),
                                         ..Default::default()
                                     }),
                                     grid: BlockGrid::from([
                                         (
                                             BlockPos::new(0, 0, 0),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(0, 0, 1),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 0, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(0, 0, 3),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(0, 0, 4),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                     ]),
                                     ..Default::default()
@@ -855,33 +859,32 @@ fn init_clients(
                                     connection_north: Some(Connection {
                                         name: "a".to_string(),
                                         next_direction: complex_gen::Direction::East,
+                                        blocks: Some(HashSet::from([
+                                            BlockPos::new(0, 0, 0),
+                                            BlockPos::new(0, 0, 1),
+                                        ])),
                                         ..Default::default()
                                     }),
                                     connection_east: Some(Connection {
                                         name: "a".to_string(),
                                         next_direction: complex_gen::Direction::North,
+                                        blocks: Some(HashSet::from([
+                                            BlockPos::new(2, 0, 2),
+                                        ])),
                                         ..Default::default()
                                     }),
                                     grid: BlockGrid::from([
                                         (
                                             BlockPos::new(0, 0, 0),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(0, 0, 1),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 0, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(1, 0, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(2, 0, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                     ]),
                                     ..Default::default()
@@ -890,6 +893,13 @@ fn init_clients(
                                     connection_north: Some(Connection {
                                         name: "a".to_string(),
                                         next_direction: complex_gen::Direction::South,
+                                        blocks: Some(HashSet::from([
+                                            BlockPos::new(0, 0, 0),
+                                            BlockPos::new(0, 0, 1),
+                                            BlockPos::new(0, 0, 2),
+                                            BlockPos::new(0, 0, 3),
+                                            BlockPos::new(0, 0, 4),
+                                        ])),
                                         ..Default::default()
                                     }),
                                     connection_south: Some(Connection {
@@ -900,248 +910,272 @@ fn init_clients(
                                     connection_east: Some(Connection {
                                         name: "a".to_string(),
                                         next_direction: complex_gen::Direction::West,
+                                        blocks: Some(HashSet::from([
+                                            BlockPos::new(2, 1, 2),
+                                            BlockPos::new(1, 2, 2),
+                                            BlockPos::new(1, 2, 3),
+                                            BlockPos::new(1, 2, 1),
+                                        ])),
                                         can_next: false,
                                         ..Default::default()
                                     }),
                                     connection_west: Some(Connection {
                                         name: "a".to_string(),
                                         next_direction: complex_gen::Direction::East,
+                                        blocks: Some(HashSet::from([
+                                            BlockPos::new(-1, 1, 2),
+                                            BlockPos::new(-2, 2, 2),
+                                            BlockPos::new(-2, 2, 1),
+                                            BlockPos::new(-2, 2, 3),
+                                        ])),
                                         can_next: false,
                                         ..Default::default()
                                     }),
                                     grid: BlockGrid::from([
                                         (
                                             BlockPos::new(0, 0, 0),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(0, 0, 1),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(0, 0, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(0, 0, 3),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(0, 0, 4),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(2, 1, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(1, 2, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
-                                            BlockPos::new(0, 3, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockPos::new(1, 2, 1),
+                                            BlockProperties::new("concrete".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(1, 2, 3),
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(-1, 2, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(-1, 2, 1),
+                                            BlockProperties::new("concrete".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(-1, 2, 3),
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                         (
                                             BlockPos::new(-2, 1, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
+                                            BlockProperties::new("concrete".to_string(), vec![])
                                         ),
                                     ]),
                                     ..Default::default()
                                 },
-                                // a -> b
-                                ComplexTile {
-                                    connection_north: Some(Connection {
-                                        name: "a".to_string(),
-                                        next_direction: complex_gen::Direction::South,
-                                        can_start: false,
-                                        ..Default::default()
-                                    }),
-                                    connection_south: Some(Connection {
-                                        name: "b".to_string(),
-                                        next_direction: complex_gen::Direction::North,
-                                        can_start: false,
-                                        ..Default::default()
-                                    }),
-                                    grid: BlockGrid::from([
-                                        (
-                                            BlockPos::new(0, 0, 0),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 1, 1),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 2, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 3, 3),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 4, 4),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                    ]),
-                                    ..Default::default()
-                                },
-                                // b
-                                ComplexTile {
-                                    connection_north: Some(Connection {
-                                        name: "b".to_string(),
-                                        next_direction: complex_gen::Direction::South,
-                                        can_start: false,
-                                        ..Default::default()
-                                    }),
-                                    connection_south: Some(Connection {
-                                        name: "b".to_string(),
-                                        next_direction: complex_gen::Direction::North,
-                                        can_start: false,
-                                        ..Default::default()
-                                    }),
-                                    grid: BlockGrid::from([
-                                        (
-                                            BlockPos::new(0, 4, 0),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 4, 1),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 4, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 4, 3),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 4, 4),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                    ]),
-                                    ..Default::default()
-                                },
-                                ComplexTile {
-                                    connection_north: Some(Connection {
-                                        name: "b".to_string(),
-                                        next_direction: complex_gen::Direction::East,
-                                        can_start: false,
-                                        ..Default::default()
-                                    }),
-                                    connection_east: Some(Connection {
-                                        name: "b".to_string(),
-                                        next_direction: complex_gen::Direction::North,
-                                        can_start: false,
-                                        ..Default::default()
-                                    }),
-                                    grid: BlockGrid::from([
-                                        (
-                                            BlockPos::new(0, 4, 0),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 4, 1),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 4, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(1, 4, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(2, 4, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                    ]),
-                                    ..Default::default()
-                                },
-                                // a & b junction
-                                ComplexTile {
-                                    connection_north: Some(Connection {
-                                        name: "a".to_string(),
-                                        next_direction: complex_gen::Direction::South,
-                                        ..Default::default()
-                                    }),
-                                    connection_south: Some(Connection {
-                                        name: "a".to_string(),
-                                        next_direction: complex_gen::Direction::North,
-                                        ..Default::default()
-                                    }),
-                                    connection_east: Some(Connection {
-                                        name: "b".to_string(),
-                                        next_direction: complex_gen::Direction::West,
-                                        can_next: false,
-                                        can_start: false,
-                                        ..Default::default()
-                                    }),
-                                    connection_west: Some(Connection {
-                                        name: "b".to_string(),
-                                        next_direction: complex_gen::Direction::East,
-                                        can_next: false,
-                                        can_start: false,
-                                        ..Default::default()
-                                    }),
-                                    grid: BlockGrid::from([
-                                        (
-                                            BlockPos::new(0, 0, 0),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 0, 1),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 0, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 0, 3),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 0, 4),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(2, 4, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(1, 4, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(0, 4, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(-1, 4, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                        (
-                                            BlockPos::new(-2, 4, 2),
-                                            BlockProperties::new("platform".to_string(), vec![])
-                                        ),
-                                    ]),
-                                    ..Default::default()
-                                },
+                                // // a -> b
+                                // ComplexTile {
+                                //     connection_north: Some(Connection {
+                                //         name: "a".to_string(),
+                                //         next_direction: complex_gen::Direction::South,
+                                //         can_start: false,
+                                //         ..Default::default()
+                                //     }),
+                                //     connection_south: Some(Connection {
+                                //         name: "b".to_string(),
+                                //         next_direction: complex_gen::Direction::North,
+                                //         can_start: false,
+                                //         ..Default::default()
+                                //     }),
+                                //     grid: BlockGrid::from([
+                                //         (
+                                //             BlockPos::new(0, 0, 0),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 1, 1),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 2, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 3, 3),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 4, 4),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //     ]),
+                                //     ..Default::default()
+                                // },
+                                // // b
+                                // ComplexTile {
+                                //     connection_north: Some(Connection {
+                                //         name: "b".to_string(),
+                                //         next_direction: complex_gen::Direction::South,
+                                //         can_start: false,
+                                //         ..Default::default()
+                                //     }),
+                                //     connection_south: Some(Connection {
+                                //         name: "b".to_string(),
+                                //         next_direction: complex_gen::Direction::North,
+                                //         can_start: false,
+                                //         ..Default::default()
+                                //     }),
+                                //     grid: BlockGrid::from([
+                                //         (
+                                //             BlockPos::new(0, 4, 0),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 4, 1),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 4, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 4, 3),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 4, 4),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //     ]),
+                                //     ..Default::default()
+                                // },
+                                // ComplexTile {
+                                //     connection_north: Some(Connection {
+                                //         name: "b".to_string(),
+                                //         next_direction: complex_gen::Direction::East,
+                                //         can_start: false,
+                                //         ..Default::default()
+                                //     }),
+                                //     connection_east: Some(Connection {
+                                //         name: "b".to_string(),
+                                //         next_direction: complex_gen::Direction::North,
+                                //         can_start: false,
+                                //         ..Default::default()
+                                //     }),
+                                //     grid: BlockGrid::from([
+                                //         (
+                                //             BlockPos::new(0, 4, 0),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 4, 1),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 4, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(1, 4, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(2, 4, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //     ]),
+                                //     ..Default::default()
+                                // },
+                                // // a & b junction
+                                // ComplexTile {
+                                //     connection_north: Some(Connection {
+                                //         name: "a".to_string(),
+                                //         next_direction: complex_gen::Direction::South,
+                                //         ..Default::default()
+                                //     }),
+                                //     connection_south: Some(Connection {
+                                //         name: "a".to_string(),
+                                //         next_direction: complex_gen::Direction::North,
+                                //         ..Default::default()
+                                //     }),
+                                //     connection_east: Some(Connection {
+                                //         name: "b".to_string(),
+                                //         next_direction: complex_gen::Direction::West,
+                                //         can_next: false,
+                                //         can_start: false,
+                                //         ..Default::default()
+                                //     }),
+                                //     connection_west: Some(Connection {
+                                //         name: "b".to_string(),
+                                //         next_direction: complex_gen::Direction::East,
+                                //         can_next: false,
+                                //         can_start: false,
+                                //         ..Default::default()
+                                //     }),
+                                //     grid: BlockGrid::from([
+                                //         (
+                                //             BlockPos::new(0, 0, 0),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 0, 1),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 0, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 0, 3),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 0, 4),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(2, 4, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(1, 4, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(0, 4, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(-1, 4, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //         (
+                                //             BlockPos::new(-2, 4, 2),
+                                //             BlockProperties::new("platform".to_string(), vec![])
+                                //         ),
+                                //     ]),
+                                //     ..Default::default()
+                                // },
                             ],
                             BlockPos::new(5, 0, 5),
                             BlockPos::new(-5, 0, 0),
                             BlockPos::new(5, 1, 10),
                         )),
-                        10.0
+                        10000000.0
                     ),
                 ],
             ),
