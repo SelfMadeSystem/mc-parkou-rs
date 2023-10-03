@@ -987,6 +987,67 @@ fn init_clients(
                                     ]),
                                     ..Default::default()
                                 },
+                                ComplexTile {
+                                    connection_north: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::Up,
+                                        blocks: Some(HashSet::from([
+                                            BlockPos::new(0, 1, 0),
+                                            BlockPos::new(0, 2, 1),
+                                            BlockPos::new(0, 3, 2),
+                                        ])),
+                                        ..Default::default()
+                                    }),
+                                    connection_up: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::North,
+                                        attach_direction: Some(complex_gen::Direction::North),
+                                        ..Default::default()
+                                    }),
+                                    grid: BlockGrid::from([
+                                        (
+                                            BlockPos::new(0, 1, 0),
+                                            BlockProperties::new("concrete".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 2, 1),
+                                            BlockProperties::new("concrete".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, 3, 2),
+                                            BlockProperties::new("concrete".to_string(), vec![])
+                                        ),
+                                    ]),
+                                    ..Default::default()
+                                },
+                                ComplexTile {
+                                    connection_north: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::Down,
+                                        blocks: Some(HashSet::from([
+                                            BlockPos::new(0, 0, 0),
+                                            BlockPos::new(0, -1, 1),
+                                        ])),
+                                        ..Default::default()
+                                    }),
+                                    connection_down: Some(Connection {
+                                        name: "a".to_string(),
+                                        next_direction: complex_gen::Direction::North,
+                                        attach_direction: Some(complex_gen::Direction::South),
+                                        ..Default::default()
+                                    }),
+                                    grid: BlockGrid::from([
+                                        (
+                                            BlockPos::new(0, 0, 0),
+                                            BlockProperties::new("concrete".to_string(), vec![])
+                                        ),
+                                        (
+                                            BlockPos::new(0, -1, 1),
+                                            BlockProperties::new("concrete".to_string(), vec![])
+                                        ),
+                                    ]),
+                                    ..Default::default()
+                                },
                                 // // a -> b
                                 // ComplexTile {
                                 //     connection_north: Some(Connection {
@@ -1171,7 +1232,7 @@ fn init_clients(
                                 //     ..Default::default()
                                 // },
                             ],
-                            BlockPos::new(5, 0, 5),
+                            BlockPos::new(5, 5, 5),
                             BlockPos::new(-5, 0, 0),
                             BlockPos::new(5, 1, 10),
                         )),

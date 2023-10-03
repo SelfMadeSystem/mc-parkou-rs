@@ -73,8 +73,24 @@ impl Direction {
         }
     }
 
-    pub fn get_forward_and_orthogonal(&self) -> [Direction; 3] {
-        [self.clone(), self.get_left(), self.get_right()]
+    pub fn get_forward_and_orthogonal(&self) -> [Direction; 5] {
+        match self {
+            Direction::Up | Direction::Down => [
+                self.clone(),
+                Direction::North,
+                Direction::South,
+                Direction::West,
+                Direction::East,
+            ],
+            _ => [self.clone(), self.get_left(), self.get_right(), Direction::Up, Direction::Down],
+        }
+    }
+
+    pub fn is_news(&self) -> bool {
+        match self {
+            Direction::North | Direction::South | Direction::West | Direction::East => true,
+            _ => false,
+        }
     }
 }
 
@@ -102,6 +118,11 @@ pub struct Connection {
     /// The blocks that are part of this connection. If None, then the next
     /// connection's blocks will be used and it is assumed to be continuous.
     pub blocks: Option<HashSet<BlockPos>>,
+    /// Only used with Up and Down connections. If Some, then the orientation of
+    /// the previous tile will be used to determine the orientation of this tile.
+    /// Must be either North, South, West, or East and must be present in the
+    /// if this connection is Up or Down.
+    pub attach_direction: Option<Direction>,
 }
 
 impl PartialEq for Connection {
@@ -133,6 +154,7 @@ impl Default for Connection {
             can_next: true,
             can_start: true,
             blocks: None,
+            attach_direction: None,
         }
     }
 }
@@ -145,6 +167,7 @@ impl Connection {
                 .blocks
                 .as_ref()
                 .map(|blocks| rotate_block_set_cw(blocks, origin)),
+            attach_direction: self.attach_direction.as_ref().map(|d| d.get_right()),
             ..self.clone()
         }
     }
@@ -156,6 +179,7 @@ impl Connection {
                 .blocks
                 .as_ref()
                 .map(|blocks| flip_block_set_x(blocks, origin)),
+            attach_direction: self.attach_direction.as_ref().map(|d| d.mirror_horizontal()),
             ..self.clone()
         }
     }
@@ -243,7 +267,7 @@ impl ComplexTile {
     pub fn get_all_rotations(&self, origin: BlockPos) -> Vec<ComplexTile> {
         let mut tiles = HashSet::new();
         let mut current_tile = self.clone();
-        for _ in 0..4 {
+        for _ in 0..4 { // FIXME: Will bug out if the tile is not square
             tiles.insert(current_tile.clone());
             if !self.disable_flip {
                 tiles.insert(current_tile.flip_x(origin));
@@ -268,11 +292,15 @@ impl ComplexTile {
     }
 
     /// Verifies that the tile is valid.
+    /// 
     /// A tile is valid if it has at least two connections and every
     /// connection's `next_direction` points to a connection that exists and
     /// whose `next_direction` points back to the original connection, as well
     /// as at least one of the connections having `blocks` defined with a length
     /// greater than 0.
+    /// 
+    /// If a direction is Up or Down, then the `attach_direction` must be
+    /// defined and must be either North, South, West, or East.
     ///
     /// Returns the first error it finds.
     pub fn verify(&self) -> Result<(), String> {
@@ -292,9 +320,35 @@ impl ComplexTile {
         }
         if let Some(connection) = &self.connection_up {
             connections.insert(Direction::Up, connection);
+
+            if connection.attach_direction.is_none() {
+                return Err("The connection is Up, but the attach_direction is not defined".to_owned());
+            }
+
+            if let Some(attach_direction) = &connection.attach_direction {
+                if !attach_direction.is_news() {
+                    return Err(format!(
+                        "The connection is Up, but the attach_direction is {:?}",
+                        attach_direction,
+                    ));
+                }
+            }
         }
         if let Some(connection) = &self.connection_down {
             connections.insert(Direction::Down, connection);
+
+            if connection.attach_direction.is_none() {
+                return Err("The connection is Down, but the attach_direction is not defined".to_owned());
+            }
+
+            if let Some(attach_direction) = &connection.attach_direction {
+                if !attach_direction.is_news() {
+                    return Err(format!(
+                        "The connection is Down, but the attach_direction is {:?}",
+                        attach_direction,
+                    ));
+                }
+            }
         }
 
         if connections.len() < 2 {
@@ -579,10 +633,35 @@ impl ComplexGenerator {
             // Get the possible tiles that can be placed here
             let mut tiles = self.get_tiles_by_dir_name(direction.get_opposite(), &name)?;
 
+            // If next direction is Up or Down, then we need to filter out tiles
+            // that don't have the same attach_direction. We need to get the
+            // attach_direction first.
+            let attach_direction = tile.get_next(next_direction).and_then(|c| c.attach_direction);
+
             // Filter out tiles that don't connect to the adjacent tiles
+            // TODO: Move this to a separate function
             tiles = tiles
                 .into_iter()
                 .filter(|tile| {
+                    // If the tile has an attach_direction, then it must match
+                    // the attach_direction of the previous tile
+                    if let Some(attach_direction) = attach_direction {
+                        if let Some(Connection {
+                            attach_direction: tile_attach_direction,
+                            ..
+                        }) = tile.get_next(next_direction.get_opposite())
+                        {
+                            if let Some(tile_attach_direction) = tile_attach_direction {
+                                if tile_attach_direction != attach_direction {
+                                    return false;
+                                }
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    }
                     for direction in direction.get_forward_and_orthogonal() {
                         if let Some(next_tile) = self.get_tile(pos + direction.to_block_pos()) {
                             let our_next = tile.get_next(direction);
@@ -621,7 +700,7 @@ impl ComplexGenerator {
     }
 
     /// The dfs function is the main driver of the path generation.
-    /// 
+    ///
     /// It shuffles the possible tiles and then, for each tile, it checks if the
     /// position it leads to is within the grid boundaries and not visited yet.
     /// If the tile leads to the end of the grid, the function ends. If the tile
@@ -629,7 +708,7 @@ impl ComplexGenerator {
     /// new position, direction, and possible tiles. If none of the tiles lead
     /// to a valid path, the function backtracks by removing the current
     /// position from the grid and adding it to the visited set.
-    /// 
+    ///
     /// Stops when it reaches the end of the grid (max.z).
     fn dfs(
         &mut self,
@@ -755,7 +834,7 @@ impl BlockGenerator for ComplexGenerator {
         let mut children = Vec::new();
 
         for (pos, tile) in &self.tile_grid {
-            let pos = (pos.to_vec3() * self.tile_size.to_vec3()).to_block_pos();
+            let pos = pos.mul_block_pos(self.tile_size);
 
             tile.place(&mut blocks, &params.block_map.rebuild(), pos);
         }
