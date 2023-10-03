@@ -41,7 +41,7 @@ impl GenerateResult {
 /// * `Ramp`: The `Ramp` variant represents blocks and slabs that are used to create
 /// a ramp.
 /// * `Island`: The `Island` variant represents blocks that are used to create an
-/// island. // TODO
+/// island.
 /// * `Indoor`: The `Indoor` variant represents blocks that are used to create an
 /// indoor area.
 /// * `Cave`: The `Cave` variant represents blocks that are used to create a cave.
@@ -53,7 +53,10 @@ impl GenerateResult {
 /// generation. It has preset blocks, a start position, and an end position.
 /// * `MultiCustom`: The `MultiCustom` variant represents a custom parkour
 /// generation. It has a start custom generation, a number of middle custom
-/// generations, and an end custom generation. // TODO: Add examples
+/// generations, and an end custom generation.
+/// * `ComplexCustom`: The `ComplexCustom` variant represents a custom parkour
+/// generation that is generated using a DFS algorithm. It produces a tile-based
+/// generation.
 #[derive(Clone, Debug)]
 pub enum GenerationType {
     Single(String),
