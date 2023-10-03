@@ -868,9 +868,7 @@ fn init_clients(
                                     connection_east: Some(Connection {
                                         name: "a".to_string(),
                                         next_direction: complex_gen::Direction::North,
-                                        blocks: Some(HashSet::from([
-                                            BlockPos::new(2, 0, 2),
-                                        ])),
+                                        blocks: Some(HashSet::from([BlockPos::new(2, 0, 2),])),
                                         ..Default::default()
                                     }),
                                     grid: BlockGrid::from([
@@ -996,6 +994,7 @@ fn init_clients(
                                             BlockPos::new(0, 2, 1),
                                             BlockPos::new(0, 3, 2),
                                         ])),
+                                        can_start: false,
                                         ..Default::default()
                                     }),
                                     connection_up: Some(Connection {
@@ -1028,6 +1027,7 @@ fn init_clients(
                                             BlockPos::new(0, 0, 0),
                                             BlockPos::new(0, -1, 1),
                                         ])),
+                                        can_start: false,
                                         ..Default::default()
                                     }),
                                     connection_down: Some(Connection {
