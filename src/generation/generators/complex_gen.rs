@@ -82,7 +82,13 @@ impl Direction {
                 Direction::West,
                 Direction::East,
             ],
-            _ => [self.clone(), self.get_left(), self.get_right(), Direction::Up, Direction::Down],
+            _ => [
+                self.clone(),
+                self.get_left(),
+                self.get_right(),
+                Direction::Up,
+                Direction::Down,
+            ],
         }
     }
 
@@ -179,7 +185,10 @@ impl Connection {
                 .blocks
                 .as_ref()
                 .map(|blocks| flip_block_set_x(blocks, origin)),
-            attach_direction: self.attach_direction.as_ref().map(|d| d.mirror_horizontal()),
+            attach_direction: self
+                .attach_direction
+                .as_ref()
+                .map(|d| d.mirror_horizontal()),
             ..self.clone()
         }
     }
@@ -264,15 +273,18 @@ impl ComplexTile {
     }
 
     /// Returns all the rotated and mirrored versions of the tile, without duplicates
-    pub fn get_all_rotations(&self, origin: BlockPos) -> Vec<ComplexTile> {
+    pub fn get_all_rotations(&self, origin: BlockPos, square: bool) -> Vec<ComplexTile> {
         let mut tiles = HashSet::new();
         let mut current_tile = self.clone();
-        for _ in 0..4 { // FIXME: Will bug out if the tile is not square
+        for _ in 0..if square { 4 } else { 2 } { // if square, rotate 4 times, else rotate 2 times twice.
             tiles.insert(current_tile.clone());
             if !self.disable_flip {
                 tiles.insert(current_tile.flip_x(origin));
             }
             current_tile = current_tile.rotate_cw(origin);
+            if !square {
+                current_tile = current_tile.rotate_cw(origin); // rotate 2 times for non-square grid
+            }
         }
         tiles.into_iter().collect()
     }
@@ -292,13 +304,13 @@ impl ComplexTile {
     }
 
     /// Verifies that the tile is valid.
-    /// 
+    ///
     /// A tile is valid if it has at least two connections and every
     /// connection's `next_direction` points to a connection that exists and
     /// whose `next_direction` points back to the original connection, as well
     /// as at least one of the connections having `blocks` defined with a length
     /// greater than 0.
-    /// 
+    ///
     /// If a direction is Up or Down, then the `attach_direction` must be
     /// defined and must be either North, South, West, or East.
     ///
@@ -322,7 +334,9 @@ impl ComplexTile {
             connections.insert(Direction::Up, connection);
 
             if connection.attach_direction.is_none() {
-                return Err("The connection is Up, but the attach_direction is not defined".to_owned());
+                return Err(
+                    "The connection is Up, but the attach_direction is not defined".to_owned(),
+                );
             }
 
             if let Some(attach_direction) = &connection.attach_direction {
@@ -338,7 +352,9 @@ impl ComplexTile {
             connections.insert(Direction::Down, connection);
 
             if connection.attach_direction.is_none() {
-                return Err("The connection is Down, but the attach_direction is not defined".to_owned());
+                return Err(
+                    "The connection is Down, but the attach_direction is not defined".to_owned(),
+                );
             }
 
             if let Some(attach_direction) = &connection.attach_direction {
@@ -430,7 +446,7 @@ impl ComplexGenerator {
             if let Err(e) = tile.verify() {
                 panic!("Invalid tile: {}", e);
             }
-            new_tiles.extend(tile.get_all_rotations(origin));
+            new_tiles.extend(tile.get_all_rotations(origin, tile_size.x == tile_size.y));
         }
 
         let tiles = new_tiles;
@@ -636,7 +652,9 @@ impl ComplexGenerator {
             // If next direction is Up or Down, then we need to filter out tiles
             // that don't have the same attach_direction. We need to get the
             // attach_direction first.
-            let attach_direction = tile.get_next(next_direction).and_then(|c| c.attach_direction);
+            let attach_direction = tile
+                .get_next(next_direction)
+                .and_then(|c| c.attach_direction);
 
             // Filter out tiles that don't connect to the adjacent tiles
             // TODO: Move this to a separate function
