@@ -5,9 +5,8 @@ use valence::prelude::*;
 
 use crate::{
     generation::{
-        block_collection::BuiltBlockCollectionMap,
-        generation::ChildGeneration,
-        generator::*,
+        block_collection::BuiltBlockCollectionMap, block_grid::BlockGrid,
+        generation::ChildGeneration, generator::*,
     },
     line::Line3,
     prediction::prediction_state::PredictionState,
@@ -15,14 +14,12 @@ use crate::{
     weighted_vec::WeightedVec,
 };
 
-type BlockProperties = HashMap<BlockPos, (String, Vec<(PropName, PropValue)>)>;
-
 /// The `SingleCustomPreset` struct represents a single custom generation preset.
 /// It is used to store the blocks used in a custom generation preset.
 ///
 /// Properties:
 ///
-/// * `blocks`: The `blocks` property is a `BlockProperties`. It maps a position
+/// * `blocks`: The `blocks` property is a `BlockGrid`. It maps a position
 /// to a block name and a list of properties.
 /// * `start_pos`: The `start_pos` property is a `BlockPos`. It represents the
 /// starting position of the custom generation preset.
@@ -30,7 +27,7 @@ type BlockProperties = HashMap<BlockPos, (String, Vec<(PropName, PropValue)>)>;
 /// position of the custom generation preset.
 #[derive(Clone, Debug)]
 pub struct SingleCustomPreset {
-    pub blocks: BlockProperties,
+    pub blocks: BlockGrid,
     pub start_pos: BlockPos,
     pub end_pos: BlockPos,
 }
@@ -42,19 +39,15 @@ impl SingleCustomPreset {
         map: &BuiltBlockCollectionMap,
     ) -> HashMap<BlockPos, BlockState> {
         let mut blocks = HashMap::new();
-        for (pos, (block_name, props)) in self.blocks.iter() {
-            let mut block = map.get_block(block_name);
-            for (name, value) in props {
-                block = block.set(*name, *value);
-            }
-            blocks.insert(*pos + offset, block);
+        for (pos, props) in self.blocks.blocks.iter() {
+            blocks.insert(*pos + offset, props.get_block(map));
         }
 
         blocks
     }
 
     fn generate_child(&self, offset: BlockPos, map: &BuiltBlockCollectionMap) -> ChildGeneration {
-        ChildGeneration::new(self.get_blocks(offset, map), Default::default())
+        ChildGeneration::blocks_alt_blocks(self.get_blocks(offset, map), Default::default())
     }
 }
 

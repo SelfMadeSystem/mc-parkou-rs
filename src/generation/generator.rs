@@ -41,7 +41,7 @@ impl GenerateResult {
 /// * `Ramp`: The `Ramp` variant represents blocks and slabs that are used to create
 /// a ramp.
 /// * `Island`: The `Island` variant represents blocks that are used to create an
-/// island. // TODO
+/// island.
 /// * `Indoor`: The `Indoor` variant represents blocks that are used to create an
 /// indoor area.
 /// * `Cave`: The `Cave` variant represents blocks that are used to create a cave.
@@ -53,7 +53,10 @@ impl GenerateResult {
 /// generation. It has preset blocks, a start position, and an end position.
 /// * `MultiCustom`: The `MultiCustom` variant represents a custom parkour
 /// generation. It has a start custom generation, a number of middle custom
-/// generations, and an end custom generation. // TODO: Add examples
+/// generations, and an end custom generation.
+/// * `ComplexCustom`: The `ComplexCustom` variant represents a custom parkour
+/// generation that is generated using a DFS algorithm. It produces a tile-based
+/// generation.
 #[derive(Clone, Debug)]
 pub enum GenerationType {
     Single(String),
@@ -88,6 +91,7 @@ pub enum GenerationType {
     },
     SingleCustom(SingleCustomPreset),
     MultiCustom(MultiCustomPreset),
+    ComplexCustom(ComplexGenerator), // TODO: Make `ComplexPreset` instead and construct `ComplexGenerator` from it for better consistency
 }
 
 /// The `Generator` struct represents a parkour generator.
@@ -455,6 +459,42 @@ impl Generator {
                     lines.push(line + offset.to_vec3());
                 }
             }
+            GenerationType::ComplexCustom(gen) => {
+                let mut gen = gen.clone();
+
+                let mut tries = 0;
+
+                let end = loop {
+                    if let Some(t) = gen.generate_dfs()
+                    {
+                        break t;
+                    }
+                    tries += 1;
+
+                    if tries > 100 {
+                        panic!("Failed to generate complex custom generation. Tried 100 times.");
+                    }
+
+                    println!("Failed to generate complex custom generation. Retrying...");
+                };
+
+                let end = BlockPos::new(
+                    end.x * gen.tile_size.x,
+                    end.y * gen.tile_size.y,
+                    (end.z + 1) * gen.tile_size.z - 1,
+                );
+
+                let gen = gen.generate(&params);
+
+                offset = offset - gen.start;
+                blocks = gen.blocks;
+                children = gen.children;
+                end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.));
+
+                for line in gen.lines {
+                    lines.push(line + offset.to_vec3());
+                }
+            }
         }
 
         Generation {
@@ -472,6 +512,7 @@ impl Generator {
 /// The `BlockGenerator` trait represents a block generator.
 pub trait BlockGenerator {
     /// The `generate` method generates blocks.
+    /// TODO: Make &self mutable
     fn generate(&self, params: &BlockGenParams) -> GenerateResult;
 }
 

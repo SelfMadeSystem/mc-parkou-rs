@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 
+use std::collections::HashSet;
+
 use rand::Rng;
 use valence::{
     math::IVec3,
-    prelude::{Client, DVec3, Vec3},
+    prelude::{Client, DVec3, PropName, PropValue, Vec3},
     protocol::Particle,
     BlockPos,
 };
@@ -369,6 +371,131 @@ pub fn random_sign() -> i32 {
     }
 }
 
+/// See: https://minecraft.wiki/w/Java_Edition_data_values#Block_states
+pub type PropNameValue = (PropName, PropValue);
+
+/// Rotates the given property name value clockwise.
+pub fn prop_nv_rotate_cw(nv: &PropNameValue) -> PropNameValue {
+    match nv {
+        (PropName::Facing | PropName::Axis | PropName::Orientation | PropName::Shape, value) => {
+            (nv.0, prop_value_rotate_cw(*value))
+        }
+        // (PropName::Rotation, value) => todo!(),
+        (PropName::North, value) => (PropName::East, *value),
+        (PropName::East, value) => (PropName::South, *value),
+        (PropName::South, value) => (PropName::West, *value),
+        (PropName::West, value) => (PropName::North, *value),
+        _ => *nv,
+    }
+}
+
+/// Rotates the given property value clockwise.
+pub fn prop_value_rotate_cw(value: PropValue) -> PropValue {
+    match value {
+        PropValue::AscendingNorth => PropValue::AscendingEast,
+        PropValue::AscendingEast => PropValue::AscendingSouth,
+        PropValue::AscendingSouth => PropValue::AscendingWest,
+        PropValue::AscendingWest => PropValue::AscendingNorth,
+
+        PropValue::North => PropValue::East,
+        PropValue::East => PropValue::South,
+        PropValue::South => PropValue::West,
+        PropValue::West => PropValue::North,
+
+        PropValue::UpNorth => PropValue::UpEast,
+        PropValue::UpEast => PropValue::UpSouth,
+        PropValue::UpSouth => PropValue::UpWest,
+        PropValue::UpWest => PropValue::UpNorth,
+
+        PropValue::NorthUp => PropValue::EastUp,
+        PropValue::EastUp => PropValue::SouthUp,
+        PropValue::SouthUp => PropValue::WestUp,
+        PropValue::WestUp => PropValue::NorthUp,
+
+        PropValue::DownNorth => PropValue::DownEast,
+        PropValue::DownEast => PropValue::DownSouth,
+        PropValue::DownSouth => PropValue::DownWest,
+        PropValue::DownWest => PropValue::DownNorth,
+
+        PropValue::NorthEast => PropValue::SouthEast,
+        PropValue::SouthEast => PropValue::SouthWest,
+        PropValue::SouthWest => PropValue::NorthWest,
+        PropValue::NorthWest => PropValue::NorthEast,
+
+        PropValue::NorthSouth => PropValue::EastWest,
+        PropValue::EastWest => PropValue::NorthSouth,
+
+        PropValue::X => PropValue::Z,
+        PropValue::Z => PropValue::X,
+
+        _ => value,
+    }
+}
+
+/// Flips the given property name value on the x axis.
+pub fn prop_nv_flip_x(nv: &PropNameValue) -> PropNameValue {
+    match nv {
+        (PropName::Facing | PropName::Axis | PropName::Orientation | PropName::Shape, value) => {
+            (nv.0, prop_value_flip_x(*value))
+        }
+        // (PropName::Rotation, value) => todo!(),
+        (PropName::East, value) => (PropName::West, *value),
+        (PropName::West, value) => (PropName::East, *value),
+        _ => *nv,
+    }
+}
+
+/// Flips the given property value on the x axis.
+pub fn prop_value_flip_x(value: PropValue) -> PropValue {
+    match value {
+        PropValue::AscendingEast => PropValue::AscendingWest,
+        PropValue::AscendingWest => PropValue::AscendingEast,
+
+        PropValue::East => PropValue::West,
+        PropValue::West => PropValue::East,
+
+        PropValue::UpEast => PropValue::UpWest,
+        PropValue::UpWest => PropValue::UpEast,
+
+        PropValue::EastUp => PropValue::WestUp,
+        PropValue::WestUp => PropValue::EastUp,
+
+        PropValue::DownEast => PropValue::DownWest,
+        PropValue::DownWest => PropValue::DownEast,
+
+        PropValue::NorthEast => PropValue::NorthWest,
+        PropValue::SouthEast => PropValue::SouthWest,
+        PropValue::SouthWest => PropValue::SouthEast,
+        PropValue::NorthWest => PropValue::NorthEast,
+
+        _ => value,
+    }
+}
+
+/// Rotates a `HashSet<BlockPos>` clockwise along the Y axis around a given point.
+pub fn rotate_block_set_cw(set: &HashSet<BlockPos>, origin: BlockPos) -> HashSet<BlockPos> {
+    let mut blocks = HashSet::new();
+
+    for pos in set {
+        let pos = pos.rotate_cw(origin);
+        blocks.insert(pos);
+    }
+
+    blocks
+}
+
+/// Flip a `HashSet<BlockPos>` along the X axis around a given point.
+pub fn flip_block_set_x(set: &HashSet<BlockPos>, origin: BlockPos) -> HashSet<BlockPos> {
+    let mut blocks = HashSet::new();
+
+    for pos in set {
+        let pos = pos.flip_x(origin);
+        blocks.insert(pos);
+    }
+
+    blocks
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum JumpDirection {
     Up,
@@ -441,5 +568,41 @@ impl DVec3With for DVec3 {
 
     fn with_z(&self, z: f64) -> DVec3 {
         DVec3::new(self.x, self.y, z)
+    }
+}
+
+pub trait BlockPosUtils {
+    fn rotate_cw(&self, origin: BlockPos) -> BlockPos;
+    fn flip_x(&self, origin: BlockPos) -> BlockPos;
+}
+
+impl BlockPosUtils for BlockPos {
+    fn rotate_cw(&self, origin: BlockPos) -> BlockPos {
+        let x = self.x - origin.x;
+        let z = self.z - origin.z;
+
+        let x1 = -z;
+        let z1 = x;
+
+        BlockPos::new(x1 + origin.x, self.y, z1 + origin.z)
+    }
+
+    fn flip_x(&self, origin: BlockPos) -> BlockPos {
+        let x = self.x - origin.x;
+        let z = self.z - origin.z;
+
+        let x = -x;
+
+        BlockPos::new(x + origin.x, self.y, z + origin.z)
+    }
+}
+
+pub trait MulBlockPos {
+    fn mul_block_pos(&self, other: BlockPos) -> BlockPos;
+}
+
+impl MulBlockPos for BlockPos {
+    fn mul_block_pos(&self, other: BlockPos) -> BlockPos {
+        BlockPos::new(self.x * other.x, self.y * other.y, self.z * other.z)
     }
 }

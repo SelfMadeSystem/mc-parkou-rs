@@ -232,7 +232,7 @@ impl SnakeGenerator {
         children
             .into_iter()
             .map(|c| {
-                ChildGeneration::new(
+                ChildGeneration::blocks_alt_blocks(
                     c.into_iter()
                         .map(|p| (p, built.get_block(&self.block_name)))
                         .collect(),

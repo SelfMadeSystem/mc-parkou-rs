@@ -116,6 +116,16 @@ pub struct BuiltBlockCollectionMap {
 
 #[allow(dead_code)]
 impl BuiltBlockCollectionMap {
+    /// Rebuids the `BuiltBlockCollectionMap`
+    pub fn rebuild(&self) -> BuiltBlockCollectionMap {
+        let mut collections = HashMap::new();
+        for (name, (collection, _)) in &self.collections {
+            let i = collection.0.blocks.get_random_index().unwrap();
+            collections.insert(name.to_owned(), (collection.to_owned(), i));
+        }
+        BuiltBlockCollectionMap { collections }
+    }
+
     /// Gets a block from the `BlockCollectionMap` with the given name. If the
     /// `BlockCollection` is uniform, then it will always return the same block.
     pub fn get_block_opt(&self, name: &str) -> Option<BlockState> {
