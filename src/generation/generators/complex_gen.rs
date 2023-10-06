@@ -276,7 +276,8 @@ impl ComplexTile {
     pub fn get_all_rotations(&self, origin: BlockPos, square: bool) -> Vec<ComplexTile> {
         let mut tiles = HashSet::new();
         let mut current_tile = self.clone();
-        for _ in 0..if square { 4 } else { 2 } { // if square, rotate 4 times, else rotate 2 times twice.
+        for _ in 0..if square { 4 } else { 2 } {
+            // if square, rotate 4 times, else rotate 2 times twice.
             tiles.insert(current_tile.clone());
             if !self.disable_flip {
                 tiles.insert(current_tile.flip_x(origin));
@@ -419,7 +420,7 @@ impl ComplexTile {
 #[derive(Clone, Debug)]
 pub struct ComplexGenerator {
     // TODO: Might want to use Rc<ComplexTile> instead of cloning.
-    pub tile_size: BlockPos,
+    pub tile_size: BlockPos, // TODO: What to do if grid size is even?
     pub min_pos: BlockPos,
     pub max_pos: BlockPos,
     pub tiles: Vec<ComplexTile>,
