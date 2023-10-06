@@ -441,6 +441,10 @@ impl ComplexGenerator {
         min_pos: BlockPos,
         max_pos: BlockPos,
     ) -> ComplexGenerator {
+        if tile_size.x % 2 == 0 || tile_size.z % 2 == 0 {
+            panic!("Tile x & z size must be odd"); // TODO
+        }
+
         let mut new_tiles = Vec::new();
         let origin = BlockPos::new(0, 0, tile_size.z / 2);
         for tile in tiles {
