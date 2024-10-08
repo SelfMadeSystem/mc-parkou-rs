@@ -69,9 +69,9 @@ impl BlinkBlocksGenerator {
             for z in 0..self.size.y {
                 let offset = BlockPos::new(x - self.size.x / 2, 0, z);
 
-                blocks.insert(pos + offset, BlockState::AIR);
+                blocks.insert(pos + offset.as_ivec3(), BlockState::AIR);
                 alt_blocks.insert(
-                    pos + offset,
+                    pos + offset.as_ivec3(),
                     if off {
                         self.create_off_alt_block(map)
                     } else {
@@ -87,9 +87,9 @@ impl BlinkBlocksGenerator {
             for z in 0..self.size.y {
                 let offset = BlockPos::new(o + x - self.size.x / 2, 0, z);
 
-                blocks.insert(pos + offset, BlockState::AIR);
+                blocks.insert(pos + offset.as_ivec3(), BlockState::AIR);
                 alt_blocks.insert(
-                    pos + offset,
+                    pos + offset.as_ivec3(),
                     if off {
                         self.create_on_alt_block(map)
                     } else {
@@ -100,7 +100,7 @@ impl BlinkBlocksGenerator {
         }
 
         let pos = pos
-            + BlockPos::new(
+            + IVec3::new(
                 if rand::thread_rng().gen() { o } else { 0 },
                 0,
                 self.size.y - 1,

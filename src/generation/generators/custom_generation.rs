@@ -40,7 +40,7 @@ impl SingleCustomPreset {
     ) -> HashMap<BlockPos, BlockState> {
         let mut blocks = HashMap::new();
         for (pos, props) in self.blocks.blocks.iter() {
-            blocks.insert(*pos + offset, props.get_block(map));
+            blocks.insert(*pos + offset.as_ivec3(), props.get_block(map));
         }
 
         blocks
@@ -128,10 +128,10 @@ impl BlockGenerator for MultiCustomPreset {
                     }
                 }
 
-                offset = Some(prediction.get_block_pos() - current_pos);
+                offset = Some(prediction.get_block_pos() - current_pos.as_ivec3());
             }
 
-            current_pos = offset.expect("This should never happen!") + current_pos;
+            current_pos = offset.expect("This should never happen!") + current_pos.as_ivec3();
 
             let mut child = preset.preset.generate_child(current_pos, &params.block_map);
 
@@ -141,7 +141,7 @@ impl BlockGenerator for MultiCustomPreset {
 
             children.push(child);
 
-            current_pos = current_pos + preset.preset.end_pos;
+            current_pos = current_pos + preset.preset.end_pos.as_ivec3();
 
             start = false;
             length -= 1;

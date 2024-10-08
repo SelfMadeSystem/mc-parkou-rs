@@ -40,7 +40,7 @@ impl Generation {
     /// Places the blocks in the generation.
     pub fn place(&self, world: &mut ChunkLayer) {
         for (pos, block) in &self.blocks {
-            world.set_block(*pos + self.offset, *block);
+            world.set_block(*pos + self.offset.as_ivec3(), *block);
         }
 
         for child in &self.children {
@@ -57,11 +57,11 @@ impl Generation {
         commands: &mut Commands,
     ) {
         for (pos, _) in &self.blocks {
-            world.set_block(*pos + self.offset, BlockState::AIR.into_block());
+            world.set_block(*pos + self.offset.as_ivec3(), BlockState::AIR.into_block());
         }
 
         for (pos, _) in &self.alt_blocks {
-            let pos = *pos + self.offset;
+            let pos = *pos + self.offset.as_ivec3();
             if let Some(entity) = alt_block_entities.get_mut(&pos) {
                 if let Some(mut entity) = commands.get_entity(*entity) {
                     entity.insert(Despawned);
@@ -96,7 +96,7 @@ impl Generation {
         for (pos, block) in &self.alt_blocks {
             let block = block.get_block(params);
             block.set_block(
-                *pos + self.offset,
+                *pos + self.offset.as_ivec3(),
                 alt_block_entities,
                 prev_alt_block_states,
                 commands,
@@ -233,7 +233,7 @@ impl ChildGeneration {
     /// Places the blocks in the generation.
     pub fn place(&self, world: &mut ChunkLayer, offset: BlockPos) {
         for (pos, block) in &self.blocks {
-            world.set_block(*pos + offset, *block);
+            world.set_block(*pos + offset.as_ivec3(), *block);
         }
     }
 
@@ -247,11 +247,11 @@ impl ChildGeneration {
         offset: BlockPos,
     ) {
         for (pos, _) in &self.blocks {
-            world.set_block(*pos + offset, BlockState::AIR.into_block());
+            world.set_block(*pos + offset.as_ivec3(), BlockState::AIR.into_block());
         }
 
         for (pos, _) in &self.alt_blocks {
-            let pos = *pos + offset;
+            let pos = *pos + offset.as_ivec3();
             if let Some(entity) = alt_block_entities.get_mut(&pos) {
                 if let Some(mut entity) = commands.get_entity(*entity) {
                     entity.insert(Despawned);
@@ -277,7 +277,7 @@ impl ChildGeneration {
         for (pos, block) in &self.alt_blocks {
             let block = block.get_block(params);
             block.set_block(
-                *pos + offset,
+                *pos + offset.as_ivec3(),
                 alt_block_entities,
                 prev_alt_block_states,
                 commands,

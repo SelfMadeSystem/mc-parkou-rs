@@ -606,3 +606,18 @@ impl MulBlockPos for BlockPos {
         BlockPos::new(self.x * other.x, self.y * other.y, self.z * other.z)
     }
 }
+
+
+pub trait ToIVec3 {
+    fn to_ivec3(&self) -> IVec3;
+}
+
+pub trait AsIVec3 {
+    fn as_ivec3(&self) -> IVec3;
+}
+
+impl AsIVec3 for BlockPos {
+    fn as_ivec3(&self) -> IVec3 {
+        IVec3::new(self.x, self.y, self.z)
+    }
+}

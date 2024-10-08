@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use noise::{
-    utils::{NoiseMap, NoiseMapBuilder, PlaneMapBuilder},
+    utils::{NoiseMap, PlaneMapBuilder},
     *,
 };
 use rand::Rng;
@@ -51,7 +51,7 @@ impl BlockGenerator for IslandGenerator {
         fbm.persistence = 0.5;
         fbm.lacunarity = 2.;
         let a = radius as f64 / 10.;
-        let map: NoiseMap = PlaneMapBuilder::<_, 2>::new(&fbm)
+        let map: NoiseMap = PlaneMapBuilder::<_, 2>::new_fn(|p| fbm.get(p))
             .set_size((radius * 2 + 1) as usize, (radius * 2 + 1) as usize)
             .set_x_bounds(-a, a)
             .set_y_bounds(-a, a)

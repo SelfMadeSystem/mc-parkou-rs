@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use rand::seq::SliceRandom;
-use valence::prelude::*;
+use valence::{math::IVec3, prelude::*};
 
 use crate::{
     generation::{
@@ -109,6 +109,19 @@ impl ToBlockPos for Direction {
             Direction::East => BlockPos::new(1, 0, 0),
             Direction::Up => BlockPos::new(0, 1, 0),
             Direction::Down => BlockPos::new(0, -1, 0),
+        }
+    }
+}
+
+impl ToIVec3 for Direction {
+    fn to_ivec3(&self) -> IVec3 {
+        match self {
+            Direction::North => IVec3::new(0, 0, -1),
+            Direction::South => IVec3::new(0, 0, 1),
+            Direction::West => IVec3::new(-1, 0, 0),
+            Direction::East => IVec3::new(1, 0, 0),
+            Direction::Up => IVec3::new(0, 1, 0),
+            Direction::Down => IVec3::new(0, -1, 0),
         }
     }
 }
@@ -298,7 +311,7 @@ impl ComplexTile {
         pos: BlockPos,
     ) {
         for (block_pos, block) in &self.grid.blocks {
-            let block_pos = pos + *block_pos;
+            let block_pos = pos + block_pos.as_ivec3();
             let block = block.get_block(&block_map);
             grid.insert(block_pos, block);
         }
@@ -583,7 +596,7 @@ impl ComplexGenerator {
                 if let Some(Connection { next_direction, .. }) =
                     tile.get_next(current_direction.get_opposite())
                 {
-                    current_pos = current_pos + next_direction.to_block_pos();
+                    current_pos = current_pos + next_direction.to_ivec3();
                     current_direction = next_direction;
                     current_name = tile
                         .get_next(current_direction)
@@ -622,7 +635,7 @@ impl ComplexGenerator {
         }) = tile.get_next(direction.get_opposite())
         {
             // Check to make sure that the next tile connects to the current tile
-            if let Some(next_tile) = self.get_tile(pos + next_direction.to_block_pos()) {
+            if let Some(next_tile) = self.get_tile(pos + next_direction.to_ivec3()) {
                 let next_tile_next = next_tile.get_next(next_direction.get_opposite());
                 if let Some(Connection {
                     name: next_tile_name,
@@ -686,7 +699,7 @@ impl ComplexGenerator {
                         }
                     }
                     for direction in direction.get_forward_and_orthogonal() {
-                        if let Some(next_tile) = self.get_tile(pos + direction.to_block_pos()) {
+                        if let Some(next_tile) = self.get_tile(pos + direction.to_ivec3()) {
                             let our_next = tile.get_next(direction);
                             let their_next = next_tile.get_next(direction.get_opposite());
 
@@ -752,7 +765,7 @@ impl ComplexGenerator {
             let Connection { name, .. } = tile
                 .get_next(direction)
                 .expect("If the tile has a connection, it should have a name");
-            let pos = current_pos + direction.to_block_pos();
+            let pos = current_pos + direction.to_ivec3();
             if pos.x < self.min_pos.x
                 || pos.y < self.min_pos.y
                 || pos.z < self.min_pos.z
@@ -815,7 +828,7 @@ impl ComplexGenerator {
                         current_segment.extend(
                             blocks
                                 .iter()
-                                .map(|b| current_pos.mul_block_pos(self.tile_size) + *b),
+                                .map(|b| current_pos.mul_block_pos(self.tile_size) + b.as_ivec3()),
                         );
                         true
                     } else {
@@ -830,11 +843,11 @@ impl ComplexGenerator {
                             current_segment.extend(
                                 blocks
                                     .iter()
-                                    .map(|b| current_pos.mul_block_pos(self.tile_size) + *b),
+                                    .map(|b| current_pos.mul_block_pos(self.tile_size) + b.as_ivec3()),
                             );
                         }
                     }
-                    current_pos = current_pos + next_direction.to_block_pos();
+                    current_pos = current_pos + next_direction.to_ivec3();
                     current_direction = next_direction;
                     continue;
                 } else {
