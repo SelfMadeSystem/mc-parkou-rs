@@ -264,7 +264,7 @@ impl Generator {
                 }
 
                 end_state = PredictionState::running_jump_block(
-                    self.start + pos.round().to_block_pos(),
+                    self.start + pos.round().as_ivec3(),
                     new_yaw,
                 );
             }
@@ -291,12 +291,12 @@ impl Generator {
 
                 let gen = island.generate(&params);
 
-                offset = offset - gen.start;
+                offset = offset - gen.start.as_ivec3();
                 blocks = gen.blocks;
                 alt_blocks = gen.alt_blocks;
                 children = gen.children;
                 end_state =
-                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
 
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());
@@ -315,11 +315,11 @@ impl Generator {
 
                 let gen = indoor.generate(&params); // TODO: Streamline this.
 
-                offset = offset - gen.start;
+                offset = offset - gen.start.as_ivec3();
                 blocks = gen.blocks;
                 children = gen.children;
                 end_state =
-                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.)); // walls can be in the way
+                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.)); // walls can be in the way
 
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());
@@ -332,11 +332,11 @@ impl Generator {
 
                 let gen = cave.generate(&params);
 
-                offset = offset - gen.start;
+                offset = offset - gen.start.as_ivec3();
                 blocks = gen.blocks;
                 children = gen.children;
                 end_state =
-                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
 
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());
@@ -393,12 +393,12 @@ impl Generator {
 
                 let gen = snake.generate(&params);
 
-                offset = offset - gen.start;
+                offset = offset - gen.start.as_ivec3();
                 blocks = gen.blocks;
                 alt_blocks = gen.alt_blocks;
                 children = gen.children;
                 end_state =
-                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
                 ordered = false;
 
                 for line in gen.lines {
@@ -422,12 +422,12 @@ impl Generator {
 
                 let gen = blink_blocks.generate(&params);
 
-                offset = offset - gen.start;
+                offset = offset - gen.start.as_ivec3();
                 blocks = gen.blocks;
                 alt_blocks = gen.alt_blocks;
                 children = gen.children;
                 end_state =
-                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
 
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());
@@ -436,11 +436,11 @@ impl Generator {
             GenerationType::SingleCustom(preset) => {
                 let gen = preset.generate(&params);
 
-                offset = offset - gen.start;
+                offset = offset - gen.start.as_ivec3();
                 blocks = gen.blocks;
                 children = gen.children;
                 end_state =
-                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
 
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());
@@ -449,11 +449,11 @@ impl Generator {
             GenerationType::MultiCustom(preset) => {
                 let gen = preset.generate(&params);
 
-                offset = offset - gen.start;
+                offset = offset - gen.start.as_ivec3();
                 blocks = gen.blocks;
                 children = gen.children;
                 end_state =
-                    PredictionState::running_jump_block(offset + gen.end, random_yaw_dist(30.));
+                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
 
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());
@@ -486,10 +486,10 @@ impl Generator {
 
                 let gen = gen.generate(&params);
 
-                offset = offset - gen.start;
+                offset = offset - gen.start.as_ivec3();
                 blocks = gen.blocks;
                 children = gen.children;
-                end_state = PredictionState::running_jump_block(offset + end, random_yaw_dist(30.));
+                end_state = PredictionState::running_jump_block(offset + end.as_ivec3(), random_yaw_dist(30.));
 
                 for line in gen.lines {
                     lines.push(line + offset.to_vec3());

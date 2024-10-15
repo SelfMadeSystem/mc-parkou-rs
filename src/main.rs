@@ -13,7 +13,9 @@ use prediction::prediction_state::PredictionState;
 use utils::JumpDirection;
 use valence::entity::block_display;
 use valence::prelude::*;
+use valence::protocol::packets::play::DisconnectS2c;
 use valence::protocol::sound::{Sound, SoundCategory};
+use valence::protocol::WritePacket;
 use valence::spawn::IsFlat;
 
 mod alt_block;
@@ -1236,7 +1238,7 @@ fn init_clients(
                             BlockPos::new(-5, 0, 0),
                             BlockPos::new(5, 1, 10),
                         )),
-                        10000000.0
+                        5.0
                     ),
                 ],
             ),
@@ -1274,6 +1276,7 @@ fn init_clients(
 fn reset_clients(
     mut commands: Commands,
     mut clients: Query<(
+        Entity,
         &mut Client,
         &mut Position,
         &mut Look,
@@ -1281,7 +1284,7 @@ fn reset_clients(
         &mut ChunkLayer,
     )>,
 ) {
-    for (mut client, mut pos, mut look, mut state, mut layer) in clients.iter_mut() {
+    for (entity, mut client, mut pos, mut look, mut state, mut layer) in clients.iter_mut() {
         state.test_state.yaw = look.yaw / 180.0 * std::f32::consts::PI;
         state.test_state.vel = pos.0 - state.prev_pos;
         // if state.test_state.vel.y == 0. {
@@ -1346,10 +1349,21 @@ fn reset_clients(
                             .bold()
                             .not_italic(),
                 );
+
+                client.write_packet(&DisconnectS2c {
+                    reason: ("Your score was ".italic()
+                        + state
+                            .score
+                            .to_string()
+                            .color(Color::GOLD)
+                            .bold()
+                            .not_italic())
+                    .into(),
+                });
             }
 
             // Init chunks.
-            for pos in ChunkView::new(ChunkPos::from_block_pos(START_POS), VIEW_DIST).iter() {
+            for pos in ChunkView::new(ChunkPos::from(START_POS), VIEW_DIST).iter() {
                 layer.insert_chunk(pos, UnloadedChunk::new());
             }
 
@@ -1392,7 +1406,7 @@ fn cleanup_clients(
     mut disconnected_clients: RemovedComponents<Client>,
     mut query: Query<&mut GameState>,
 ) {
-    for entity in disconnected_clients.iter() {
+    for entity in disconnected_clients.read() {
         if let Ok(mut state) = query.get_mut(entity) {
             for entity in state.line_entities.values() {
                 commands.entity(*entity).insert(Despawned);
@@ -1437,7 +1451,7 @@ fn update_alt_blocks(
 
 fn detect_stop_running(mut event: EventReader<SprintEvent>, mut clients: Query<&mut GameState>) {
     for mut state in clients.iter_mut() {
-        if let Some(event) = event.iter().next() {
+        if let Some(event) = event.read().next() {
             if matches!(event.state, SprintState::Stop) {
                 state.stopped_running = true;
             }
@@ -1553,8 +1567,17 @@ fn reached_thing(
 
 fn manage_chunks(mut clients: Query<(&Position, &OldPosition, &mut ChunkLayer), With<Client>>) {
     for (pos, old_pos, mut layer) in &mut clients {
-        let old_view = ChunkView::new(old_pos.chunk_pos(), VIEW_DIST);
-        let view = ChunkView::new(pos.to_chunk_pos(), VIEW_DIST);
+        let old_view = ChunkView::new(
+            ChunkPos::new(
+                (old_pos.x as i32).div_euclid(16),
+                (old_pos.z as i32).div_euclid(16),
+            ),
+            VIEW_DIST,
+        );
+        let view = ChunkView::new(
+            ChunkPos::new((pos.x as i32).div_euclid(16), (pos.z as i32).div_euclid(16)),
+            VIEW_DIST,
+        );
 
         if old_view != view {
             for pos in old_view.diff(view) {

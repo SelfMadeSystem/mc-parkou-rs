@@ -39,6 +39,7 @@ impl SnakeGenerator {
     }
 
     pub fn add_direction(&mut self, dir: BlockPos) {
+        let dir: IVec3 = IVec3::new(dir.x, dir.y, dir.z);
         let opt_last = self.poses.last();
         let last;
         if let Some(l) = opt_last {
@@ -52,6 +53,7 @@ impl SnakeGenerator {
     }
 
     pub fn can_go(&self, dir: BlockPos) -> bool {
+        let dir: IVec3 = IVec3::new(dir.x, dir.y, dir.z);
         let opt_last = self.poses.last();
         let last;
         if let Some(l) = opt_last {
@@ -113,7 +115,7 @@ impl SnakeGenerator {
         directions.shuffle(&mut rng);
 
         for dir in directions {
-            let mut pos = current + dir;
+            let mut pos = current + dir.as_ivec3();
             if pos.x < min.x
                 || pos.x > max.x
                 || pos.y < min.y
@@ -124,16 +126,16 @@ impl SnakeGenerator {
                 continue;
             }
 
-            if pos + dir == BlockPos::new(0, 0, 0) {
+            if pos + dir.as_ivec3() == BlockPos::new(0, 0, 0) {
                 if down > 0 && !i_decided_to_go_down {
-                    self.poses.push(pos + dir);
+                    self.poses.push(pos + dir.as_ivec3());
                     pos.y -= 1;
-                    self.poses.push(pos + dir);
+                    self.poses.push(pos + dir.as_ivec3());
                     pos.y -= 1;
-                    self.poses.push(pos + dir);
+                    self.poses.push(pos + dir.as_ivec3());
                     self.poses.push(pos);
                 } else {
-                    self.poses.push(pos + dir);
+                    self.poses.push(pos + dir.as_ivec3());
                     self.poses.push(pos);
                 }
                 return true;
@@ -144,10 +146,10 @@ impl SnakeGenerator {
             }
 
             if visited.contains(&pos)
-                || visited.contains(&(pos + dir))
+                || visited.contains(&(pos + dir.as_ivec3()))
                 || get_dirs_next_to(dir)
                     .iter()
-                    .any(|d| visited.contains(&(pos + *d)))
+                    .any(|d| visited.contains(&(pos + d.as_ivec3())))
             {
                 continue;
             }
