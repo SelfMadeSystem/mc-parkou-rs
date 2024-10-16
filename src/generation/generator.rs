@@ -96,9 +96,19 @@ impl Generator {
         let mut lines = Vec::new();
 
         let start_block = generation.end_block;
-        let target_y = (start_block.y + 1 + direction.get_y_offset()) as f64;
+        let mut target_y = (start_block.y + 1 + direction.get_y_offset()) as f64;
 
+        let mut iters = 0;
+        const TRY_TARGET_Y_UP: i32 = 20;
+        const ABORT: i32 = 25;
         let (g, yaw, jumped_blocks) = 'outer: loop {
+            iters += 1;
+            if iters > TRY_TARGET_Y_UP {
+                target_y = (start_block.y + 2) as f64;
+            }
+            if iters > ABORT {
+                eprintln!("Aborting retrying generation. Whatever happens happens.");
+            }
             lines.clear();
             let yaw = random_yaw();
             let mut state = PredictionState::running_jump_block(start_block, yaw);
@@ -107,7 +117,7 @@ impl Generator {
                 let mut new_state = state.clone();
                 new_state.tick();
 
-                if new_state.is_intersecting_any_block(&blocks) {
+                if iters < ABORT && new_state.is_intersecting_any_block(&blocks) {
                     break;
                 }
 
@@ -121,10 +131,10 @@ impl Generator {
                         state.pos.y.floor() as i32,
                         state.pos.z.floor() as i32,
                     );
-                    if jump_blocks.contains(&end_block) {
+                    if iters < ABORT && jump_blocks.contains(&end_block) {
                         break;
                     }
-                    if blocks.iter().take(blocks.len() - 1).any(|b| {
+                    if iters < ABORT && blocks.iter().rev().skip(1).any(|b| {
                         (b.x == end_block.x
                             && b.z == end_block.z
                             && (b.y - end_block.y).abs() <= 2)

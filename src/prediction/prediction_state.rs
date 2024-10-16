@@ -127,7 +127,7 @@ impl PredictionState {
 
         min_pos.x <= max_block.x
             && max_pos.x >= min_block.x
-            && min_pos.y >= max_block.y
+            // && min_pos.y >= max_block.y
             && min_pos.z <= max_block.z
             && max_pos.z >= min_block.z
     }
