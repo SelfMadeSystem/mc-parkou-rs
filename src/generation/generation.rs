@@ -1,8 +1,11 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Range,
+};
 
 use valence::{layer::chunk::IntoBlock, prelude::*};
 
-use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionState, utils::*};
+use crate::{alt_block::*, line::Line3, utils::*};
 
 /// The `Generation` struct represents a parkour generation.
 ///
@@ -10,6 +13,9 @@ use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionS
 ///
 /// * `blocks`: The `blocks` property is of type `HashMap<BlockPos, BlockState>`. It represents
 /// blocks that are generated.
+/// * `jump_blocks`: The `jump_blocks` property is of type `Vec<BlockPos>`. It represents
+/// the blocks that the player jumps through while in the air. These blocks must not be
+/// overwritten by another generation.
 /// * `children`: The `children` property is of type `Vec<ChildGeneration>`. It represents
 /// child generations that are generated.
 /// * `alt_blocks`: The `alt_blocks` property is of type `HashMap<BlockPos, AltBlock>`. It
@@ -21,18 +27,17 @@ use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionS
 /// reached.
 /// * `offset`: The `offset` property is of type `BlockPos`. It represents the offset
 /// of the parkour generation.
-/// * `end_state`: The `end_state` property is of type `PredictionState`. It represents
-/// the state to expect the player to be in at the end of the parkour generation.
-/// * `lines`: The `lines` property is of type `Vec<Line3>`. It represents the path the
-/// player takes through the parkour generation.
+/// * `end_block`: The `end_block` property is of type `BlockPos`. It represents the end
+/// block position of the parkour generation.
 #[derive(Clone, Debug)]
 pub struct Generation {
     pub blocks: HashMap<BlockPos, BlockState>,
+    pub jump_blocks: HashSet<BlockPos>,
     pub children: Vec<ChildGeneration>,
     pub alt_blocks: HashMap<BlockPos, AltBlock>,
     pub ordered: bool,
     pub offset: BlockPos,
-    pub end_state: PredictionState,
+    pub end_block: BlockPos,
     pub lines: Vec<Line3>,
 }
 
@@ -219,9 +224,7 @@ impl ChildGeneration {
         }
     }
 
-    pub fn check_blocks(
-        check_blocks: HashSet<BlockPos>,
-    ) -> Self {
+    pub fn check_blocks(check_blocks: HashSet<BlockPos>) -> Self {
         Self {
             blocks: HashMap::new(),
             alt_blocks: HashMap::new(),

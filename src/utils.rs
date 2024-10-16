@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::collections::HashSet;
+use std::{collections::HashSet, f32::consts::PI, f64::consts::PI as PI64};
 
 use rand::Rng;
 use valence::{
@@ -16,15 +16,24 @@ pub const PLAYER_WIDTH: f64 = 0.6;
 pub const PLAYER_HEIGHT: f64 = 1.8;
 
 pub fn get_edge_of_block(pos: BlockPos, yaw: f32) -> DVec3 {
-    get_edge_of_block_dist(pos, yaw, 0)
+    get_edge_of_block_dist(pos, yaw, 0.5)
 }
 
 pub fn get_edge_of_block_dist(pos: BlockPos, yaw: f32, dist: impl Into<f64>) -> DVec3 {
-    let mut pos = DVec3::new(pos.x as f64, pos.y as f64, pos.z as f64);
-    pos.x += 0.5;
-    pos.z += 0.5;
-    let add = DVec3::new(-yaw.sin() as f64, 0.0, yaw.cos() as f64);
-    pos + add * dist.into() // not optimal. does circle instead of square
+    let pos = DVec3::new(pos.x as f64 + 0.5, pos.y as f64, pos.z as f64 + 0.5);
+    let dist = dist.into();
+    let (sin_yaw, cos_yaw) = yaw.sin_cos();
+    
+    // Probably could be improved but I'm lazy and don't like trigonometry
+    let b = match yaw {
+        y if y > PI / 4. && y < 3. * PI / 4. => 1. / sin_yaw,
+        y if y > -PI / 4. && y < PI / 4. => 1. / cos_yaw,
+        y if y > -3. * PI / 4. && y < -PI / 4. => -1. / sin_yaw,
+        _ => -1. / cos_yaw,
+    };
+
+    let add = DVec3::new((-sin_yaw * b) as f64, 0.0, (cos_yaw * b) as f64);
+    pos + add * dist
 }
 
 #[allow(dead_code)]
@@ -145,7 +154,7 @@ pub fn get_lines_for_block(pos: BlockPos) -> Vec<Line3> {
 }
 
 pub fn random_yaw() -> f32 {
-    random_yaw_dist(60.0)
+    random_yaw_dist(180.0)
 }
 
 pub fn random_yaw_dist(f: impl Into<f32>) -> f32 {
@@ -258,24 +267,27 @@ pub fn get_blocks_between(start: Vec3, end: Vec3) -> Vec<BlockPos> {
     blocks
 }
 
-pub fn prediction_can_reach(from: DVec3, to: BlockPos) -> bool {
-    let yaw = (to.x as f64 - from.x).atan2(to.z as f64 - from.z) as f32;
+pub fn prediction_can_reach(from: BlockPos, to: BlockPos) -> bool {
+    // Find yaw from `from` to `to`
+    let dx = to.x as f64 - from.x as f64;
+    let dz = to.z as f64 - from.z as f64;
+    let yaw = (-dx).atan2(dz) as f32;
 
-    let mut state = PredictionState::running_jump_vec(from, yaw);
+    let mut state = PredictionState::running_jump_block(from, yaw);
+    // let mut prev_pos = state.pos;
 
     loop {
-        let pos = state.pos.to_block_pos();
-
-        if pos.y >= to.y && pos.x >= to.x && pos.z >= to.z && pos.x <= to.x + 1 && pos.z <= to.z + 1
-        {
+        if state.is_above_block(to) {
             return true;
         }
 
-        if pos.y < to.y && state.vel.y < 0.0 {
+        if state.pos.y < to.y as f64 && state.vel.y < 0.0 {
             return false;
         }
 
         state.tick();
+        // lines.push(Line3::new(prev_pos.as_vec3(), state.pos.as_vec3()));
+        // prev_pos = state.pos;
     }
 }
 
@@ -315,7 +327,7 @@ pub fn get_min_max_yaw(prev: BlockPos, size: &IVec3) -> (f32, f32) {
     let min_yaw = if prev.x as f32 - 1. >= DIST {
         999.
     } else {
-        std::f32::consts::PI / 2. - ((prev.x as f32 - 1.) / DIST).acos()
+        PI / 2. - ((prev.x as f32 - 1.) / DIST).acos()
     }
     .min(45f32.to_radians())
         * -1.;
@@ -323,7 +335,7 @@ pub fn get_min_max_yaw(prev: BlockPos, size: &IVec3) -> (f32, f32) {
     let max_yaw = if (size.x - 2 - prev.x) as f32 >= DIST {
         999.
     } else {
-        std::f32::consts::PI / 2. - ((size.x - 2 - prev.x) as f32 / DIST).acos()
+        PI / 2. - ((size.x - 2 - prev.x) as f32 / DIST).acos()
     }
     .min(45f32.to_radians());
     (min_yaw, max_yaw)

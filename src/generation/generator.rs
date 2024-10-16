@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::{HashMap, HashSet}, f32::consts::PI};
 
 use crate::{alt_block::*, line::Line3, prediction::prediction_state::PredictionState, utils::*};
 
@@ -36,62 +36,10 @@ impl GenerateResult {
 /// that can be used.
 ///
 /// Variants:
-/// * `Single`: The `Single` variant represents a single block.
-/// * `Slime`: The `Slime` variant represents a slime block. // TODO
-/// * `Ramp`: The `Ramp` variant represents blocks and slabs that are used to create
-/// a ramp.
-/// * `Island`: The `Island` variant represents blocks that are used to create an
-/// island.
-/// * `Indoor`: The `Indoor` variant represents blocks that are used to create an
-/// indoor area.
-/// * `Cave`: The `Cave` variant represents blocks that are used to create a cave.
-/// * `Snake`: The `Snake` variant represents blocks that are used to create a
-/// snake.
-/// * `BlinkBlocks`: The `BlinkBlocks` variant represents blocks that are used to
-/// create a blinking platform.
-/// * `SingleCustom`: The `SingleCustom` variant represents a custom parkour
-/// generation. It has preset blocks, a start position, and an end position.
-/// * `MultiCustom`: The `MultiCustom` variant represents a custom parkour
-/// generation. It has a start custom generation, a number of middle custom
-/// generations, and an end custom generation.
-/// * `ComplexCustom`: The `ComplexCustom` variant represents a custom parkour
-/// generation that is generated using a DFS algorithm. It produces a tile-based
-/// generation.
+/// * `Single`: The `Single` variant represents a single block..
 #[derive(Clone, Debug)]
 pub enum GenerationType {
     Single(String),
-    // Slime,
-    Ramp(String),
-    Island {
-        grass: String,
-        dirt: String,
-        stone: String,
-        water: String,
-        min_radius: i32,
-        max_radius: i32,
-        min_point_power: f32,
-        max_point_power: f32,
-    },
-    Indoor {
-        /// Used for walls and ceiling
-        walls: String,
-        /// Used for floor. If `None`, there is no floor. If liquid, then `walls`
-        /// is placed below `floor`.
-        floor: Option<String>,
-        /// Used for platforms
-        platforms: String,
-    },
-    Cave(String),
-    Snake(String),
-    BlinkBlocks {
-        on: String,
-        off: String,
-        delay: usize,
-        overlap: usize,
-    },
-    SingleCustom(SingleCustomPreset),
-    MultiCustom(MultiCustomPreset),
-    ComplexCustom(ComplexGenerator), // TODO: Make `ComplexPreset` instead and construct `ComplexGenerator` from it for better consistency
 }
 
 /// The `Generator` struct represents a parkour generator.
@@ -122,10 +70,10 @@ impl Generator {
 
         let yaw = random_yaw();
 
-        let mut g = s.generate(JumpDirection::DoesntMatter, yaw, Vec::new()); // no lines for first generation
+        let mut g = s.generate(JumpDirection::DoesntMatter, HashSet::new(), yaw, Vec::new(), &Vec::new()); // no lines for first generation
 
         g.offset = start;
-        g.end_state = PredictionState::running_jump_block(start, yaw);
+        g.end_block = start;
 
         g
     }
@@ -134,44 +82,87 @@ impl Generator {
         direction: JumpDirection,
         theme: &GenerationTheme,
         generation: &Generation,
+        prev_generations: &Vec<&Generation>,
     ) -> Generation {
+        let blocks: Vec<_> = prev_generations
+            .iter()
+            .flat_map(|g| g.blocks.iter().map(|(pos, _)| *pos + g.offset.as_ivec3()))
+            .collect();
+        let jump_blocks: HashSet<_> = prev_generations
+            .iter()
+            .flat_map(|g| &g.jump_blocks)
+            .collect();
         let theme = theme.clone();
-        let mut state = generation.end_state.clone();
         let mut lines = Vec::new();
 
-        let target_y = (state.pos.y as i32 + direction.get_y_offset()) as f64;
+        let start_block = generation.end_block;
+        let target_y = (start_block.y + 1 + direction.get_y_offset()) as f64;
 
-        let g = loop {
-            let mut new_state = state.clone();
-            new_state.tick();
+        let (g, yaw, jumped_blocks) = 'outer: loop {
+            lines.clear();
+            let yaw = random_yaw();
+            let mut state = PredictionState::running_jump_block(start_block, yaw);
+            let mut jumped_blocks = HashSet::new();
+            loop {
+                let mut new_state = state.clone();
+                new_state.tick();
 
-            if new_state.vel.y > 0. || new_state.pos.y > target_y {
-                lines.push(Line3::new(state.pos.as_vec3(), new_state.pos.as_vec3()));
-                state = new_state;
-            } else {
-                break Self {
-                    generation_type: theme.get_random_generation_type(),
-                    theme,
-                    start: state.get_block_pos(),
-                };
+                if new_state.is_intersecting_any_block(&blocks) {
+                    break;
+                }
+
+                if new_state.pos.y.floor() >= state.pos.y.floor() || new_state.pos.y > target_y {
+                    lines.push(Line3::new(state.pos.as_vec3(), new_state.pos.as_vec3()));
+                    jumped_blocks.extend(state.get_intersected_blocks());
+                    state = new_state;
+                } else {
+                    let end_block = BlockPos::new(
+                        state.pos.x.floor() as i32,
+                        state.pos.y.floor() as i32,
+                        state.pos.z.floor() as i32,
+                    );
+                    if jump_blocks.contains(&end_block) {
+                        break;
+                    }
+                    if blocks.iter().take(blocks.len() - 1).any(|b| {
+                        (b.x == end_block.x
+                            && b.z == end_block.z
+                            && (b.y - end_block.y).abs() <= 2)
+                            || prediction_can_reach(*b, end_block)
+                    }) {
+                        break;
+                    }
+                    jumped_blocks.extend(state.get_intersected_blocks());
+                    break 'outer (
+                        Self {
+                            generation_type: theme.get_random_generation_type(),
+                            theme,
+                            start: state.get_block_pos(),
+                        },
+                        yaw,
+                        jumped_blocks,
+                    );
+                }
             }
         };
 
-        g.generate(direction, generation.end_state.yaw, lines)
+        g.generate(direction, jumped_blocks, yaw, lines, prev_generations)
     }
 
     pub fn generate(
         &self,
         direction: JumpDirection,
+        jump_blocks: HashSet<BlockPos>,
         yaw: f32,
         mut lines: Vec<Line3>,
+        prev_generations: &Vec<&Generation>,
     ) -> Generation {
         let mut blocks = HashMap::new();
         let mut alt_blocks = HashMap::new();
         let mut offset: BlockPos = self.start;
         let mut children = Vec::new();
         let mut ordered = true;
-        let end_state: PredictionState;
+        let end_block;
 
         let params = BlockGenParams {
             direction,
@@ -182,328 +173,19 @@ impl Generator {
             GenerationType::Single(key) => {
                 blocks.insert(BlockPos::new(0, 0, 0), params.block_map.get_block(key));
 
-                end_state = PredictionState::running_jump_block(self.start, random_yaw());
-            }
-            GenerationType::Ramp(key) => {
-                let new_yaw = random_yaw();
-
-                let height = ((yaw - new_yaw).abs()).round() as i32 + 1;
-                let down = direction.go_down();
-
-                let yaw_change = (new_yaw - yaw) / height as f32;
-
-                let get_block = || params.block_map.get_block(key);
-
-                let get_slab = || {
-                    let slab = params.block_map.get_slab(key);
-                    (slab, slab.set(PropName::Type, PropValue::Top))
-                };
-
-                let mut pos = Vec3::new(0., 0., 0.);
-
-                let mut curr_yaw = yaw;
-
-                let get_pos_left =
-                    |pos: Vec3, yaw: f32| pos + (Vec3::new(yaw.cos(), 0., yaw.sin()) * 2f32.sqrt());
-
-                let get_pos_right = |pos: Vec3, yaw: f32| {
-                    pos + (Vec3::new(-yaw.cos(), 0., -yaw.sin()) * 2f32.sqrt())
-                };
-
-                let mut block_map = HashMap::new();
-
-                for _ in 0..height {
-                    let left = get_pos_left(pos, curr_yaw);
-                    let right = get_pos_right(pos, curr_yaw);
-
-                    for b in get_blocks_between(left, right) {
-                        block_map.entry(b).or_insert(get_block());
-                    }
-
-                    pos.x -= (curr_yaw.sin() * 2f32.sqrt()).clamp(-1., 1.);
-                    pos.z += (curr_yaw.cos() * 2f32.sqrt()).clamp(-1., 1.);
-                    pos = pos.round();
-
-                    if !down {
-                        pos.y += 1.;
-                    }
-
-                    let left = get_pos_left(pos, curr_yaw);
-                    let right = get_pos_right(pos, curr_yaw);
-
-                    for b in get_blocks_between(left, right) {
-                        let c = BlockPos::new(b.x, b.y - 1, b.z);
-                        if !block_map.contains_key(&c) {
-                            let (slab, top) = get_slab();
-                            block_map.entry(c).or_insert(top);
-                            block_map.entry(b).or_insert(slab);
-                        }
-                    }
-
-                    if down {
-                        pos.y -= 1.;
-                    }
-
-                    curr_yaw += yaw_change;
-
-                    pos.x -= (curr_yaw.sin() * 2f32.sqrt()).clamp(-1., 1.);
-                    pos.z += (curr_yaw.cos() * 2f32.sqrt()).clamp(-1., 1.);
-                    pos = pos.round();
-                }
-
-                let left = get_pos_left(pos, curr_yaw);
-                let right = get_pos_right(pos, curr_yaw);
-
-                for b in get_blocks_between(left, right) {
-                    block_map.entry(b).or_insert(get_block());
-                }
-                block_map.entry(pos.to_block_pos()).or_insert(get_block());
-
-                for (pos, block) in block_map {
-                    blocks.insert(pos, block);
-                }
-
-                end_state = PredictionState::running_jump_block(
-                    self.start + pos.round().as_ivec3(),
-                    new_yaw,
-                );
-            }
-            GenerationType::Island {
-                grass,
-                dirt,
-                stone,
-                water,
-                min_radius,
-                max_radius,
-                min_point_power,
-                max_point_power,
-            } => {
-                let island = IslandGenerator {
-                    grass: grass.to_owned(),
-                    dirt: dirt.to_owned(),
-                    stone: stone.to_owned(),
-                    water: water.to_owned(),
-                    min_radius: *min_radius,
-                    max_radius: *max_radius,
-                    min_point_power: *min_point_power,
-                    max_point_power: *max_point_power,
-                };
-
-                let gen = island.generate(&params);
-
-                offset = offset - gen.start.as_ivec3();
-                blocks = gen.blocks;
-                alt_blocks = gen.alt_blocks;
-                children = gen.children;
-                end_state =
-                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
-
-                for line in gen.lines {
-                    lines.push(line + offset.to_vec3());
-                }
-            }
-            GenerationType::Indoor {
-                walls,
-                floor,
-                platforms,
-            } => {
-                let indoor = IndoorGenerator {
-                    walls: walls.to_owned(),
-                    floor: floor.clone(),
-                    platforms: platforms.to_owned(),
-                };
-
-                let gen = indoor.generate(&params); // TODO: Streamline this.
-
-                offset = offset - gen.start.as_ivec3();
-                blocks = gen.blocks;
-                children = gen.children;
-                end_state =
-                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.)); // walls can be in the way
-
-                for line in gen.lines {
-                    lines.push(line + offset.to_vec3());
-                }
-            }
-            GenerationType::Cave(block_name) => {
-                let cave = CaveGenerator {
-                    block_name: block_name.to_owned(),
-                };
-
-                let gen = cave.generate(&params);
-
-                offset = offset - gen.start.as_ivec3();
-                blocks = gen.blocks;
-                children = gen.children;
-                end_state =
-                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
-
-                for line in gen.lines {
-                    lines.push(line + offset.to_vec3());
-                }
-            }
-            GenerationType::Snake(block_name) => {
-                // TODO: Add more options
-                let mut rng = rand::thread_rng();
-                let mut snake = SnakeGenerator {
-                    block_name: block_name.to_owned(),
-                    snake_count: 1,
-                    snake_length: 1,
-                    delay: 5,
-                    reverse: rng.gen(),
-                    poses: Vec::new(),
-                    end_pos: BlockPos::new(0, 0, 0),
-                };
-
-                while snake.poses.len() < 15 {
-                    snake.create_looping_snake(BlockPos::new(-10, 0, 0), BlockPos::new(10, 0, 120));
-                }
-
-                let len = snake.poses.len();
-
-                snake.snake_count = rng.gen_range(2..=4.min(len / 7));
-
-                while len % snake.snake_count != 0 {
-                    snake.snake_count = rng.gen_range(1..=4.min(len / 7));
-                }
-
-                snake.snake_length =
-                    rng.gen_range(len / snake.snake_count / 2..=len / snake.snake_count * 3 / 4);
-                let ratio =
-                    snake.snake_length as f32 * snake.snake_count as f32 / snake.poses.len() as f32;
-
-                if snake.snake_length > 100 {
-                    // 1 is just way too fast
-                    if ratio > 0.7 {
-                        snake.delay = 2;
-                    } else {
-                        snake.delay = rng.gen_range(2..=3);
-                    }
-                } else if snake.snake_length > 55 {
-                    snake.delay = rng.gen_range(2..=3);
-                } else if snake.snake_length > 35 {
-                    snake.delay = rng.gen_range(2..=4);
-                } else if snake.snake_length > 25 {
-                    snake.delay = rng.gen_range(3..=5);
-                } else if snake.snake_length > 15 {
-                    snake.delay = rng.gen_range(4..=6);
-                } else {
-                    snake.delay = rng.gen_range(5..=7);
-                }
-
-                let gen = snake.generate(&params);
-
-                offset = offset - gen.start.as_ivec3();
-                blocks = gen.blocks;
-                alt_blocks = gen.alt_blocks;
-                children = gen.children;
-                end_state =
-                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
-                ordered = false;
-
-                for line in gen.lines {
-                    lines.push(line + offset.to_vec3());
-                }
-            }
-            GenerationType::BlinkBlocks {
-                on,
-                off,
-                delay,
-                overlap,
-            } => {
-                // TODO: Add more options
-                let blink_blocks = BlinkBlocksGenerator {
-                    on: on.to_owned(),
-                    off: off.to_owned(),
-                    size: IVec2::new(3, 3),
-                    delay: *delay,
-                    overlap: *overlap,
-                };
-
-                let gen = blink_blocks.generate(&params);
-
-                offset = offset - gen.start.as_ivec3();
-                blocks = gen.blocks;
-                alt_blocks = gen.alt_blocks;
-                children = gen.children;
-                end_state =
-                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
-
-                for line in gen.lines {
-                    lines.push(line + offset.to_vec3());
-                }
-            }
-            GenerationType::SingleCustom(preset) => {
-                let gen = preset.generate(&params);
-
-                offset = offset - gen.start.as_ivec3();
-                blocks = gen.blocks;
-                children = gen.children;
-                end_state =
-                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
-
-                for line in gen.lines {
-                    lines.push(line + offset.to_vec3());
-                }
-            }
-            GenerationType::MultiCustom(preset) => {
-                let gen = preset.generate(&params);
-
-                offset = offset - gen.start.as_ivec3();
-                blocks = gen.blocks;
-                children = gen.children;
-                end_state =
-                    PredictionState::running_jump_block(offset + gen.end.as_ivec3(), random_yaw_dist(30.));
-
-                for line in gen.lines {
-                    lines.push(line + offset.to_vec3());
-                }
-            }
-            GenerationType::ComplexCustom(gen) => {
-                let mut gen = gen.clone();
-
-                let mut tries = 0;
-
-                let end = loop {
-                    if let Some(t) = gen.generate_dfs()
-                    {
-                        break t;
-                    }
-                    tries += 1;
-
-                    if tries > 100 {
-                        panic!("Failed to generate complex custom generation. Tried 100 times.");
-                    }
-
-                    println!("Failed to generate complex custom generation. Retrying...");
-                };
-
-                let end = BlockPos::new(
-                    end.x * gen.tile_size.x,
-                    end.y * gen.tile_size.y,
-                    (end.z + 1) * gen.tile_size.z - 1,
-                );
-
-                let gen = gen.generate(&params);
-
-                offset = offset - gen.start.as_ivec3();
-                blocks = gen.blocks;
-                children = gen.children;
-                end_state = PredictionState::running_jump_block(offset + end.as_ivec3(), random_yaw_dist(30.));
-
-                for line in gen.lines {
-                    lines.push(line + offset.to_vec3());
-                }
+                // end_state = PredictionState::running_jump_block(self.start, random_yaw());
+                end_block = self.start;
             }
         }
 
         Generation {
             blocks,
+            jump_blocks,
             children,
             alt_blocks,
             ordered,
             offset,
-            end_state,
+            end_block,
             lines,
         }
     }

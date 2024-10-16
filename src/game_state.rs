@@ -26,4 +26,5 @@ pub struct GameState {
     pub test_state: PredictionState,
     pub line_entities: HashMap<Line3, Entity>,
     pub lines: HashSet<Line3>,
+    pub prev_player_pos: DVec3,
 }

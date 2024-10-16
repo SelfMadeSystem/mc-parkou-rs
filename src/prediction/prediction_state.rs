@@ -101,13 +101,13 @@ impl PredictionState {
 
         let pos = self.pos.clone() - DVec3::new(PLAYER_WIDTH / 2., 0., PLAYER_WIDTH / 2.);
 
-        for x in 0..=2 {
+        for x in 0..=1 {
             for y in 0..=2 {
-                for z in 0..=2 {
+                for z in 0..=1 {
                     let block_pos = BlockPos::new(
-                        (pos.x + x as f64 * PLAYER_WIDTH / 2.).floor() as i32,
+                        (pos.x + x as f64 * PLAYER_WIDTH).floor() as i32,
                         (pos.y + y as f64 * PLAYER_HEIGHT / 2.).floor() as i32,
-                        (pos.z + z as f64 * PLAYER_WIDTH / 2.).floor() as i32,
+                        (pos.z + z as f64 * PLAYER_WIDTH).floor() as i32,
                     );
 
                     poses.insert(block_pos);
@@ -116,6 +116,49 @@ impl PredictionState {
         }
 
         poses.into_iter().collect()
+    }
+
+    /// Determines if the player is above a block.
+    pub fn is_above_block(&self, block_pos: BlockPos) -> bool {
+        let min_pos = self.pos - DVec3::new(PLAYER_WIDTH / 2., 0., PLAYER_WIDTH / 2.);
+        let max_pos = self.pos + DVec3::new(PLAYER_WIDTH / 2., 0., PLAYER_WIDTH / 2.);
+        let min_block = DVec3::new(block_pos.x as f64, block_pos.y as f64, block_pos.z as f64);
+        let max_block = DVec3::new(block_pos.x as f64 + 1., block_pos.y as f64 + 1., block_pos.z as f64 + 1.);
+
+        min_pos.x <= max_block.x
+            && max_pos.x >= min_block.x
+            && min_pos.y >= max_block.y
+            && min_pos.z <= max_block.z
+            && max_pos.z >= min_block.z
+    }
+
+    /// Determines if the player is intersecting with a block.
+    pub fn is_intersecting_block(&self, block_pos: BlockPos) -> bool {
+        let min_pos = self.pos - DVec3::new(PLAYER_WIDTH / 2., 0., PLAYER_WIDTH / 2.);
+        let max_pos = self.pos + DVec3::new(PLAYER_WIDTH / 2., PLAYER_HEIGHT, PLAYER_WIDTH / 2.);
+        let min_block = DVec3::new(block_pos.x as f64, block_pos.y as f64, block_pos.z as f64);
+        let max_block = DVec3::new(block_pos.x as f64 + 1., block_pos.y as f64 + 1., block_pos.z as f64 + 1.);
+
+        min_pos.x <= max_block.x
+            && max_pos.x >= min_block.x
+            && min_pos.y <= max_block.y
+            && max_pos.y >= min_block.y
+            && min_pos.z <= max_block.z
+            && max_pos.z >= min_block.z
+    }
+
+    /// Determines if the player is above any of the given blocks.
+    pub fn is_above_any_block(&self, blocks: &[BlockPos]) -> bool {
+        blocks
+            .iter()
+            .any(|block_pos| self.is_above_block(*block_pos))
+    }
+
+    /// Determines if the player is intersecting with any of the given blocks.
+    pub fn is_intersecting_any_block(&self, blocks: &[BlockPos]) -> bool {
+        blocks
+            .iter()
+            .any(|block_pos| self.is_intersecting_block(*block_pos))
     }
 
     pub fn tick(&mut self) {
@@ -187,11 +230,7 @@ impl PredictionState {
     fn get_accel(&self) -> DVec3 {
         let accel = 0.98f64;
 
-        return DVec3::new(
-            -accel * self.yaw.sin() as f64,
-            0.0,
-            accel * self.yaw.cos() as f64,
-        );
+        return DVec3::new(0.0, 0.0, accel);
     }
 
     fn handle_relative_friction_and_calculate_movement(&mut self, accel: DVec3) -> DVec3 {
@@ -214,12 +253,12 @@ impl PredictionState {
     }
 }
 
-fn get_input_vector(acecl: DVec3, speed: f32, yaw: f32) -> DVec3 {
-    let d0 = acecl.length_squared();
+fn get_input_vector(accel: DVec3, speed: f32, yaw: f32) -> DVec3 {
+    let d0 = accel.length_squared();
     if d0 < 1.0E-7 {
         DVec3::ZERO
     } else {
-        let vec3 = if d0 > 1.0 { acecl.normalize() } else { acecl } * speed as f64;
+        let vec3 = if d0 > 1.0 { accel.normalize() } else { accel } * speed as f64;
 
         let f = yaw.sin();
         let f1 = yaw.cos();
